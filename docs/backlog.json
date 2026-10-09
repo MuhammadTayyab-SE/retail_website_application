@@ -1,0 +1,238 @@
+[
+    {
+        "id":  "SETUP-001",
+        "title":  "Establish team and project baseline",
+        "priority":  "P0",
+        "status":  "In Development",
+        "dependencies":  "None",
+        "acceptanceCriteria":  [
+                                   "Required documents exist",
+                                   "Deployment isolation and shared source explicit",
+                                   "Unresolved decisions and prioritized tickets recorded",
+                                   "Independent PM and QA review recorded",
+                                   "Existing work preserved and no secrets"
+                               ],
+        "description":  "Owner: Developer subagent. Documentation only; no app features. PM review and QA validation required. User merge approval required."
+    },
+    {
+        "id":  "MVP-001",
+        "title":  "Django/PostgreSQL foundation (recommended first implementation)",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "SETUP-001 merged (Done); D-001 adopted. Portable scaffolding may proceed before D-002 hosting selection.",
+        "acceptanceCriteria":  [
+                                   "Django project and dependency lock exist",
+                                   "development and automated-test configuration uses PostgreSQL",
+                                   "configuration comes from environment",
+                                   "startup fails clearly for missing required settings",
+                                   "example environment contains placeholders only",
+                                   "health endpoint exposes no secrets",
+                                   "clean-install and test commands are documented and actually run",
+                                   "no storefront feature is included."
+                               ],
+        "description":  "- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Portable scaffolding may proceed before D-002 hosting selection.\n- Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included."
+    },
+    {
+        "id":  "MVP-002",
+        "title":  "Isolated retailer configuration and deployment template",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-001; D-002, D-003.",
+        "acceptanceCriteria":  [
+                                   "one code revision can configure two independent retailer instances",
+                                   "each runs on an independent hosting server and uses distinct domain, database/user, secrets, independent image storage and dedicated storage credentials",
+                                   "smoke checks demonstrate data and image isolation",
+                                   "deploy/rollback and backup/restore procedures are documented",
+                                   "production deployment remains approval-gated."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-001; D-002, D-003.\n- Acceptance: one code revision can configure two independent retailer instances; each runs on an independent hosting server and uses distinct domain, database/user, secrets, independent image storage and dedicated storage credentials; smoke checks demonstrate data and image isolation; deploy/rollback and backup/restore procedures are documented; production deployment remains approval-gated."
+    },
+    {
+        "id":  "MVP-003",
+        "title":  "Retailer staff authentication and access control",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-001; D-004 staff roles confirmed.",
+        "acceptanceCriteria":  [
+                                   "staff can log in/out",
+                                   "anonymous and unauthorized requests cannot access admin operations",
+                                   "approved roles grant only agreed capabilities",
+                                   "inactive users are rejected",
+                                   "tests cover direct URL/API access and permission failures",
+                                   "no public staff registration."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-001; D-004 staff roles confirmed.\n- Acceptance: staff can log in/out; anonymous and unauthorized requests cannot access admin operations; approved roles grant only agreed capabilities; inactive users are rejected; tests cover direct URL/API access and permission failures; no public staff registration."
+    },
+    {
+        "id":  "MVP-004",
+        "title":  "Dynamic categories",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-003; D-005 catalog rules.",
+        "acceptanceCriteria":  [
+                                   "authorized staff can create, edit, order and deactivate categories",
+                                   "storefront reads active categories from database",
+                                   "duplicate/invalid values receive useful errors",
+                                   "product-associated deletion behavior is defined and tested",
+                                   "empty catalog renders safely."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-003; D-005 catalog rules.\n- Acceptance: authorized staff can create, edit, order and deactivate categories; storefront reads active categories from database; duplicate/invalid values receive useful errors; product-associated deletion behavior is defined and tested; empty catalog renders safely."
+    },
+    {
+        "id":  "MVP-005",
+        "title":  "Products, variants and images",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-004, MVP-002; D-005, D-006.",
+        "acceptanceCriteria":  [
+                                   "staff manage products and agreed variant attributes/SKUs",
+                                   "products belong to database categories",
+                                   "active/inactive visibility is enforced",
+                                   "validated image uploads use configured storage",
+                                   "invalid uploads fail safely",
+                                   "variant identifiers are unique within the retailer",
+                                   "product and variant edit permissions are tested."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-004, MVP-002; D-005, D-006.\n- Acceptance: staff manage products and agreed variant attributes/SKUs; products belong to database categories; active/inactive visibility is enforced; validated image uploads use configured storage; invalid uploads fail safely; variant identifiers are unique within the retailer; product and variant edit permissions are tested."
+    },
+    {
+        "id":  "MVP-006",
+        "title":  "Variant prices and stock",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-005; D-007 country/tax/rounding (currency PKR agreed), D-008 stock rules.",
+        "acceptanceCriteria":  [
+                                   "authorized staff edit decimal prices and agreed stock quantities per variant",
+                                   "invalid/negative inputs are rejected as agreed",
+                                   "customer view uses database prices",
+                                   "unavailable variants cannot be ordered",
+                                   "concurrent purchase tests prevent overselling under agreed reservation rules",
+                                   "price and stock changes have agreed audit evidence."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-005; D-007 country/tax/rounding (currency PKR agreed), D-008 stock rules.\n- Acceptance: authorized staff edit decimal prices and agreed stock quantities per variant; invalid/negative inputs are rejected as agreed; customer view uses database prices; unavailable variants cannot be ordered; concurrent purchase tests prevent overselling under agreed reservation rules; price and stock changes have agreed audit evidence."
+    },
+    {
+        "id":  "MVP-007",
+        "title":  "Responsive browse, search and product detail",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-004-006; D-009 visual direction approved.",
+        "acceptanceCriteria":  [
+                                   "mobile and desktop layouts expose database categories, products, variants, current prices and availability",
+                                   "search/filter behavior is agreed and tested",
+                                   "empty/error states are usable",
+                                   "keyboard navigation and image descriptions work",
+                                   "browser evidence records viewport, browser and commit. Zilly is inspiration only",
+                                   "do not copy licensed assets."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-004-006; D-009 visual direction approved.\n- Acceptance: mobile and desktop layouts expose database categories, products, variants, current prices and availability; search/filter behavior is agreed and tested; empty/error states are usable; keyboard navigation and image descriptions work; browser evidence records viewport, browser and commit. Zilly is inspiration only; do not copy licensed assets."
+    },
+    {
+        "id":  "MVP-008",
+        "title":  "Cart and server-side totals",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-006-007; D-007, D-010 cart/identity.",
+        "acceptanceCriteria":  [
+                                   "customers add/update/remove agreed variants",
+                                   "quantities are validated",
+                                   "totals are calculated server-side using current authoritative prices",
+                                   "stale price and stock changes are explained",
+                                   "cart persistence follows agreed guest/account rules",
+                                   "tampered totals cannot affect order values."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-006-007; D-007, D-010 cart/identity.\n- Acceptance: customers add/update/remove agreed variants; quantities are validated; totals are calculated server-side using current authoritative prices; stale price and stock changes are explained; cart persistence follows agreed guest/account rules; tampered totals cannot affect order values."
+    },
+    {
+        "id":  "MVP-009",
+        "title":  "Branding and homepage banners",
+        "priority":  "P1",
+        "status":  "Backlog",
+        "dependencies":  "MVP-002-003, MVP-007; D-009.",
+        "acceptanceCriteria":  [
+                                   "staff configure retailer name, logo, agreed colors/contact fields and ordered active banners",
+                                   "configured branding appears responsively",
+                                   "invalid images/links are rejected",
+                                   "inactive banners are hidden",
+                                   "missing configuration has safe defaults."
+                               ],
+        "description":  "- Priority: P1. Dependencies: MVP-002-003, MVP-007; D-009.\n- Acceptance: staff configure retailer name, logo, agreed colors/contact fields and ordered active banners; configured branding appears responsively; invalid images/links are rejected; inactive banners are hidden; missing configuration has safe defaults."
+    },
+    {
+        "id":  "MVP-010",
+        "title":  "Delivery settings and checkout eligibility",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-003, MVP-008; D-011 delivery model.",
+        "acceptanceCriteria":  [
+                                   "staff configure agreed zones, charges, minimums and availability",
+                                   "checkout validates address/zone and delivery eligibility server-side",
+                                   "out-of-zone, closed-window and threshold failures are clear",
+                                   "fee boundaries are tested",
+                                   "customers see final delivery cost before submitting."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-003, MVP-008; D-011 delivery model.\n- Acceptance: staff configure agreed zones, charges, minimums and availability; checkout validates address/zone and delivery eligibility server-side; out-of-zone, closed-window and threshold failures are clear; fee boundaries are tested; customers see final delivery cost before submitting."
+    },
+    {
+        "id":  "MVP-011",
+        "title":  "Order placement and payment method",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-008, MVP-010; D-010, D-012 payment, D-013 order lifecycle.",
+        "acceptanceCriteria":  [
+                                   "agreed checkout fields validate",
+                                   "order stores immutable item/price/address snapshots",
+                                   "stock update and order creation are atomic",
+                                   "repeated submissions cannot create duplicate orders",
+                                   "payment behavior matches the approved MVP method",
+                                   "failures leave consistent stock/order state",
+                                   "confirmation reveals only authorized order data."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-008, MVP-010; D-010, D-012 payment, D-013 order lifecycle.\n- Acceptance: agreed checkout fields validate; order stores immutable item/price/address snapshots; stock update and order creation are atomic; repeated submissions cannot create duplicate orders; payment behavior matches the approved MVP method; failures leave consistent stock/order state; confirmation reveals only authorized order data."
+    },
+    {
+        "id":  "MVP-012",
+        "title":  "Admin order processing",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "MVP-003, MVP-011; D-013.",
+        "acceptanceCriteria":  [
+                                   "authorized staff list/filter orders and inspect snapshots",
+                                   "only agreed status transitions are permitted",
+                                   "cancellation/restocking behavior follows the decision",
+                                   "customer information access is restricted",
+                                   "transitions and concurrent edits have tested behavior and agreed audit history."
+                               ],
+        "description":  "- Priority: P0. Dependencies: MVP-003, MVP-011; D-013.\n- Acceptance: authorized staff list/filter orders and inspect snapshots; only agreed status transitions are permitted; cancellation/restocking behavior follows the decision; customer information access is restricted; transitions and concurrent edits have tested behavior and agreed audit history."
+    },
+    {
+        "id":  "MVP-013",
+        "title":  "Customer order access and notifications",
+        "priority":  "P1",
+        "status":  "Backlog",
+        "dependencies":  "MVP-011-012; D-010, D-014 notifications/privacy.",
+        "acceptanceCriteria":  [
+                                   "customers access only their authorized orders using the agreed mechanism",
+                                   "agreed notifications fire once for relevant events",
+                                   "provider failures do not corrupt orders",
+                                   "messages disclose no unrelated customer data",
+                                   "retention rules are documented."
+                               ],
+        "description":  "- Priority: P1. Dependencies: MVP-011-012; D-010, D-014 notifications/privacy.\n- Acceptance: customers access only their authorized orders using the agreed mechanism; agreed notifications fire once for relevant events; provider failures do not corrupt orders; messages disclose no unrelated customer data; retention rules are documented."
+    },
+    {
+        "id":  "MVP-014",
+        "title":  "Release validation and operational readiness",
+        "priority":  "P0",
+        "status":  "Backlog",
+        "dependencies":  "all approved MVP scope; D-002, D-014, D-015 launch scope.",
+        "acceptanceCriteria":  [
+                                   "independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data",
+                                   "backup restore is demonstrated",
+                                   "configuration, HTTPS, static/media handling, monitoring and rollback checks are recorded",
+                                   "unresolved release bugs are explicitly dispositioned by PM/user",
+                                   "deployment awaits user approval."
+                               ],
+        "description":  "- Priority: P0. Dependencies: all approved MVP scope; D-002, D-014, D-015 launch scope.\n- Acceptance: independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data; backup restore is demonstrated; configuration, HTTPS, static/media handling, monitoring and rollback checks are recorded; unresolved release bugs are explicitly dispositioned by PM/user; deployment awaits user approval."
+    }
+]
