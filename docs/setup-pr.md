@@ -1,17 +1,11 @@
-# Local development decisions follow-up
+# Local development scope decisions
 
-Previous setup PR16 is merged. This follow-up records the user's local development, local media and admin-only scope decisions. It contains documentation changes only and requires renewed exact-SHA QA and explicit user merge approval.
+Local catalog development should proceed without choosing production hosting or cloud storage. This documentation follow-up records the user's agreed local development/testing scope, local filesystem media and admin-only management. It preserves the eventual independent production domain, server, database, credentials and storage requirements while deferring production implementation details.
 
-The repository has no application scaffold or executable test suite. This setup establishes a PM/developer/QA workflow, retailer isolation architecture, requirements, decisions, and a prioritized MVP backlog before feature implementation.
+PM selects Django admin with one superuser/admin as the technical implementation choice. Anonymous, inactive and non-admin access must be denied. Local retailer instances use distinct ports/local hosts, databases/users, secrets and media roots; QA uses separate test database/media roots. Storage remains configurable for later cloud selection; upload limits remain explicit technical follow-up.
 
-All seven requested documents are included. Django and PostgreSQL are selected after inspecting the empty codebase; PKR is confirmed by the user. Country, payment, delivery, and other business choices remain explicit decisions. The previous ignored empty document placeholders remain untouched in the original checkout; docs are now tracked in this branch.
+Seven documentation files change: requirements, architecture, decisions, backlog Markdown/JSON, setup report and this PR description. MVP-002, MVP-003, MVP-005 context and MVP-014 now distinguish current local scope from deferred production readiness. All application tickets remain Backlog; no application code is included.
 
-The developer used chore/team-setup in an isolated worktree. PM independently reviewed requirements, architecture, dependencies and the diff, and requested fixes to hosting dependencies, explicit server/storage isolation, backlog serialization and text encoding. Those fixes are included. QA prepares scenarios independently and validates the exact final PR SHA in a separate detached checkout; final results will be recorded in a PR comment.
+Links: [DOC-001 / #17](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/17); prior setup [PR #16](https://github.com/MuhammadTayyab-SE/retail_website_application/pull/16) is merged. Developer owns docs/local-development-decisions in an isolated worktree, targeting development.
 
-Validation: backlog JSON parses as 15 tickets with acceptance criteria; document and whitespace checks run. Application, browser, permission, and database tests cannot run because no application exists; documentation review does not validate future application behavior.
-
-GitHub issue links are recorded in docs/github-issues.json. SETUP-001 is owned by the Developer role and coordinated by PM; no AI GitHub accounts are invented. All application tickets remain Backlog. Recommended first ticket is MVP-001: portable Django/PostgreSQL foundation, after setup is reviewed and merged.
-
-No application features, base-branch pushes, merge, production deployment, or branch-protection changes are included. The original setup PR targeted development and has been merged. The follow-up PR targets development and awaits explicit user merge approval. Done means merged.
-
-Current scope clarification: run/test locally, use configurable local filesystem media with distinct retailer/test roots, and support only the admin role. PM selects Django admin with a single superuser/admin; custom admin UI and staff role matrices are deferred. Production hosting/OS/rollout/retention/recovery details and cloud storage are deferred; eventual independent production infrastructure remains required. Upload limits remain explicit technical follow-up. SETUP-001 is Done following merged PR16. This documentation revision is owned by Developer, coordinated by PM, and independently validated by QA; all application tickets remain Backlog. Renewed independent QA must validate this revision's exact commit.
+Validation: staged whitespace check and 15-ticket JSON parse ran. Independent QA and PM review must validate the final exact commit before Awaiting My Review. Application/browser/database tests remain unavailable because no scaffold exists. Merge requires explicit user approval; no production or protection changes are included.

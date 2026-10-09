@@ -1,6 +1,6 @@
 # Decision register
 
-Statuses: Agreed, Proposed, Unresolved. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-09.
+Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled local choice; "production deferred" and "cloud deferred" preserve future decisions without blocking local implementation. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-09.
 
 | ID | Status | Decision / question | Impact / blocking tickets |
 |---|---|---|---|
