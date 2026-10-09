@@ -7,15 +7,15 @@ from collections.abc import Mapping
 from django.core.exceptions import ImproperlyConfigured
 
 
-def required(env: Mapping[str, str], name: str) -> str:
-    value = env.get(name, "").strip()
-    if not value or value.startswith("replace-"):
+def required(env: Mapping[str, str], name: str, *, preserve: bool = False) -> str:
+    value = env.get(name, "")
+    if not value.strip() or value.strip().startswith("replace-"):
         raise ImproperlyConfigured(f"{name} must be configured with a non-placeholder value.")
-    return value
+    return value if preserve else value.strip()
 
 
 def configuration(env: Mapping[str, str]) -> dict:
-    secret = required(env, "DJANGO_SECRET_KEY")
+    secret = required(env, "DJANGO_SECRET_KEY", preserve=True)
     if len(secret) < 50:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must contain at least 50 characters.")
     debug = required(env, "DJANGO_DEBUG").lower()
@@ -57,7 +57,7 @@ def configuration(env: Mapping[str, str]) -> dict:
         "ENGINE": "django.db.backends.postgresql",
         "NAME": name,
         "USER": required(env, "DB_USER"),
-        "PASSWORD": required(env, "DB_PASSWORD"),
+        "PASSWORD": required(env, "DB_PASSWORD", preserve=True),
         "HOST": required(env, "DB_HOST"),
         "PORT": int(port),
         "TEST": {"NAME": test_name},

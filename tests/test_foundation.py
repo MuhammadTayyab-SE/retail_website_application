@@ -29,6 +29,13 @@ class EnvironmentTests(TestCase):
         self.assertFalse(result["DEBUG"])
         self.assertEqual(result["DATABASES"]["default"]["ENGINE"], "django.db.backends.postgresql")
 
+    def test_secret_and_password_preserve_significant_whitespace(self):
+        secret = "  " + self.env["DJANGO_SECRET_KEY"] + " \t"
+        password = "  synthetic-password \t"
+        result = configuration(self.env | {"DJANGO_SECRET_KEY": secret, "DB_PASSWORD": password})
+        self.assertEqual(result["SECRET_KEY"], secret)
+        self.assertEqual(result["DATABASES"]["default"]["PASSWORD"], password)
+
     def test_every_required_setting_rejects_missing_blank_and_placeholder(self):
         for name in self.env:
             for value in (None, " ", "replace-this"):

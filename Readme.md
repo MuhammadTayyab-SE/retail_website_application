@@ -1,4 +1,4 @@
-﻿# Grocery application foundation
+# Grocery application foundation
 
 Python 3.13, Django 5.2 LTS and PostgreSQL 17+ are required. No storefront, catalog or admin exists. GET/HEAD `/health/` is process liveness only, independent of database availability: JSON `{"status":"ok"}`, Cache-Control no-store. Other methods return 405; root/admin return 404.
 
@@ -66,4 +66,4 @@ Pure environment tests can run without a database: `uv run --frozen python -m un
 
 ## Current environment limitation
 
-Frozen dependency installation, Django system check, four pure configuration tests and lint/format checks ran successfully. Windows Application Control blocks both local PostgreSQL initdb and the psycopg binary DLL on this workstation; approved PostgreSQL and psycopg/libpq runtimes are required. Database migration/full Django tests and HTTP/browser validation are blocked, not passed. Do not bypass host controls or replace PostgreSQL with SQLite/cloud. See docs/tickets/MVP-001.md for evidence.
+Frozen dependency installation, Django system check, five pure configuration tests and lint/format checks ran successfully. Windows Application Control blocks both local PostgreSQL initdb and the psycopg binary DLL on this workstation; approved PostgreSQL and psycopg/libpq runtimes are required. Database migration/full Django tests and the documented runserver migration probe are blocked, not passed. Independent QA exercised the normal config.wsgi application through stdlib wsgiref without backend alterations: 11 HTTP scenarios passed on the prior candidate. This commit requires renewed QA; no browser result is claimed here. Do not bypass host controls or replace PostgreSQL with SQLite/cloud. See docs/tickets/MVP-001.md for evidence.
