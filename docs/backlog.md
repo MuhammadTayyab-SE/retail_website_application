@@ -5,7 +5,7 @@ GitHub authenticated REST access is verified; CLI is absent. PM created the 15 G
 Workflow: Backlog -> Ready -> In Development -> In QA -> Awaiting My Review -> Done. Use Changes Required or Blocked with a reason and next action. Done requires merge. Only one implementation ticket may be active initially.
 
 ## SETUP-001 - Establish team and project baseline
-- Priority: P0. State: In Development. Owner: Developer subagent. Reviewer: PM / Technical Lead. Validator: QA subagent.
+- Priority: P0. State: Done (merged PR16). Owner: Developer subagent. Reviewer: PM / Technical Lead. Validator: QA subagent.
 - Scope: documentation and repository hygiene only; no application implementation.
 - Acceptance: required documents exist; deployment isolation and shared source are explicit; unresolved decisions are recorded; prioritized tickets have acceptance criteria and dependencies; PM and independent QA review are recorded; no secrets or existing work are overwritten.
 - Dependencies: none.
@@ -16,16 +16,16 @@ Workflow: Backlog -> Ready -> In Development -> In QA -> Awaiting My Review -> D
 All tickets below are Backlog and unowned. PM may move a ticket to Ready only when its dependencies and material decisions are resolved. Each ticket must link its eventual Issue, branch, draft PR, reviewed commit, and evidence.
 
 ### MVP-001 - Django/PostgreSQL foundation (recommended first implementation)
-- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Portable scaffolding may proceed before D-002 hosting selection.
+- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.
 - Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included.
 
-### MVP-002 - Isolated retailer configuration and deployment template
-- Priority: P0. Dependencies: MVP-001; D-002, D-003.
-- Acceptance: one code revision can configure two independent retailer instances; each runs on an independent hosting server and uses distinct domain, database/user, secrets, independent image storage and dedicated storage credentials; smoke checks demonstrate data and image isolation; deploy/rollback and backup/restore procedures are documented; production deployment remains approval-gated.
+### MVP-002 - Isolated local retailer configuration
+- Priority: P0. Dependencies: MVP-001; current local D-002/D-003 agreed.
+- Acceptance: one code revision configures two independent local retailer instances on one development machine; instances use distinct ports/local hosts, PostgreSQL databases/users, secrets and filesystem media roots; test media roots are separate and media is gitignored; storage backend remains configurable for later cloud selection; smoke checks demonstrate data and image isolation; eventual independent production servers/domains/storage remain required but deferred; no cloud setup or production deployment is included.
 
 ### MVP-003 - Retailer staff authentication and access control
-- Priority: P0. Dependencies: MVP-001; D-004 staff roles confirmed.
-- Acceptance: staff can log in/out; anonymous and unauthorized requests cannot access admin operations; approved roles grant only agreed capabilities; inactive users are rejected; tests cover direct URL/API access and permission failures; no public staff registration.
+- Priority: P0. Dependencies: MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.
+- Acceptance: single admin/superuser can log in/out through Django admin; anonymous, inactive and non-admin users cannot access admin operations; tests cover direct URL access and permission failures; no staff role matrix, custom admin UI or public registration is included.
 
 ### MVP-004 - Dynamic categories
 - Priority: P0. Dependencies: MVP-003; D-005 catalog rules.
@@ -67,9 +67,9 @@ All tickets below are Backlog and unowned. PM may move a ticket to Ready only wh
 - Priority: P1. Dependencies: MVP-011-012; D-010, D-014 notifications/privacy.
 - Acceptance: customers access only their authorized orders using the agreed mechanism; agreed notifications fire once for relevant events; provider failures do not corrupt orders; messages disclose no unrelated customer data; retention rules are documented.
 
-### MVP-014 - Release validation and operational readiness
-- Priority: P0. Dependencies: all approved MVP scope; D-002, D-014, D-015 launch scope.
-- Acceptance: independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data; backup restore is demonstrated; configuration, HTTPS, static/media handling, monitoring and rollback checks are recorded; unresolved release bugs are explicitly dispositioned by PM/user; deployment awaits user approval.
+### MVP-014 - Local release validation and deferred production readiness
+- Priority: P0. Dependencies: all approved local MVP scope; D-014 and D-015 local validation needs.
+- Acceptance: independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data; local clean-install/startup, configuration and isolated database/media checks are recorded; unavailable local checks and unresolved bugs are explicitly dispositioned by PM/user; production hosting, HTTPS, monitoring, backup retention/recovery and rollout validation are deferred to a future production-readiness ticket; production deployment remains gated on explicit user approval.
 
 ## Bug ticket template
 

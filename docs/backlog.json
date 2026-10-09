@@ -3,7 +3,7 @@
         "id":  "SETUP-001",
         "title":  "Establish team and project baseline",
         "priority":  "P0",
-        "status":  "In Development",
+        "status":  "Done",
         "dependencies":  "None",
         "acceptanceCriteria":  [
                                    "Required documents exist",
@@ -19,7 +19,7 @@
         "title":  "Django/PostgreSQL foundation (recommended first implementation)",
         "priority":  "P0",
         "status":  "Backlog",
-        "dependencies":  "SETUP-001 merged (Done); D-001 adopted. Portable scaffolding may proceed before D-002 hosting selection.",
+        "dependencies":  "SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.",
         "acceptanceCriteria":  [
                                    "Django project and dependency lock exist",
                                    "development and automated-test configuration uses PostgreSQL",
@@ -30,38 +30,38 @@
                                    "clean-install and test commands are documented and actually run",
                                    "no storefront feature is included."
                                ],
-        "description":  "- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Portable scaffolding may proceed before D-002 hosting selection.\n- Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included."
+        "description":  "- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.\n- Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included."
     },
     {
         "id":  "MVP-002",
-        "title":  "Isolated retailer configuration and deployment template",
+        "title":  "Isolated local retailer configuration",
         "priority":  "P0",
         "status":  "Backlog",
-        "dependencies":  "MVP-001; D-002, D-003.",
+        "dependencies":  "MVP-001; current local D-002/D-003 agreed.",
         "acceptanceCriteria":  [
-                                   "one code revision can configure two independent retailer instances",
-                                   "each runs on an independent hosting server and uses distinct domain, database/user, secrets, independent image storage and dedicated storage credentials",
+                                   "one code revision configures two independent local retailer instances on one development machine",
+                                   "instances use distinct ports/local hosts, PostgreSQL databases/users, secrets and filesystem media roots",
+                                   "test media roots are separate and media is gitignored",
+                                   "storage backend remains configurable for later cloud selection",
                                    "smoke checks demonstrate data and image isolation",
-                                   "deploy/rollback and backup/restore procedures are documented",
-                                   "production deployment remains approval-gated."
+                                   "eventual independent production servers/domains/storage remain required but deferred",
+                                   "no cloud setup or production deployment is included."
                                ],
-        "description":  "- Priority: P0. Dependencies: MVP-001; D-002, D-003.\n- Acceptance: one code revision can configure two independent retailer instances; each runs on an independent hosting server and uses distinct domain, database/user, secrets, independent image storage and dedicated storage credentials; smoke checks demonstrate data and image isolation; deploy/rollback and backup/restore procedures are documented; production deployment remains approval-gated."
+        "description":  "- Priority: P0. Dependencies: MVP-001; current local D-002/D-003 agreed.\n- Acceptance: one code revision configures two independent local retailer instances on one development machine; instances use distinct ports/local hosts, PostgreSQL databases/users, secrets and filesystem media roots; test media roots are separate and media is gitignored; storage backend remains configurable for later cloud selection; smoke checks demonstrate data and image isolation; eventual independent production servers/domains/storage remain required but deferred; no cloud setup or production deployment is included."
     },
     {
         "id":  "MVP-003",
         "title":  "Retailer staff authentication and access control",
         "priority":  "P0",
         "status":  "Backlog",
-        "dependencies":  "MVP-001; D-004 staff roles confirmed.",
+        "dependencies":  "MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.",
         "acceptanceCriteria":  [
-                                   "staff can log in/out",
-                                   "anonymous and unauthorized requests cannot access admin operations",
-                                   "approved roles grant only agreed capabilities",
-                                   "inactive users are rejected",
-                                   "tests cover direct URL/API access and permission failures",
-                                   "no public staff registration."
+                                   "single admin/superuser can log in/out through Django admin",
+                                   "anonymous, inactive and non-admin users cannot access admin operations",
+                                   "tests cover direct URL access and permission failures",
+                                   "no staff role matrix, custom admin UI or public registration is included."
                                ],
-        "description":  "- Priority: P0. Dependencies: MVP-001; D-004 staff roles confirmed.\n- Acceptance: staff can log in/out; anonymous and unauthorized requests cannot access admin operations; approved roles grant only agreed capabilities; inactive users are rejected; tests cover direct URL/API access and permission failures; no public staff registration."
+        "description":  "- Priority: P0. Dependencies: MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.\n- Acceptance: single admin/superuser can log in/out through Django admin; anonymous, inactive and non-admin users cannot access admin operations; tests cover direct URL access and permission failures; no staff role matrix, custom admin UI or public registration is included."
     },
     {
         "id":  "MVP-004",
@@ -222,17 +222,17 @@
     },
     {
         "id":  "MVP-014",
-        "title":  "Release validation and operational readiness",
+        "title":  "Local release validation and deferred production readiness",
         "priority":  "P0",
         "status":  "Backlog",
-        "dependencies":  "all approved MVP scope; D-002, D-014, D-015 launch scope.",
+        "dependencies":  "all approved local MVP scope; D-014 and D-015 local validation needs.",
         "acceptanceCriteria":  [
                                    "independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data",
-                                   "backup restore is demonstrated",
-                                   "configuration, HTTPS, static/media handling, monitoring and rollback checks are recorded",
-                                   "unresolved release bugs are explicitly dispositioned by PM/user",
-                                   "deployment awaits user approval."
+                                   "local clean-install/startup, configuration and isolated database/media checks are recorded",
+                                   "unavailable local checks and unresolved bugs are explicitly dispositioned by PM/user",
+                                   "production hosting, HTTPS, monitoring, backup retention/recovery and rollout validation are deferred to a future production-readiness ticket",
+                                   "production deployment remains gated on explicit user approval."
                                ],
-        "description":  "- Priority: P0. Dependencies: all approved MVP scope; D-002, D-014, D-015 launch scope.\n- Acceptance: independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data; backup restore is demonstrated; configuration, HTTPS, static/media handling, monitoring and rollback checks are recorded; unresolved release bugs are explicitly dispositioned by PM/user; deployment awaits user approval."
+        "description":  "- Priority: P0. Dependencies: all approved local MVP scope; D-014 and D-015 local validation needs.\n- Acceptance: independent QA runs agreed positive/negative/permission/concurrency and mobile/desktop regression on exact release SHA with synthetic data; local clean-install/startup, configuration and isolated database/media checks are recorded; unavailable local checks and unresolved bugs are explicitly dispositioned by PM/user; production hosting, HTTPS, monitoring, backup retention/recovery and rollout validation are deferred to a future production-readiness ticket; production deployment remains gated on explicit user approval."
     }
 ]
