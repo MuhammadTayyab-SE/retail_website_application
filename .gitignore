@@ -1,1 +1,14 @@
-docs/
+# Local secrets and generated Python artifacts
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.sqlite3
+media/
+staticfiles/
