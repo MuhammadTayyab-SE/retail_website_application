@@ -1,0 +1,61 @@
+from django.core.exceptions import ValidationError
+from django.db import connection, models, transaction
+from django.db.models.functions import Lower, Trim
+
+
+class CategoryQuerySet(models.QuerySet):
+    def delete(self):
+        raise ValidationError("Categories cannot be deleted. Deactivate them instead.")
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="children"
+    )
+    position = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
+    is_active = models.BooleanField(default=True)
+
+    objects = CategoryQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["position", "name", "pk"]
+        verbose_name_plural = "categories"
+        constraints = [
+            models.UniqueConstraint(Lower(Trim("name")), name="category_name_normalized_unique"),
+            models.CheckConstraint(condition=~models.Q(name=""), name="category_name_not_empty"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Enter a category name."})
+        duplicates = Category.objects.filter(name__iexact=self.name).exclude(pk=self.pk)
+        if duplicates.exists():
+            raise ValidationError({"name": "A category with this name already exists."})
+        seen = {self.pk} if self.pk else set()
+        ancestor_id = self.parent_id
+        while ancestor_id is not None:
+            if ancestor_id in seen:
+                raise ValidationError(
+                    {"parent": "A category cannot contain itself or an ancestor."}
+                )
+            seen.add(ancestor_id)
+            ancestor_id = (
+                Category.objects.filter(pk=ancestor_id).values_list("parent_id", flat=True).first()
+            )
+
+    def save(self, *args, **kwargs):
+        # Serialize hierarchy validation so concurrent reparenting cannot create a cycle.
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(734003004)")
+            self.full_clean()
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError("Categories cannot be deleted. Deactivate them instead.")

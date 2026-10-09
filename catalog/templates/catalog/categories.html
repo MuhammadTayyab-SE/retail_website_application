@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Categories</title>
+</head>
+<body>
+  <main>
+    <h1>Categories</h1>
+    <ul>
+      {% for item in categories %}
+      <li>{{ item.path }}</li>
+      {% empty %}
+      <li>No categories are available yet.</li>
+      {% endfor %}
+    </ul>
+  </main>
+</body>
+</html>

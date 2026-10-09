@@ -107,7 +107,7 @@ class HealthTests(SimpleTestCase):
         response = self.client.get("/health/", HTTP_HOST="untrusted.invalid")
         self.assertEqual(response.status_code, 400)
         self.assertNotContains(response, settings.SECRET_KEY, status_code=400)
-        for route in ("/", "/admin/", "/products/"):
+        for route in ("/", "/products/"):
             self.assertEqual(self.client.get(route).status_code, 404)
 
 

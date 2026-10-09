@@ -1,6 +1,6 @@
 # Grocery application foundation
 
-Python 3.13, Django 5.2 LTS and PostgreSQL 17+ are required. No storefront, catalog or admin exists. GET/HEAD `/health/` is process liveness only, independent of database availability: JSON `{"status":"ok"}`, Cache-Control no-store. Other methods return 405; root/admin return 404.
+Python 3.13, Django 5.2 LTS and PostgreSQL 17+ are required. `/admin/` provides owner-only category management; `/categories/` lists active category paths. GET/HEAD `/health/` is process liveness only, independent of database availability: JSON `{"status":"ok"}`, Cache-Control no-store. Other health methods return 405; root and product routes return 404.
 
 ## Install and configure (PowerShell)
 
@@ -60,10 +60,37 @@ uv run --frozen ruff format --check .
 uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload
 ```
 
-In another terminal: `Invoke-RestMethod http://127.0.0.1:8000/health/`. Stop server with Ctrl+C; stop your local cluster with `& "$pgBin\pg_ctl.exe" -D "$PWD\.local\pgdata" stop`. Migrations currently have no application tables. This is local development only; retailer configuration/admin/cloud/production hardening are future tickets.
+In another terminal: `Invoke-RestMethod http://127.0.0.1:8000/health/`. Stop server with Ctrl+C; stop your local cluster with `& "$pgBin\pg_ctl.exe" -D "$PWD\.local\pgdata" stop`. Migrations now create Django authentication/session/admin tables and catalog categories. This is local development only; products, cloud and production hardening are future scope.
+
+## Owner login and category management (MVP-003 / MVP-004)
+
+After configuring the environment and running migrations, create your local owner interactively:
+
+```powershell
+uv run --frozen python manage.py createsuperuser
+uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload
+```
+
+Open `http://127.0.0.1:8000/admin/`. Only active staff superusers can log in or access
+admin operations. Logout uses the admin's POST form. No default account/password is provided.
+For local admin CSS with `DJANGO_DEBUG=false`, first run `uv run --frozen python manage.py collectstatic --noinput`
+and use `uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload --insecure`.
+The `--insecure` flag is for local static asset serving only, never production. Alternatively,
+set `DJANGO_DEBUG=true` for local development. Keep explicit allowed hosts configured.
+
+Under Catalog > Categories, create names (up to 100 characters), optionally select a parent,
+set sibling position (lower first) and toggle Active. Names are unique across the hierarchy,
+ignoring case and surrounding whitespace. Cycles and negative positions are rejected.
+Deleting categories is disabled; deactivate instead. An inactive parent hides all descendants
+from `http://127.0.0.1:8000/categories/`, without changing their own active flags.
+The public page includes an empty state; products and storefront styling are later tickets.
+
+The implementation is in the isolated `retail-mvp-003-004` checkout on
+`feature/mvp-003-004-admin-categories`. The main checkout remains unchanged until review/merge.
+See [implementation and validation notes](docs/tickets/MVP-003-004.md).
 
 Pure environment tests can run without a database: `uv run --frozen python -m unittest tests.test_foundation.EnvironmentTests -v`. This does not validate HTTP or PostgreSQL. Full tests include real PostgreSQL test-database verification and transaction rollback.
 
-## Current environment limitation
+## Foundation validation history
 
 Frozen dependency installation, Django system check, five pure configuration tests and lint/format checks ran successfully. Windows Application Control blocks both local PostgreSQL initdb and the psycopg binary DLL on this workstation; approved PostgreSQL and psycopg/libpq runtimes are required. Database migration/full Django tests and the documented runserver migration probe are blocked, not passed. Independent QA exercised the normal config.wsgi application through stdlib wsgiref without backend alterations: 11 HTTP scenarios passed on the prior candidate. This commit requires renewed QA; no browser result is claimed here. Do not bypass host controls or replace PostgreSQL with SQLite/cloud. See docs/tickets/MVP-001.md for evidence.
