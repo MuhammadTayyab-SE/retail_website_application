@@ -13,9 +13,9 @@ Workflow: Backlog -> Ready -> In Development -> In QA -> Awaiting My Review -> D
 
 ## MVP tickets
 
-All tickets below are Backlog and unowned. PM may move a ticket to Ready only when its dependencies and material decisions are resolved. Each ticket must link its eventual Issue, branch, draft PR, reviewed commit, and evidence.
+MVP-001 is Blocked by Windows Application Control (PostgreSQL/driver runtime unavailable), owned by Developer role; PM recorded Ready -> In Development on Issue #2 before implementation. All other application tickets are Backlog and unowned. PM may move a ticket to Ready only when its dependencies and material decisions are resolved. Each ticket must link its eventual Issue, branch, draft PR, reviewed commit, and evidence.
 
-### MVP-001 - Django/PostgreSQL foundation (recommended first implementation)
+### MVP-001 - Django/PostgreSQL foundation (active implementation)
 - Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.
 - Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included.
 

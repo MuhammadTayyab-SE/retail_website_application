@@ -18,7 +18,7 @@
         "id":  "MVP-001",
         "title":  "Django/PostgreSQL foundation (recommended first implementation)",
         "priority":  "P0",
-        "status":  "Backlog",
+        "status":  "Blocked",
         "dependencies":  "SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.",
         "acceptanceCriteria":  [
                                    "Django project and dependency lock exist",
@@ -30,7 +30,7 @@
                                    "clean-install and test commands are documented and actually run",
                                    "no storefront feature is included."
                                ],
-        "description":  "- Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.\n- Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included."
+        "description":  "Owner: Developer role. Issue #2 claimed before work. - Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.\n- Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included."
     },
     {
         "id":  "MVP-002",
