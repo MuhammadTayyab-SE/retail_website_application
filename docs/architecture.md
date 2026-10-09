@@ -15,4 +15,3 @@ Proposed data relationships: category -> products -> variants; variant -> price/
 
 ## Release and testing
 Feature branches and isolated worktrees target development through draft PRs. QA tests the exact candidate SHA in a separate checkout with a disposable PostgreSQL database and synthetic media/data. Tests must never connect to production. Per-retailer release rollout and rollback must be versioned, migrations reviewed, and restore procedures demonstrated before launch. Production deployment requires explicit user approval. CI, monitoring, backups and concrete command support are future tickets, not existing capabilities.
-

@@ -16,4 +16,3 @@ No application features are authorized in the first assignment. Tickets in docs/
 
 ## Business decisions
 All unresolved choices are tracked as D-002 through D-015 in docs/decisions.md, with impact and blocking tickets. PM resolves ordinary implementation questions from agreed requirements and asks the user for material business decisions.
-

@@ -23,6 +23,3 @@ Statuses: Agreed, Proposed, Unresolved. PM owns this register; record date, user
 | D-017 | Agreed | User approval required for merge, production deploy and branch-protection changes; no direct protected-base pushes. | All workflow |
 
 No unresolved business requirement is silently treated as an approved default. PM should prioritize launch country/currency/payment, staff admin approach and delivery model before making dependent tickets Ready. Infrastructure research can continue without production changes.
-
-
-
