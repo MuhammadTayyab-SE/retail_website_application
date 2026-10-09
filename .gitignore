@@ -12,3 +12,7 @@ htmlcov/
 *.sqlite3
 media/
 staticfiles/
+
+.uv-cache/
+.ruff_cache/
+.local/
