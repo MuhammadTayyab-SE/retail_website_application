@@ -15,7 +15,7 @@ Responsive layouts, usable keyboard flows, clear validation/empty/error states, 
 No application features are authorized in the first assignment. Tickets in docs/backlog.md describe proposed MVP increments and cannot become Ready while their material dependencies are unresolved. Django/PostgreSQL is adopted as the technical baseline in decisions.md following the empty-code finding. No cross-retailer shared data plane, marketplace or central retailer administration is assumed.
 
 ## Business decisions
-All unresolved choices are tracked as D-002 through D-015 in docs/decisions.md, with impact and blocking tickets. PM resolves ordinary implementation questions from agreed requirements and asks the user for material business decisions.
+Agreed choices, deferred production questions, and unresolved business choices are tracked as D-002 through D-015 in docs/decisions.md, with impact and blocking tickets. PM resolves ordinary implementation questions from agreed requirements and asks the user for material business decisions.
 
 ## Current delivery scope
 

@@ -3,8 +3,8 @@
 ## Repository evidence and proposed stack
 The inspected repository has only an empty Readme.md and a .gitignore that ignored docs/. There is no existing application, framework, dependency manifest, schema, test suite or CI to preserve or migrate. Django and PostgreSQL are therefore a reasonable adopted foundation (D-001). No runtime architecture has been implemented or validated.
 
-## Shared source, isolated deployments
-One repository and versioned release artifact supply every retailer. Each retailer runs its own Django application on its own hosting server, behind HTTPS at its own domain. Each deployment connects only to that retailer's PostgreSQL database using dedicated credentials and to independent image storage using dedicated credentials. Isolation must also cover caches, background jobs, backups and logs if introduced. Do not introduce a shared tenant database or trust a client-supplied retailer ID for isolation.
+## Shared source and eventual production deployments
+The following deployment requirements describe eventual production; the current local development exception is defined below. One repository and versioned release artifact supply every retailer. Each retailer runs its own Django application on its own hosting server, behind HTTPS at its own domain. Each deployment connects only to that retailer's PostgreSQL database using dedicated credentials and to independent image storage using dedicated credentials. Isolation must also cover caches, background jobs, backups and logs if introduced. Do not introduce a shared tenant database or trust a client-supplied retailer ID for isolation.
 
 Retailer environment configuration selects database, allowed hosts, trusted origins, storage, secret keys and service credentials. Retailer branding/content belongs in its database; secrets stay outside source control. Validate required configuration at startup. The precise host, reverse proxy, process manager, storage provider and secret delivery mechanism depend on D-002/D-003.
 
