@@ -16,3 +16,7 @@ No application features are authorized in the first assignment. Tickets in docs/
 
 ## Business decisions
 All unresolved choices are tracked as D-002 through D-015 in docs/decisions.md, with impact and blocking tickets. PM resolves ordinary implementation questions from agreed requirements and asks the user for material business decisions.
+
+## Current delivery scope
+
+Run and test everything locally. Production hosting, server OS, rollout, backup retention and recovery objectives are deferred. Use local filesystem media with separate retailer and test roots, gitignored; preserve configurable storage for later cloud selection. Upload limits remain an explicit technical follow-up. Only the admin role is in scope now; PM chooses Django admin with a single superuser/admin. Staff role matrices and a custom admin UI are outside current scope unless requested later. The eventual independent production domain, server, database, credentials and image storage requirements remain agreed.
