@@ -21,6 +21,7 @@ class AdminVisualIntegrationTests(TestCase):
     def test_dashboard_uses_database_counts_and_escapes_category_names(self):
         response = self.client.get(reverse("admin:index"))
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "retail_admin/index.html")
         self.assertEqual(
             response.context["category_summary"],
             {"total": 1, "active": 0, "inactive": 1, "roots": 0},
