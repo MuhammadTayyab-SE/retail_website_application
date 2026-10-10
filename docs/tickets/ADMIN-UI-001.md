@@ -82,3 +82,15 @@ Developer checks for this revision: Django system check passed with zero issues;
 User supplied `supporting docs/POS-Standalone.html` as the visual reference. Developer consolidated shared CSS into a navy/emerald/mint workspace with white cards and compact controls, removed the promotional dashboard banner, retained real category counts/table/activity, and added the actual administrator profile to the sidebar. Login uses the same palette. No sample sales, stores, POS workflows or demo role switches were introduced. Same branch/worktree/PR #25; status In Development. QA remains deferred; earlier checks concern previous candidates only.
 
 POS revision developer checks: Django system check passed (0 issues); template compilation and diff checks performed before publication. No independent QA or browser visual checks run for this revision.
+
+## Exact-token shell redesign - 2026-10-10
+
+Latest user request supersedes earlier QA deferral and POS styling direction. The supplied screenshot is evidence of the current implementation, not a desired mockup. Work continues in the same worktree, branch and PR #25.
+
+Diagnosis: prior base_site overrides relied on Django base/sidebar styles for structural layout, while custom sidebar selectors and a second shortcut navigation added competing presentation. Template lookup is correct and local native static assets return HTTP 200; no missing stylesheet was reproduced. The screenshot itself shows a left sidebar, so the reported stacked variant was not reproduced. The replacement base explicitly owns the sidebar/workspace grid, preserves native template media/content/popup blocks, and removes native sidebar CSS/JS dependency and duplicate shortcuts.
+
+Shared scoped variables use the requested exact palette. Desktop shell is 248px/64px with 32px content padding; dashboard has four white real-data cards and 2:1 category/activity panels. Lists, forms, account and login styling share the palette. Mobile menu has a labeled trigger, close button, backdrop, Escape, focus containment/return and inert background; tables scroll inside their containers. Icons use the existing inline stroke SVG style.
+
+Developer verification on final source: all 31 tests passed against a uniquely named disposable PostgreSQL test database (destroyed afterward); Django system check, Ruff lint/format and diff check passed. Static collection succeeded; nine native CSS/JS asset URLs returned HTTP 200. Existing tests exercise category viewing, creation/editing, validation, permissions and authentication/account flows. Independent PM source review found no remaining source blockers after the mobile accessibility fix.
+
+Browser runtime exposes no available browser. Desktop/mobile screenshots, actual computed layout/contrast, interactive drawer behavior and console-error inspection remain outstanding. No visual acceptance or independent QA pass is claimed. Ticket remains In Development until those checks are completed.

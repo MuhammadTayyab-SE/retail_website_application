@@ -3,14 +3,10 @@
 {% block title %}{{ title }} | {{ site_title|default:_("Retail admin") }}{% endblock %}
 {% block dark-mode-vars %}{% endblock %}
 {% block responsive %}{{ block.super }}<style>{% include "retail_admin/admin_styles.html" %}</style>{% endblock %}
-{% block branding %}
-<a class="retail-brand" href="{% url 'admin:index' %}"><span class="retail-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 12h18l-2 14H9L7 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 13V9a4 4 0 0 1 8 0v4M13 18v3m6-3v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>retail<span class="retail-dot">.</span><small>{% translate "RETAIL WORKSPACE" %}</small></span></a>
-{% endblock %}
+{% block welcome-msg %}<span class="retail-account-name">{% firstof user.get_short_name user.get_username %}</span>{% endblock %}
 {% block userlinks %}
   {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">{% translate "Change password" %}</a>{% endif %}
   <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">{% translate "Sign out" %}</button></form>
 {% endblock %}
-{% block nav-global %}
-{% if has_permission %}<nav class="retail-shortcuts" aria-label="{% translate 'Store navigation' %}"><a href="{% url 'admin:index' %}"{% if request.resolver_match.url_name == "index" %} aria-current="page"{% endif %}>{% translate "Dashboard" %}</a><a href="{% url 'admin:catalog_category_changelist' %}"{% if opts.model_name == "category" %} aria-current="page"{% endif %}>{% translate "Categories" %}</a><a href="{% url 'category-list' %}">{% translate "View catalog" %}<span aria-hidden="true"> ↗</span></a></nav>{% endif %}
-{% endblock %}
-{% block footer %}<div class="retail-footer"><span>{% translate "Retail administration" %}</span><span>{% translate "Catalog and store management" %}</span></div>{% endblock %}
+{% block nav-global %}{% endblock %}
+{% block footer %}<div class="retail-footer">{% translate "Retail administration" %}</div>{% endblock %}

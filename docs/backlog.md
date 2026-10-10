@@ -117,3 +117,5 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
 - 2026-10-10 visual revision: Developer is refining the existing admin-visual branch/PR #25 in place. Strong green/yellow shell, readable type, dashboard, login, tables and forms are updated first. Prior test evidence covers the earlier candidate only; renewed QA will follow user visual review.
 
 - Latest visual direction: user-supplied `supporting docs/POS-Standalone.html`. Same admin-visual branch/PR #25; navy navigation, emerald actions, mint selection, compact category dashboard and cool-gray workspace replace the grocery promotional treatment. In Development; QA deferred by user.
+
+ADMIN-UI-001 latest revision: exact-token navy/emerald shell in PR #25; explicit sidebar grid and single navigation. Developer 31-test/static checks and independent PM source review passed. Browser screenshots, interaction/console checks and independent QA remain pending; In Development. See docs/tickets/ADMIN-UI-001.md.

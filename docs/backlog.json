@@ -237,7 +237,7 @@
   },
   {
     "id": "ADMIN-UI-001",
-    "title": "Consistent Zilly-inspired administration",
+    "title": "Consistent retail administration dashboard",
     "priority": "P1",
     "status": "In Development",
     "owner": "Developer",
@@ -250,6 +250,6 @@
       "Actual category data; preserve Django permissions, CSRF, validation, deactivation and deletion restrictions",
       "Independent QA records defects with evidence, developer fixes and exact-SHA retests; unavailable visual checks remain pending"
     ],
-    "description": "Current visual direction is the user-provided supporting docs/POS-Standalone.html: navy/mint workspace, emerald actions, gray canvas, compact header, real category summary cards and tables. Updated in existing retail-admin-visual worktree/PR #25. QA deferred until user visual review. Historical tests apply only to earlier candidates; current revision developer startup/template/diff checks passed."
+    "description": "Exact navy/emerald design tokens and explicit 248px sidebar/64px header shell in existing retail-admin-visual worktree and PR #25. Screenshot is broken-implementation evidence, not desired design. Developer checks: 31 PostgreSQL tests, Django check, Ruff and static asset HTTP checks passed. Independent PM source review passed; browser visual/interaction/console verification and independent QA remain pending."
   }
 ]

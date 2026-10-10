@@ -46,7 +46,9 @@ class AdminVisualIntegrationTests(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 self.assertTemplateUsed(response, "admin/base_site.html")
-                self.assertContains(response, 'aria-label="Store navigation"')
+                self.assertContains(response, 'aria-label="Store navigation"', count=1)
+                self.assertNotContains(response, 'class="retail-shortcuts"')
+                self.assertNotContains(response, "admin/css/nav_sidebar.css")
                 self.assertContains(response, 'id="logout-form"')
 
     def test_invalid_category_submission_retains_shell_and_error_feedback(self):

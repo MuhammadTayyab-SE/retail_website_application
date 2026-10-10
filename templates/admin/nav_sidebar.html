@@ -1,9 +1,14 @@
 {% load i18n %}
-<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="{% translate 'Toggle navigation' %}"></button>
-<nav class="sticky" id="nav-sidebar" aria-label="{% translate 'Administration navigation' %}">
-  <span class="retail-nav-label">{% translate "YOUR WORKSPACE" %}</span>
-  <a class="retail-overview-link" href="{% url 'admin:index' %}"{% if request.resolver_match.url_name == 'index' %} aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> {% translate "Dashboard" %}</a>
-  <input type="search" id="nav-filter" placeholder="{% translate 'Find a section…' %}" aria-label="{% translate 'Filter navigation items' %}">
-  {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=False %}
-  <div class="retail-sidebar-profile"><span class="retail-avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span><div><strong>{% firstof user.get_short_name user.get_username %}</strong><small>{% translate "Store administrator" %}</small></div></div>
-</nav>
+<aside id="nav-sidebar" class="retail-sidebar" aria-label="{% translate 'Administration sidebar' %}">
+  <button class="retail-menu-close" type="button" hidden>{% translate "Close navigation" %}</button>
+  <a class="retail-brand" href="{% url 'admin:index' %}"><span class="retail-brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 12h18l-2 14H9L7 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 13V9a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>retail.<small>{% translate "RETAIL WORKSPACE" %}</small></span></a>
+  <nav class="retail-navigation" aria-label="{% translate 'Store navigation' %}">
+    <a href="{% url 'admin:index' %}"{% if request.resolver_match.url_name == 'index' %} aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>{% translate "Dashboard" %}</a>
+    {% for app in available_apps %}
+    <span class="retail-nav-label">{{ app.name }}</span>
+    {% for model in app.models %}{% if model.admin_url %}<a href="{{ model.admin_url }}"{% if model.object_name|lower == opts.model_name %} aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V5h7l2 2h9v13H3V7Z" stroke-linejoin="round"/></svg>{{ model.name }}</a>{% endif %}{% endfor %}
+    {% endfor %}
+    <a href="{% url 'category-list' %}"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 3h7v7m0-7L10 14M10 5H4v15h15v-6" stroke-linecap="round" stroke-linejoin="round"/></svg>{% translate "View catalog" %}</a>
+  </nav>
+  <div class="retail-sidebar-account">{% if user.has_usable_password %}<a class="retail-mobile-account" href="{% url 'admin:password_change' %}">{% translate "Change password" %}</a>{% endif %}<div class="retail-sidebar-profile"><span class="retail-avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span><div><strong>{% firstof user.get_short_name user.get_username %}</strong><small>{% translate "Store administrator" %}</small></div></div></div>
+</aside>
