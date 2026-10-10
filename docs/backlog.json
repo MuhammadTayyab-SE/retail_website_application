@@ -51,17 +51,20 @@
   },
   {
     "id": "MVP-003",
-    "title": "Retailer staff authentication and access control",
+    "title": "Super Admin, worker roles, module permissions and audit logs",
     "priority": "P0",
-    "status": "Blocked",
-    "dependencies": "MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.",
+    "status": "In Development",
+    "dependencies": "MVP-001; integrates MVP-004; Product attribution accompanies MVP-005",
     "acceptanceCriteria": [
-      "single admin/superuser can log in/out through Django admin",
-      "anonymous, inactive and non-admin users cannot access admin operations",
-      "tests cover direct URL access and permission failures",
-      "no staff role matrix, custom admin UI or public registration is included."
+      "Super Admin manages workers and roles",
+      "Module/action permissions enforced server-side and refreshed per request",
+      "Workers cannot administer accounts, roles or audit logs",
+      "Passwords are hashed; privileged reset and self-change only",
+      "Immutable attributable portal audit history",
+      "Creator/editor and timestamps on categories, reusable foundation for future Products",
+      "Independent QA of exact candidate SHA before user review"
     ],
-    "description": "- Priority: P0. Dependencies: MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.\n- Acceptance: single admin/superuser can log in/out through Django admin; anonymous, inactive and non-admin users cannot access admin operations; tests cover direct URL access and permission failures; no staff role matrix, custom admin UI or public registration is included.\nUser authorized implementation 2026-10-10; Developer owns combined feature/mvp-003-004-admin-categories. Code implemented; PostgreSQL validation and remote publication blocked. See docs/tickets/MVP-003-004.md."
+    "description": "User expanded and authorized implementation 2026-10-11. Developer owns feature/mvp-003-roles-audit. See docs/tickets/MVP-003-roles-audit.md and GitHub #4. Supersedes single-admin-only D-004."
   },
   {
     "id": "MVP-004",

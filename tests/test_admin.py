@@ -1,13 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.test import Client, SimpleTestCase, TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from config.admin import RetailAdminAuthenticationForm, site
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
-class AdminPolicyTests(SimpleTestCase):
+class AdminPolicyTests(TestCase):
     def test_anonymous_admin_redirect_and_login_form(self):
         self.assertRedirects(
             self.client.get(reverse("admin:index")),

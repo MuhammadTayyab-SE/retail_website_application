@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
@@ -28,6 +29,8 @@ def category_list(request):
 @site.admin_view
 def category_photo(request, pk):
     category = get_object_or_404(Category, pk=pk)
+    if not site._registry[Category].has_view_permission(request, category):
+        raise PermissionDenied
     if not category.photo:
         raise Http404
     try:

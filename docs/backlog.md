@@ -22,9 +22,11 @@ MVP-001 is merged (PR #19). User removed MVP-002 and authorized MVP-003 then MVP
 ### MVP-002 - Isolated local retailer configuration (Removed)
 - Removed by user on 2026-10-10; retained here for historical traceability only.
 
-### MVP-003 - Retailer staff authentication and access control
-- Priority: P0. Dependencies: MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.
-- Acceptance: single admin/superuser can log in/out through Django admin; anonymous, inactive and non-admin users cannot access admin operations; tests cover direct URL access and permission failures; no staff role matrix, custom admin UI or public registration is included.
+### MVP-003 - Super Admin, worker roles, module permissions and audit logs
+- Priority: P0. State: In Development. Owner: Developer role. User authorized expanded implementation on 2026-10-11; supersedes D-004's single-admin-only restriction.
+- Dependencies: MVP-001; integration with MVP-004; Product attribution integrates when MVP-005 introduces Product persistence.
+- Acceptance: Super Admin manages worker accounts and roles; server-enforced module/action permissions apply immediately to existing sessions; workers cannot administer accounts/roles/audit logs; password reset without password disclosure; immutable portal audit history; creator/editor and timestamps on Parent Categories and Categories, with reusable Product foundation. Independent QA required before user review.
+- Evidence and remaining scope: docs/tickets/MVP-003-roles-audit.md. GitHub #4 is the authoritative expanded requirement.
 
 ### MVP-004 - Dynamic categories
 - Priority: P0. Dependencies: MVP-003; category decisions confirmed 2026-10-10. Parent/subcategories; deactivate only, permanent deletion disabled. Remaining D-005 product rules affect MVP-005.

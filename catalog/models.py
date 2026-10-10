@@ -7,6 +7,8 @@ from django.db.models.functions import Lower, Trim
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
+from access.models import AttributedModel
+
 
 def category_photo_path(instance, filename):
     extension = filename.rsplit(".", 1)[-1].lower()
@@ -28,7 +30,7 @@ class CategoryQuerySet(models.QuerySet):
             return super().delete()
 
 
-class Category(models.Model):
+class Category(AttributedModel):
     name = models.CharField(max_length=100, unique=True)
     is_parent_category = models.BooleanField(default=False, editable=False)
     parent = models.ForeignKey(
@@ -49,6 +51,12 @@ class Category(models.Model):
     objects = CategoryQuerySet.as_manager()
 
     class Meta:
+        permissions = [
+            ("view_parentcategory", "Can view parent categories"),
+            ("add_parentcategory", "Can add parent categories"),
+            ("change_parentcategory", "Can change parent categories"),
+            ("delete_parentcategory", "Can delete parent categories"),
+        ]
         ordering = ["position", "name", "pk"]
         verbose_name_plural = "categories"
         constraints = [
