@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.http import HttpResponseBadRequest
 from django.urls import reverse
 from django.utils.html import format_html
 
+from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import ProductForm, ProductPhotoForm, VariantInlineFormSet
 from catalog.models import Category, Product, ProductPhoto, ProductVariant
 from config.admin import site
@@ -60,13 +61,48 @@ class PhotoInline(admin.StackedInline):
         return self.has_change_permission(request, obj)
 
 
-class ProductAdminBase(admin.ModelAdmin):
-    change_form_template = "admin/access/management_form.html"
+class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
+    change_form_template = "admin/catalog/product/change_form.html"
     change_list_template = "admin/catalog/product/change_list.html"
     delete_confirmation_template = "admin/catalog/product/delete_confirmation.html"
     readonly_fields = ["created_by", "created_at", "updated_by", "updated_at"]
     list_per_page = 25
     actions = None
+
+    def changelist_view(self, request, extra_context=None):
+        products = self.model is Product
+        related = (
+            Category.objects.exclude(pk__in=Category.objects.parents())
+            if products
+            else Product.objects.all()
+        )
+        filter_name = "category__id__exact" if products else "product__id__exact"
+        context = {
+            "title": "Products" if products else "Product Variants",
+            "product_metrics": self.get_queryset(request).aggregate(
+                total=Count("pk", distinct=True),
+                active=Count("pk", filter=Q(is_active=True), distinct=True),
+                inactive=Count("pk", filter=Q(is_active=False), distinct=True),
+            ),
+            "management_filters": [
+                {
+                    "label": "Status",
+                    "name": "is_active__exact",
+                    "empty_label": "All statuses",
+                    "options": [("1", "Active"), ("0", "Inactive")],
+                    "selected": request.GET.get("is_active__exact", ""),
+                },
+                {
+                    "label": "Category" if products else "Product",
+                    "name": filter_name,
+                    "empty_label": "All categories" if products else "All products",
+                    "options": [(str(item.pk), item.name) for item in related],
+                    "selected": request.GET.get(filter_name, ""),
+                },
+            ],
+            **(extra_context or {}),
+        }
+        return super().changelist_view(request, context)
 
     def get_fieldsets(self, request, obj=None):
         fields = list(super().get_fieldsets(request, obj))
@@ -115,17 +151,6 @@ class ProductAdmin(ProductAdminBase):
     list_select_related = ["category"]
     fieldsets = [("Product details", {"fields": ["name", "description", "category", "is_active"]})]
     inlines = [VariantInline, PhotoInline]
-
-    def changelist_view(self, request, extra_context=None):
-        return super().changelist_view(
-            request,
-            {
-                "product_categories": Category.objects.exclude(pk__in=Category.objects.parents()),
-                "title": "Products",
-                "selected_category": request.GET.get("category__id__exact", ""),
-                **(extra_context or {}),
-            },
-        )
 
     def get_queryset(self, request):
         return (

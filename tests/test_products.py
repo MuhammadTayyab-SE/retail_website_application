@@ -332,3 +332,30 @@ class ProductTests(TestCase):
         )
         self.client.force_login(self.worker)
         self.assertEqual(self.client.get(reverse("admin:catalog_product_add")).status_code, 403)
+
+    def test_catalog_forms_use_plain_related_dropdowns(self):
+        self.client.force_login(self.owner)
+        for route, field in [
+            ("catalog_category_add", "parent"),
+            ("catalog_product_add", "category"),
+            ("catalog_productvariant_add", "product"),
+        ]:
+            response = self.client.get(reverse("admin:" + route))
+            self.assertContains(response, f'id="id_{field}"')
+            for action in ["add", "change", "delete", "view"]:
+                self.assertNotContains(response, f'id="{action}_id_{field}"')
+        response = self.client.get(reverse("admin:catalog_category_add") + "?kind=parent")
+        self.assertNotContains(response, 'id="add_id_parent"')
+
+    def test_product_lists_have_live_filters_aligned_columns_and_matching_counts(self):
+        self.client.force_login(self.owner)
+        for model in ["product", "productvariant"]:
+            response = self.client.get(reverse(f"admin:catalog_{model}_changelist"))
+            self.assertContains(response, "data-management-filters")
+            self.assertContains(response, "<colgroup>")
+            self.assertContains(response, "Showing 1 of 1")
+            response = self.client.get(
+                reverse(f"admin:catalog_{model}_changelist"), {"is_active__exact": "0"}
+            )
+            self.assertEqual(response.context["cl"].result_count, 0)
+            self.assertContains(response, "Showing 0 of 0")

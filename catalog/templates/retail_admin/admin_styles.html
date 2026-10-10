@@ -552,3 +552,27 @@ body.retail-admin {
 .retail-admin.model-product .inline-group { margin-top:24px; border:1px solid var(--border); border-radius:12px; background:var(--card-bg); overflow:auto; }
 .retail-admin.model-product .inline-group textarea { max-width:100%; min-width:180px; }
 .retail-admin.model-product .inline-group input[type=file] { max-width:100%; }
+
+/* Consistent catalog forms and uncluttered related-record dropdowns. */
+.retail-admin .related-widget-wrapper { float:none; width:100%; }
+.retail-admin .related-widget-wrapper select { width:100%; min-width:0; }
+.retail-admin.retail-product-list #changelist.filtered { display:block; }
+.retail-admin.retail-product-list #changelist .changelist-form-container { width:100%; }
+.retail-admin.retail-product-list .category-row-actions { flex-wrap:wrap; gap:8px; }
+.retail-admin.retail-product-list #result_list input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); opacity:1; }
+.retail-product-form .management-form-grid { grid-template-columns:minmax(0,1fr); }
+.retail-product-form .management-form-card { padding:24px; }
+.retail-product-form .management-form-card textarea { width:100%; max-width:100%; }
+.retail-admin.retail-product-form .inline-group { padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--card-bg); margin:24px 0; overflow:auto; }
+.retail-admin.retail-product-form .inline-group h2 { background:none; color:var(--text); padding:0 0 16px; font-size:18px; }
+.retail-admin.retail-product-form .inline-group h3 { background:var(--page-bg); padding:12px 16px; border-radius:8px; }
+.retail-admin.retail-product-form .inline-group table { width:100%; }
+.retail-admin.retail-product-form .inline-group td,.retail-admin.retail-product-form .inline-group th { padding:12px; vertical-align:top; text-align:left; }
+.retail-admin.retail-product-form .inline-group textarea { min-height:90px; width:100%; }
+.retail-admin.retail-product-form .inline-group input:not([type=checkbox]):not([type=hidden]) { max-width:100%; }
+.product-upload-preview { display:block; width:min(100%,280px); height:220px; object-fit:contain; border:1px solid var(--border); border-radius:12px; background:var(--page-bg); margin-top:16px; }
+.product-upload-preview[hidden] { display:none; }
+@media(max-width:767px) { .retail-admin.retail-product-form .inline-group,.retail-product-form .management-form-card { padding:16px; } }
+
+.retail-admin.retail-product-list .category-metric-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:600px) { .retail-admin.retail-product-list .category-metric-grid { grid-template-columns:minmax(0,1fr); } }

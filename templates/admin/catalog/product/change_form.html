@@ -1,0 +1,4 @@
+{% extends "admin/access/management_form.html" %}
+{% block bodyclass %}{{ block.super }} retail-product-form{% endblock %}
+{% block form_top %}<div class="category-flow-note"><strong>{% if opts.model_name == 'product' %}One product, flexible variants{% else %}A unique identity for every variant{% endif %}</strong><p>{% if opts.model_name == 'product' %}Choose a category, add at least one variant and upload photos to bring your product to life.{% else %}Choose a product and give this variant a unique SKU. Add attributes such as size, weight or color when needed.{% endif %}</p></div>{% endblock %}
+{% block admin_change_form_document_ready %}{{ block.super }}<script>{% include "catalog/product_photo_script.html" %}</script>{% endblock %}
