@@ -75,6 +75,24 @@ class AdminAccessTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertEqual(self.client.get(reverse("admin:index")).status_code, 302)
 
+    def test_login_preserves_safe_next_and_rejects_external_redirects(self):
+        for next_url, expected in (
+            ("", reverse("admin:index")),
+            (
+                reverse("admin:catalog_category_changelist"),
+                reverse("admin:catalog_category_changelist"),
+            ),
+            ("https://untrusted.example.invalid/", reverse("admin:index")),
+            ("//untrusted.example.invalid/", reverse("admin:index")),
+        ):
+            with self.subTest(next_url=next_url):
+                self.client.logout()
+                response = self.client.post(
+                    reverse("admin:login"),
+                    {"username": "owner", "password": self.password, "next": next_url},
+                )
+                self.assertRedirects(response, expected)
+
     def test_invalid_inactive_and_non_admin_login_denied(self):
         for username in ("customer", "staff", "inactive", "missing"):
             with self.subTest(username=username):
