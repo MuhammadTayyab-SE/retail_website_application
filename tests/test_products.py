@@ -347,6 +347,42 @@ class ProductTests(TestCase):
         response = self.client.get(reverse("admin:catalog_category_add") + "?kind=parent")
         self.assertNotContains(response, 'id="add_id_parent"')
 
+    def test_catalog_list_actions_follow_current_role_permissions(self):
+        for model, obj in [("product", self.product), ("productvariant", self.variant)]:
+            change_url = reverse(f"admin:catalog_{model}_change", args=[obj.pk])
+            delete_url = reverse(f"admin:catalog_{model}_delete", args=[obj.pk])
+            for actor, change, delete in [
+                (self.owner, True, True),
+                (self.worker, False, False),
+                (self.worker, True, False),
+                (self.worker, False, True),
+                (self.worker, True, True),
+            ]:
+                with self.subTest(model=model, actor=actor.username, change=change, delete=delete):
+                    codenames = [f"view_{model}"]
+                    if change:
+                        codenames.append(f"change_{model}")
+                    if delete:
+                        codenames.append(f"delete_{model}")
+                    self.role.permissions.set(
+                        Permission.objects.filter(
+                            content_type__app_label="catalog", codename__in=codenames
+                        )
+                    )
+                    self.client.force_login(actor)
+                    response = self.client.get(reverse(f"admin:catalog_{model}_changelist"))
+                    label = "Manage" if change else "View"
+                    self.assertContains(
+                        response,
+                        f'<a class="management-row-button" href="{change_url}">{label}</a>',
+                        html=True,
+                    )
+                    delete_link = f'<a class="category-delete-link" href="{delete_url}">Delete</a>'
+                    if delete:
+                        self.assertContains(response, delete_link, html=True)
+                    else:
+                        self.assertNotContains(response, delete_link, html=True)
+
     def test_product_lists_have_live_filters_aligned_columns_and_matching_counts(self):
         self.client.force_login(self.owner)
         for model in ["product", "productvariant"]:

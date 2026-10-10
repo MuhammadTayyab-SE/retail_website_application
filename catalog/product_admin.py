@@ -79,6 +79,8 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
         filter_name = "category__id__exact" if products else "product__id__exact"
         context = {
             "title": "Products" if products else "Product Variants",
+            "has_change_permission": self.has_change_permission(request),
+            "has_delete_permission": self.has_delete_permission(request),
             "product_metrics": self.get_queryset(request).aggregate(
                 total=Count("pk", distinct=True),
                 active=Count("pk", filter=Q(is_active=True), distinct=True),
