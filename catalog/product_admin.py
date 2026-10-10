@@ -6,23 +6,9 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from catalog.admin_widgets import PlainRelatedChoicesMixin
-from catalog.forms import ProductForm, ProductPhotoForm, VariantInlineFormSet
-from catalog.models import Category, Product, ProductPhoto, ProductVariant
+from catalog.forms import ProductForm, ProductPhotoForm
+from catalog.models import Category, Product, ProductPhoto
 from config.admin import site
-
-
-class VariantInline(admin.TabularInline):
-    model = ProductVariant
-    fields = ["sku", "attributes", "is_active"]
-    formset = VariantInlineFormSet
-    extra = 1
-    min_num = 1
-    validate_min = True
-
-    def get_formset(self, request, obj=None, **kwargs):
-        # Require a variant when the user can add them. Read-only editing remains possible.
-        kwargs["validate_min"] = self.has_add_permission(request, obj)
-        return super().get_formset(request, obj, **kwargs)
 
 
 class PhotoInline(admin.StackedInline):
@@ -70,15 +56,10 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
     actions = None
 
     def changelist_view(self, request, extra_context=None):
-        products = self.model is Product
-        related = (
-            Category.objects.exclude(pk__in=Category.objects.parents())
-            if products
-            else Product.objects.all()
-        )
-        filter_name = "category__id__exact" if products else "product__id__exact"
+        related = Category.objects.exclude(pk__in=Category.objects.parents())
+        filter_name = "category__id__exact"
         context = {
-            "title": "Products" if products else "Product Variants",
+            "title": "Products",
             "has_change_permission": self.has_change_permission(request),
             "has_delete_permission": self.has_delete_permission(request),
             "product_metrics": self.get_queryset(request).aggregate(
@@ -95,11 +76,18 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
                     "selected": request.GET.get("is_active__exact", ""),
                 },
                 {
-                    "label": "Category" if products else "Product",
+                    "label": "Category",
                     "name": filter_name,
-                    "empty_label": "All categories" if products else "All products",
+                    "empty_label": "All categories",
                     "options": [(str(item.pk), item.name) for item in related],
                     "selected": request.GET.get(filter_name, ""),
+                },
+                {
+                    "label": "Unit",
+                    "name": "unit__exact",
+                    "empty_label": "All units",
+                    "options": Product.Unit.choices,
+                    "selected": request.GET.get("unit__exact", ""),
                 },
             ],
             **(extra_context or {}),
@@ -117,57 +105,21 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
             return HttpResponseBadRequest("Confirm deletion before submitting.")
         return super().delete_view(request, object_id, extra_context)
 
-    def get_list_display(self, request):
-        @admin.display(description="Actions")
-        def row_actions(obj):
-            from django.utils.html import format_html_join
-
-            links = [
-                format_html(
-                    '<a href="{}">{}</a>',
-                    reverse(f"admin:catalog_{self.opts.model_name}_change", args=[obj.pk]),
-                    "Manage" if self.has_change_permission(request, obj) else "View",
-                )
-            ]
-            if self.has_delete_permission(request, obj):
-                links.append(
-                    format_html(
-                        '<a class="category-delete-link" href="{}">Delete</a>',
-                        reverse(f"admin:catalog_{self.opts.model_name}_delete", args=[obj.pk]),
-                    )
-                )
-            return format_html(
-                '<span class="category-row-actions">{}</span>',
-                format_html_join("", "{}", ((link,) for link in links)),
-            )
-
-        return [*super().get_list_display(request), row_actions]
-
 
 @admin.register(Product, site=site)
 class ProductAdmin(ProductAdminBase):
     form = ProductForm
-    list_display = ["name", "category", "variant_count", "is_active"]
-    search_fields = ["name", "description", "variants__sku"]
-    list_filter = ["is_active", "category"]
+    list_display = ["name", "sku", "category", "unit", "is_active"]
+    search_fields = ["name", "description", "sku"]
+    list_filter = ["is_active", "category", "unit"]
     list_select_related = ["category"]
-    fieldsets = [("Product details", {"fields": ["name", "description", "category", "is_active"]})]
-    inlines = [VariantInline, PhotoInline]
-
-    def get_queryset(self, request):
-        return (
-            super().get_queryset(request).annotate(variants_total=Count("variants", distinct=True))
+    fieldsets = [
+        (
+            "Product details",
+            {"fields": ["name", "sku", "unit", "category", "description", "is_active"]},
         )
-
-    @admin.display(description="Variants", ordering="variants_total")
-    def variant_count(self, obj):
-        return obj.variants_total
-
-    def has_add_permission(self, request):
-        # An initial variant is required when creating a product.
-        return super().has_add_permission(request) and request.user.has_perm(
-            "catalog.add_productvariant"
-        )
+    ]
+    inlines = [PhotoInline]
 
     def save_formset(self, request, form, formset, change):
         if formset.model is ProductPhoto:
@@ -186,15 +138,3 @@ class ProductAdmin(ProductAdminBase):
             formset.save_m2m()
         else:
             super().save_formset(request, form, formset, change)
-
-
-@admin.register(ProductVariant, site=site)
-class ProductVariantAdmin(ProductAdminBase):
-    list_display = ["sku", "product", "is_active"]
-    list_filter = ["is_active", "product"]
-    search_fields = ["sku", "product__name"]
-    list_select_related = ["product"]
-    fieldsets = [("Variant details", {"fields": ["product", "sku", "attributes", "is_active"]})]
-
-
-# Register during the catalog app's normal admin autodiscovery.

@@ -27,6 +27,10 @@ class RetailAdminSite(AdminSite):
         apps = super().get_app_list(request, app_label)
         names = {"User": "Workers", "AuditEvent": "Activity log"}
         for app in apps:
+            if app["app_label"] == "catalog":
+                app["models"] = [
+                    model for model in app["models"] if model["object_name"] != "ProductVariant"
+                ]
             if app["app_label"] == "auth":
                 app["name"] = "Employees"
             for model in app["models"]:
@@ -68,12 +72,7 @@ class RetailAdminSite(AdminSite):
         context["can_view_products"] = request.user.has_perm(
             "catalog.view_product"
         ) or request.user.has_perm("catalog.change_product")
-        context["can_add_products"] = request.user.has_perm(
-            "catalog.add_product"
-        ) and request.user.has_perm("catalog.add_productvariant")
-        context["can_view_variants"] = request.user.has_perm(
-            "catalog.view_productvariant"
-        ) or request.user.has_perm("catalog.change_productvariant")
+        context["can_add_products"] = request.user.has_perm("catalog.add_product")
         if request.user.is_authenticated and not request.user.is_superuser:
             context["worker_role"] = (
                 WorkerProfile.objects.filter(user=request.user).select_related("role").first()
@@ -104,9 +103,20 @@ class RetailAdminSite(AdminSite):
     def index(self, request, extra_context=None):
         from django.db.models import Count, Exists, OuterRef, Q
 
-        from catalog.models import Category
+        from catalog.models import Category, Product
 
         context = dict(extra_context or {})
+        if request.user.has_perm("catalog.view_product") or request.user.has_perm(
+            "catalog.change_product"
+        ):
+            context["product_summary"] = Product.objects.aggregate(
+                total=Count("pk"),
+                active=Count("pk", filter=Q(is_active=True)),
+                inactive=Count("pk", filter=Q(is_active=False)),
+            )
+            context["recent_products"] = Product.objects.select_related("category").order_by("-pk")[
+                :5
+            ]
         if not request.user.is_superuser:
             return TemplateResponse(
                 request,

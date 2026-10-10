@@ -28,6 +28,12 @@ On 2026-10-10 the user removed MVP-002 and authorized MVP-003 and MVP-004 implem
 
 ## MVP-005 implementation decisions - 2026-10-11
 
+Later user instruction supersedes flexible variant administration: one unit per
+product (kg, litre, ml, each), product-owned SKU, no separate variants page.
+Product forms, lists and dashboards use this simpler workflow. Previous option
+records and audit history remain preserved; see the current scope update in
+docs/tickets/MVP-005.md for conversion behavior.
+
 User confirmed flexible variants with required store-wide unique SKUs and permanent
 product deletion. SKUs normalize case and outer whitespace; attributes are named
 text values such as size, weight and color. Each new product requires a variant.

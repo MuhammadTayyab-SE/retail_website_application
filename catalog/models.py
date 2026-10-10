@@ -129,14 +129,26 @@ class ProductQuerySet(models.QuerySet):
                 seen.add(current)
                 current = parents.get(current)
         return (
-            self.filter(is_active=True, variants__is_active=True)
+            self.filter(is_active=True)
+            .filter(
+                models.Q(unit__in=["kg", "litre", "ml", "each"])
+                | models.Q(variants__is_active=True)
+            )
             .exclude(category_id__in=hidden)
             .distinct()
         )
 
 
 class Product(AttributedModel):
+    class Unit(models.TextChoices):
+        KG = "kg", "kg"
+        LITRE = "litre", "litre"
+        ML = "ml", "ml"
+        EACH = "each", "each"
+
     name = models.CharField(max_length=200)
+    sku = models.CharField("SKU", max_length=100, blank=True, default="")
+    unit = models.CharField(max_length=5, choices=Unit.choices, blank=True, default="")
     description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     is_active = models.BooleanField(default=True)
@@ -145,7 +157,12 @@ class Product(AttributedModel):
     class Meta:
         ordering = ["name", "pk"]
         constraints = [
-            models.CheckConstraint(condition=~models.Q(name=""), name="product_name_not_empty")
+            models.UniqueConstraint(
+                Lower(Trim("sku")),
+                condition=~models.Q(sku=""),
+                name="product_sku_normalized_unique",
+            ),
+            models.CheckConstraint(condition=~models.Q(name=""), name="product_name_not_empty"),
         ]
 
     def __str__(self):
@@ -154,6 +171,16 @@ class Product(AttributedModel):
     def clean(self):
         super().clean()
         self.name = self.name.strip()
+        self.sku = self.sku.strip().upper()
+        if self.sku and not self.sku.isprintable():
+            raise ValidationError({"sku": "Enter a printable SKU."})
+        if self.sku and (
+            Product.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists()
+            or ProductVariant.objects.filter(sku__iexact=self.sku)
+            .exclude(product_id=self.pk)
+            .exists()
+        ):
+            raise ValidationError({"sku": "This SKU is already used in the store."})
         if not self.name:
             raise ValidationError({"name": "Enter a product name."})
         if self.category_id and Category.objects.parents().filter(pk=self.category_id).exists():

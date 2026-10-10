@@ -76,9 +76,7 @@ def product_photo(request, pk):
 
 @require_safe
 def product_list(request):
-    products = (
-        Product.objects.visible().select_related("category").prefetch_related("photos", "variants")
-    )
+    products = Product.objects.visible().select_related("category").prefetch_related("photos")
     return render(request, "catalog/products.html", {"products": products})
 
 

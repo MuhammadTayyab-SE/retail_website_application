@@ -1,6 +1,5 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from django.forms.models import BaseInlineFormSet
 
 from catalog.models import Category, Product, ProductPhoto
 
@@ -56,9 +55,12 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
+    sku = forms.CharField(label="SKU", max_length=100)
+    unit = forms.ChoiceField(choices=[("", "Choose a unit"), *Product.Unit.choices])
+
     class Meta:
         model = Product
-        fields = ["name", "description", "category", "is_active"]
+        fields = ["name", "sku", "unit", "description", "category", "is_active"]
         widgets = {"description": forms.Textarea(attrs={"rows": 4})}
 
     def __init__(self, *args, **kwargs):
@@ -67,19 +69,6 @@ class ProductForm(forms.ModelForm):
             self.fields["category"].queryset = Category.objects.exclude(
                 pk__in=Category.objects.parents()
             ).order_by("name")
-
-
-class VariantInlineFormSet(BaseInlineFormSet):
-    def clean(self):
-        super().clean()
-        seen = set()
-        for form in self.forms:
-            if not form.cleaned_data or form.cleaned_data.get("DELETE"):
-                continue
-            sku = form.cleaned_data.get("sku", "").strip().upper()
-            if sku and sku in seen:
-                raise ValidationError("Each variant must have a different SKU.")
-            seen.add(sku)
 
 
 class ProductPhotoForm(forms.ModelForm):

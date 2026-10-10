@@ -1,0 +1,11 @@
+{% if can_view_products %}
+<section class="category-metric-grid product-overview-metrics" aria-label="Product summary">
+  <article><span>Total products</span><strong>{{ product_summary.total }}</strong></article>
+  <article><span>Active products</span><strong>{{ product_summary.active }}</strong></article>
+  <article><span>Inactive products</span><strong>{{ product_summary.inactive }}</strong></article>
+</section>
+<section class="retail-card product-overview-card" aria-labelledby="latest-products-title">
+  <div class="retail-card-heading"><h2 id="latest-products-title">Latest products</h2><div class="retail-heading-actions"><a href="{% url 'admin:catalog_product_changelist' %}">View all products &rarr;</a>{% if can_add_products %}<a class="retail-button" href="{% url 'admin:catalog_product_add' %}">+ Add product</a>{% endif %}</div></div>
+  {% if recent_products %}<div class="retail-table-scroll"><table class="retail-category-table"><thead><tr><th scope="col">Product</th><th scope="col">Category</th><th scope="col">Unit</th><th scope="col">Is active</th></tr></thead><tbody>{% for product in recent_products %}<tr><th scope="row"><a href="{% url 'admin:catalog_product_change' product.pk %}">{{ product.name }}</a></th><td>{{ product.category }}</td><td>{{ product.get_unit_display|default:"Choose unit" }}</td><td><input type="checkbox" class="category-status-checkbox" disabled{% if product.is_active %} checked{% endif %} aria-label="{% if product.is_active %}Active{% else %}Inactive{% endif %}"></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="retail-empty"><h3>No products yet</h3><p>Add your first product to start building your catalog.</p>{% if can_add_products %}<a href="{% url 'admin:catalog_product_add' %}">Add product &rarr;</a>{% endif %}</div>{% endif %}
+</section>
+{% endif %}

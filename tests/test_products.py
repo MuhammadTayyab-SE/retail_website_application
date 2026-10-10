@@ -1,11 +1,14 @@
 import tempfile
+from importlib import import_module
 from io import BytesIO
+from types import SimpleNamespace
 
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, connection, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -32,7 +35,9 @@ class ProductTests(TestCase):
         cls.parent = Category.objects.create(name="Parent", is_parent_category=True)
         cls.category = Category.objects.create(name="Category", parent=cls.parent)
         cls.independent = Category.objects.create(name="Independent")
-        cls.product = Product.objects.create(name="Milk", category=cls.category)
+        cls.product = Product.objects.create(
+            name="Milk", category=cls.category, sku="MILK-1", unit="litre"
+        )
         cls.variant = ProductVariant.objects.create(
             product=cls.product, sku="milk-1", attributes={"Size": "1 litre"}
         )
@@ -59,13 +64,8 @@ class ProductTests(TestCase):
             "description": "Description",
             "category": self.independent.pk,
             "is_active": "on",
-            "variants-TOTAL_FORMS": "1",
-            "variants-INITIAL_FORMS": "0",
-            "variants-MIN_NUM_FORMS": "1",
-            "variants-MAX_NUM_FORMS": "1000",
-            "variants-0-sku": "NEW-1",
-            "variants-0-attributes": '{"size":"large","color":"red"}',
-            "variants-0-is_active": "on",
+            "sku": " new-1 ",
+            "unit": "each",
             "photos-TOTAL_FORMS": "0",
             "photos-INITIAL_FORMS": "0",
             "photos-MIN_NUM_FORMS": "0",
@@ -73,7 +73,7 @@ class ProductTests(TestCase):
             **kwargs,
         }
 
-    def test_create_product_and_inline_variant_with_attribution(self):
+    def test_create_product_with_unit_sku_and_attribution(self):
         self.client.force_login(self.owner)
         data = self.product_data(created_by=self.worker.pk, updated_by=self.worker.pk)
         response = self.client.post(reverse("admin:catalog_product_add"), data)
@@ -81,15 +81,12 @@ class ProductTests(TestCase):
             response.status_code, 302, response.context and response.context.get("errors")
         )
         product = Product.objects.get(name="New product")
-        variant = product.variants.get()
+        self.assertFalse(product.variants.exists())
+        self.assertEqual(product.sku, "NEW-1")
+        self.assertEqual(product.unit, "each")
         self.assertEqual(product.created_by, self.owner)
-        self.assertEqual(variant.created_by, self.owner)
-        self.assertEqual(variant.attributes, {"size": "large", "color": "red"})
         self.assertTrue(
             AuditEvent.objects.filter(module="catalog.product", action="create").exists()
-        )
-        self.assertTrue(
-            AuditEvent.objects.filter(module="catalog.productvariant", action="create").exists()
         )
 
     def test_sku_case_and_whitespace_are_normalized_and_unique_across_products(self):
@@ -121,27 +118,23 @@ class ProductTests(TestCase):
         with self.assertRaises(ValidationError):
             Product.objects.create(name="Wrong category", category=self.parent)
 
-    def test_duplicate_inline_skus_fail_without_partial_product_save(self):
+    def test_duplicate_product_sku_fails_without_partial_save(self):
         self.client.force_login(self.owner)
-        data = self.product_data(
-            **{
-                "variants-TOTAL_FORMS": "2",
-                "variants-1-sku": " new-1 ",
-                "variants-1-attributes": "{}",
-                "variants-1-is_active": "on",
-            }
+        response = self.client.post(
+            reverse("admin:catalog_product_add"), self.product_data(sku=" milk-1 ")
         )
-        response = self.client.post(reverse("admin:catalog_product_add"), data)
-        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This SKU is already used in the store.")
         self.assertFalse(Product.objects.filter(name="New product").exists())
 
-    def test_product_creation_requires_one_variant(self):
+    def test_product_creation_requires_valid_unit_and_sku(self):
         self.client.force_login(self.owner)
-        data = self.product_data(**{"variants-TOTAL_FORMS": "0"})
-        self.assertEqual(
-            self.client.post(reverse("admin:catalog_product_add"), data).status_code, 200
-        )
-        self.assertFalse(Product.objects.filter(name="New product").exists())
+        for changes in [{"unit": ""}, {"unit": "gallon"}, {"sku": "  "}]:
+            with self.subTest(changes=changes):
+                response = self.client.post(
+                    reverse("admin:catalog_product_add"), self.product_data(**changes)
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(Product.objects.filter(name="New product").exists())
 
     def test_public_visibility_for_product_variant_and_inactive_ancestors(self):
         url = reverse("product-list")
@@ -153,57 +146,52 @@ class ProductTests(TestCase):
         self.parent.save()
         self.variant.is_active = False
         self.variant.save()
-        self.assertNotContains(self.client.get(url), "Milk")
+        self.assertContains(self.client.get(url), "Milk")
         self.variant.is_active = True
         self.variant.save()
         self.product.is_active = False
         self.product.save()
         self.assertNotContains(self.client.get(url), "Milk")
 
-    def test_variant_edit_permission_and_read_only_direct_urls(self):
+    def test_product_edit_permission_and_read_only_direct_urls(self):
         self.client.force_login(self.worker)
         for url in [
             reverse("admin:catalog_product_changelist"),
-            reverse("admin:catalog_productvariant_changelist"),
             reverse("admin:catalog_product_change", args=[self.product.pk]),
         ]:
             self.assertEqual(self.client.get(url).status_code, 200)
-        urls = [
+        for url in [
             reverse("admin:catalog_product_add"),
             reverse("admin:catalog_product_change", args=[self.product.pk]),
             reverse("admin:catalog_product_delete", args=[self.product.pk]),
-            reverse("admin:catalog_productvariant_add"),
-            reverse("admin:catalog_productvariant_change", args=[self.variant.pk]),
-        ]
-        for url in urls:
-            self.assertEqual(
-                self.client.post(url, {"name": "Forbidden", "post": "yes"}).status_code, 403
-            )
+        ]:
+            self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 403)
         self.role.permissions.add(
-            Permission.objects.get(
-                content_type__app_label="catalog", codename="change_productvariant"
-            )
+            Permission.objects.get(content_type__app_label="catalog", codename="change_product")
         )
-        response = self.client.post(
-            reverse("admin:catalog_productvariant_change", args=[self.variant.pk]),
-            {
-                "product": self.product.pk,
-                "sku": "EDITED",
-                "attributes": '{"weight":"500g"}',
-                "is_active": "on",
-                "created_by": self.worker.pk,
-            },
+        data = self.product_data(
+            name="Updated milk",
+            sku="EDITED",
+            unit="ml",
+            category=self.category.pk,
+            created_by=self.worker.pk,
         )
-        self.assertEqual(response.status_code, 302)
-        self.variant.refresh_from_db()
-        self.assertEqual(self.variant.sku, "EDITED")
-        self.assertEqual(self.variant.updated_by, self.worker)
-        self.assertIsNone(self.variant.created_by)
+        self.assertEqual(
+            self.client.post(
+                reverse("admin:catalog_product_change", args=[self.product.pk]), data
+            ).status_code,
+            302,
+        )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.sku, "EDITED")
+        self.assertEqual(self.product.unit, "ml")
+        self.assertEqual(self.product.updated_by, self.worker)
+        self.assertIsNone(self.product.created_by)
+        self.assertTrue(ProductVariant.objects.filter(pk=self.variant.pk).exists())
 
     def test_anonymous_unrelated_and_inactive_users_cannot_manage_products(self):
         urls = [
             reverse("admin:catalog_product_changelist"),
-            reverse("admin:catalog_productvariant_changelist"),
         ]
         for url in urls:
             self.assertEqual(self.client.get(url).status_code, 302)
@@ -285,7 +273,7 @@ class ProductTests(TestCase):
             self.parent.delete()
         self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
 
-    def test_product_delete_does_not_bypass_variant_delete_permission(self):
+    def test_product_delete_uses_product_permission_without_variant_grants(self):
         self.role.permissions.add(
             Permission.objects.get(content_type__app_label="catalog", codename="delete_product")
         )
@@ -293,8 +281,8 @@ class ProductTests(TestCase):
         response = self.client.post(
             reverse("admin:catalog_product_delete", args=[self.product.pk]), {"post": "yes"}
         )
-        self.assertEqual(response.status_code, 403)
-        self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Product.objects.filter(pk=self.product.pk).exists())
 
     def test_inline_photo_upload_attribution_and_failed_save(self):
         self.client.force_login(self.owner)
@@ -314,7 +302,7 @@ class ProductTests(TestCase):
         data = self.product_data(
             **{
                 "name": "Invalid upload",
-                "variants-0-sku": "INVALID-UPLOAD",
+                "sku": "INVALID-UPLOAD",
                 "photos-TOTAL_FORMS": "1",
                 "photos-0-position": "0",
                 "photos-0-image": SimpleUploadedFile("bad.png", b"invalid"),
@@ -326,19 +314,18 @@ class ProductTests(TestCase):
         self.assertFalse(Product.objects.filter(name="Invalid upload").exists())
         self.assertTrue(photo.image.storage.exists(photo.image.name))
 
-    def test_product_add_permission_also_requires_variant_add_permission(self):
+    def test_product_add_permission_does_not_require_variant_grants(self):
         self.role.permissions.add(
             Permission.objects.get(content_type__app_label="catalog", codename="add_product")
         )
         self.client.force_login(self.worker)
-        self.assertEqual(self.client.get(reverse("admin:catalog_product_add")).status_code, 403)
+        self.assertEqual(self.client.get(reverse("admin:catalog_product_add")).status_code, 200)
 
     def test_catalog_forms_use_plain_related_dropdowns(self):
         self.client.force_login(self.owner)
         for route, field in [
             ("catalog_category_add", "parent"),
             ("catalog_product_add", "category"),
-            ("catalog_productvariant_add", "product"),
         ]:
             response = self.client.get(reverse("admin:" + route))
             self.assertContains(response, f'id="id_{field}"')
@@ -348,7 +335,7 @@ class ProductTests(TestCase):
         self.assertNotContains(response, 'id="add_id_parent"')
 
     def test_catalog_list_actions_follow_current_role_permissions(self):
-        for model, obj in [("product", self.product), ("productvariant", self.variant)]:
+        for model, obj in [("product", self.product)]:
             change_url = reverse(f"admin:catalog_{model}_change", args=[obj.pk])
             delete_url = reverse(f"admin:catalog_{model}_delete", args=[obj.pk])
             for actor, change, delete in [
@@ -385,7 +372,7 @@ class ProductTests(TestCase):
 
     def test_product_lists_have_live_filters_aligned_columns_and_matching_counts(self):
         self.client.force_login(self.owner)
-        for model in ["product", "productvariant"]:
+        for model in ["product"]:
             response = self.client.get(reverse(f"admin:catalog_{model}_changelist"))
             self.assertContains(response, "data-management-filters")
             self.assertContains(response, "<colgroup>")
@@ -395,3 +382,47 @@ class ProductTests(TestCase):
             )
             self.assertEqual(response.context["cl"].result_count, 0)
             self.assertContains(response, "Showing 0 of 0")
+
+    def test_unit_choices_and_product_sku_database_uniqueness(self):
+        self.client.force_login(self.owner)
+        for unit in ["kg", "litre", "ml", "each"]:
+            response = self.client.post(
+                reverse("admin:catalog_product_add"),
+                self.product_data(name=f"Product {unit}", sku=f"UNIT-{unit}", unit=unit),
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertContains(self.client.get(reverse("product-list")), f"UNIT-{unit.upper()}")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Product.objects.bulk_create(
+                [Product(name="Duplicate", category=self.category, sku=" milk-1 ", unit="ml")]
+            )
+
+    def test_dashboard_and_navigation_show_products_without_variant_pages(self):
+        for user in [self.owner, self.worker]:
+            self.client.force_login(user)
+            response = self.client.get(reverse("admin:index"))
+            self.assertContains(response, "Latest products")
+            self.assertEqual(response.context["product_summary"]["total"], 1)
+            self.assertNotContains(response, "/admin/catalog/productvariant/")
+            self.assertEqual(self.client.get("/admin/catalog/productvariant/").status_code, 404)
+        self.role.permissions.clear()
+        self.assertNotContains(self.client.get(reverse("admin:index")), "Latest products")
+
+    def test_legacy_sku_migration_preserves_all_options_and_unknown_units(self):
+        multi = Product.objects.create(name="Multiple old sizes", category=self.category)
+        first = ProductVariant.objects.create(product=multi, sku="OLD-A", is_active=False)
+        active = ProductVariant.objects.create(product=multi, sku="OLD-B")
+        single = Product.objects.create(name="Known unit", category=self.category)
+        ProductVariant.objects.create(product=single, sku="KNOWN", attributes={"unit": "kg"})
+        count = ProductVariant.objects.count()
+        migration = import_module("catalog.migrations.0007_product_sku_product_unit_and_more")
+        migration.copy_existing_skus(apps, SimpleNamespace(connection=connection))
+        multi.refresh_from_db()
+        single.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(multi.sku, active.sku)
+        self.assertEqual(multi.unit, "")
+        self.assertEqual(single.unit, "kg")
+        self.assertEqual(self.product.unit, "")
+        self.assertEqual(ProductVariant.objects.count(), count)
+        self.assertTrue(ProductVariant.objects.filter(pk=first.pk).exists())
