@@ -4,7 +4,26 @@ Python 3.13, Django 5.2 LTS and PostgreSQL 17+ are required. `/admin/` provides 
 
 ## Install and configure (PowerShell)
 
-From this checkout, with uv and Python 3.13 available:
+For local development, configure this checkout's ignored `.env` using `.env.example`
+as the format reference. `manage.py` automatically loads that file; no separate
+launcher or repeated environment setup is needed. Existing process variables take
+precedence. Values are literal `KEY=value` entries with optional matching quotes;
+full-line comments are supported, but interpolation and inline comments are not.
+WSGI/ASGI deployments continue to require explicit process environment configuration.
+
+With an installed project environment and configured local PostgreSQL:
+
+```powershell
+.venv\Scripts\python.exe manage.py check
+.venv\Scripts\python.exe manage.py migrate --noinput
+.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000 --noreload
+```
+
+New feature worktrees receive a local copy of development's `.env` without replacing
+an existing file. `.env` remains ignored by Git; independent QA still needs separate
+database configuration. Never commit credentials.
+
+Alternatively, configure explicit process variables from this checkout, with uv and Python 3.13 available:
 
 ```powershell
 $env:UV_CACHE_DIR = Join-Path (Get-Location) '.uv-cache'
@@ -21,7 +40,7 @@ $localPassword = Read-Host 'Local database password' -AsSecureString
 $env:DB_PASSWORD = [System.Net.NetworkCredential]::new('', $localPassword).Password
 ```
 
-Lock pins Django 5.2.18 and dependencies. `.env.example` contains placeholders only; `.env` is not automatically loaded. Missing/blank/placeholder required values and malformed settings fail without echoing values. Secret keys need 50 characters; DEBUG is explicitly true/false; hosts exclude wildcards/ports; ports use ASCII integers 1–65535. Database names use lowercase ASCII letters/digits/underscores, begin with a letter, and have <=63 characters; system databases are rejected. Test name starts test_ and differs from development. Use synthetic local data, never production credentials/data.
+Lock pins Django 5.2.18 and dependencies. `.env.example` contains placeholders only; `manage.py` loads the checkout-local `.env` when present, without overriding process variables. Missing/blank/placeholder required values and malformed settings fail without echoing values. Secret keys need 50 characters; DEBUG is explicitly true/false; hosts exclude wildcards/ports; ports use ASCII integers 1–65535. Database names use lowercase ASCII letters/digits/underscores, begin with a letter, and have <=63 characters; system databases are rejected. Test name starts test_ and differs from development. Use synthetic local data, never production credentials/data.
 
 ## Initialize local PostgreSQL
 
