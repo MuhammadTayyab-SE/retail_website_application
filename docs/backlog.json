@@ -250,6 +250,6 @@
       "Actual category data; preserve Django permissions, CSRF, validation, deactivation and deletion restrictions",
       "Independent QA records defects with evidence, developer fixes and exact-SHA retests; unavailable visual checks remain pending"
     ],
-    "description": "User requested visual revision first in the existing retail-admin-visual worktree/feature/admin-visual-system/PR #25. Stronger green/yellow design and more readable dashboard/login/navigation/tables/forms implemented. QA explicitly deferred until user visual review; previous 31-test and 44-HTTP results apply only to f8d7682. Current revision developer startup/template checks passed."
+    "description": "Current visual direction is the user-provided supporting docs/POS-Standalone.html: navy/mint workspace, emerald actions, gray canvas, compact header, real category summary cards and tables. Updated in existing retail-admin-visual worktree/PR #25. QA deferred until user visual review. Historical tests apply only to earlier candidates; current revision developer startup/template/diff checks passed."
   }
 ]

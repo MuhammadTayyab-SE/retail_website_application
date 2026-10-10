@@ -115,3 +115,5 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
   recorded in docs/tickets/ADMIN-UI-001.md and the linked PR. Done still requires merge.
 
 - 2026-10-10 visual revision: Developer is refining the existing admin-visual branch/PR #25 in place. Strong green/yellow shell, readable type, dashboard, login, tables and forms are updated first. Prior test evidence covers the earlier candidate only; renewed QA will follow user visual review.
+
+- Latest visual direction: user-supplied `supporting docs/POS-Standalone.html`. Same admin-visual branch/PR #25; navy navigation, emerald actions, mint selection, compact category dashboard and cool-gray workspace replace the grocery promotional treatment. In Development; QA deferred by user.

@@ -76,3 +76,9 @@ QA is deferred at the user's request. Earlier 31-test/44-HTTP results apply to t
 Latest revision developer checks: `manage.py check` passed (0 issues); six shared/login/dashboard templates compiled via `manage.py shell`; `git diff --check` passed. No regression suite, browser session, screenshot checks or independent QA were run for this revision.
 
 Developer checks for this revision: Django system check passed with zero issues; six affected templates compiled successfully through manage.py; git diff --check passed. No QA/regression suite or browser visual checks were run for this revision.
+
+## Latest reference revision ? POS workspace
+
+User supplied `supporting docs/POS-Standalone.html` as the visual reference. Developer consolidated shared CSS into a navy/emerald/mint workspace with white cards and compact controls, removed the promotional dashboard banner, retained real category counts/table/activity, and added the actual administrator profile to the sidebar. Login uses the same palette. No sample sales, stores, POS workflows or demo role switches were introduced. Same branch/worktree/PR #25; status In Development. QA remains deferred; earlier checks concern previous candidates only.
+
+POS revision developer checks: Django system check passed (0 issues); template compilation and diff checks performed before publication. No independent QA or browser visual checks run for this revision.
