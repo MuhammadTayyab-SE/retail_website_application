@@ -26,6 +26,11 @@ class CategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if "parent" in self.fields:
+            self.fields["parent"].label = "Parent category (optional)"
+            self.fields["parent"].empty_label = "No parent — independent category"
+            self.fields["parent"].help_text = "Leave empty or select a parent category."
+            self.fields["parent"].queryset = Category.objects.parents().exclude(pk=self.instance.pk)
         for name in ("photo_x", "photo_y", "photo_zoom"):
             if name in self.fields:
                 self.fields[name].required = False

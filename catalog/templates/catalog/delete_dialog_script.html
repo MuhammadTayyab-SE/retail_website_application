@@ -1,0 +1,57 @@
+﻿(() => {
+  const dialog = document.querySelector('[data-delete-dialog]');
+  if (!dialog || typeof dialog.showModal !== 'function') return;
+  const content = dialog.querySelector('[data-delete-content]');
+  const status = dialog.querySelector('[data-delete-status]');
+  const cancel = dialog.querySelector('[data-delete-cancel]');
+  let controller, trigger;
+  function close() { dialog.close(); }
+  dialog.querySelector('[data-delete-close]').addEventListener('click', close);
+  cancel.addEventListener('click', close);
+  dialog.addEventListener('close', () => {
+    if (controller) controller.abort();
+    if (trigger?.isConnected) trigger.focus();
+  });
+  document.addEventListener('click', async event => {
+    const link = event.target.closest('a.category-delete-link, .submit-row a.deletelink');
+    if (!link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (controller) controller.abort();
+    controller = new AbortController();
+    const request = controller;
+    trigger = link;
+    content.replaceChildren();
+    status.textContent = 'Loading items to delete...';
+    cancel.hidden = false;
+    dialog.showModal();
+    cancel.focus();
+    try {
+      const response = await fetch(link.href, {credentials:'same-origin', signal:request.signal});
+      if (!response.ok) throw new Error('Confirmation unavailable');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      const confirmation = page.querySelector('.category-delete-confirmation');
+      if (!confirmation) throw new Error('Confirmation unavailable');
+      if (request !== controller || !dialog.open) return;
+      const form = confirmation.querySelector('form');
+      if (!form) throw new Error('Confirmation unavailable');
+      form.action = link.href;
+      const cancelLink = confirmation.querySelector('.category-confirm-actions a');
+      const cancelButton = document.createElement('button');
+      cancelButton.type = 'button';
+      cancelButton.className = 'retail-button secondary';
+      cancelButton.textContent = 'Cancel';
+      cancelButton.addEventListener('click', close);
+      cancelLink.replaceWith(cancelButton);
+      form.addEventListener('submit', () => {
+        form.querySelector('button[type=submit]').disabled = true;
+      });
+      content.replaceChildren(confirmation);
+      status.textContent = '';
+      cancel.hidden = true;
+      cancelButton.focus();
+    } catch (error) {
+      if (error.name === 'AbortError' || request !== controller || !dialog.open) return;
+      status.textContent = 'Unable to load the confirmation. Close this popup and try again.';
+    }
+  });
+})();

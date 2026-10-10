@@ -1,0 +1,5 @@
+{% load admin_list %}
+<div class="category-table-footer">
+  {% if pagination_required %}<nav class="paginator" aria-label="Category pages">{% for i in page_range %}{% paginator_number cl i %}{% endfor %}</nav>{% endif %}
+  {% if cl.formset and cl.result_count %}<button type="submit" name="_save" value="Save" class="retail-button category-save">Save order</button>{% endif %}
+</div>

@@ -52,18 +52,57 @@ class CategoryTests(TestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             Category.objects.bulk_create([Category(name=" FRUIT ")])
 
-    def test_deletion_disabled_for_model_queryset_and_admin(self):
-        root = Category.objects.create(name="Fruit")
-        Category.objects.create(name="Apples", parent=root)
-        with self.assertRaises(ValidationError):
-            root.delete()
-        with self.assertRaises(ValidationError):
-            Category.objects.all().delete()
+    def test_parent_delete_requires_confirmation_and_cascades(self):
+        root = Category.objects.create(name="Fruit", is_parent_category=True)
+        child = Category.objects.create(name="Apples", parent=root)
+        Category.objects.create(name="Green apples", parent=child)
+        survivor = Category.objects.create(name="Unrelated")
         self.client.force_login(self.owner)
         url = reverse("admin:catalog_category_delete", args=[root.pk])
-        self.assertEqual(self.client.get(url).status_code, 403)
-        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 403)
-        self.assertEqual(Category.objects.count(), 2)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Delete parent and subcategories")
+        self.assertContains(response, "Green apples")
+        self.assertEqual(Category.objects.count(), 4)
+        self.assertEqual(self.client.post(url, {"unconfirmed": "1"}).status_code, 400)
+        self.assertEqual(Category.objects.count(), 4)
+        response = self.client.post(url, {"post": "yes"})
+        self.assertRedirects(response, reverse("admin:catalog_parent_categories"))
+        self.assertEqual(list(Category.objects.all()), [survivor])
+
+    def test_subcategory_delete_preserves_parent_and_siblings(self):
+        root = Category.objects.create(name="Fruit", is_parent_category=True)
+        child = Category.objects.create(name="Apples", parent=root)
+        sibling = Category.objects.create(name="Bananas", parent=root)
+        self.client.force_login(self.owner)
+        url = reverse("admin:catalog_category_delete", args=[child.pk])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        response = self.client.post(url, {"post": "yes"})
+        self.assertRedirects(response, reverse("admin:catalog_category_changelist"))
+        self.assertEqual(set(Category.objects.all()), {root, sibling})
+
+    def test_delete_requires_permission_and_csrf(self):
+        root = Category.objects.create(name="Fruit")
+        url = reverse("admin:catalog_category_delete", args=[root.pk])
+        self.assertEqual(self.client.post(url, {"post": "yes"}).status_code, 302)
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(url, {"post": "yes"}).status_code, 403)
+        self.assertTrue(Category.objects.filter(pk=root.pk).exists())
+
+    def test_cascade_photos_removed_only_after_commit(self):
+        from unittest.mock import patch
+
+        root = Category.objects.create(name="Fruit", photo="categories/root.png")
+        Category.objects.create(name="Apples", parent=root, photo="categories/child.png")
+        with patch.object(root.photo.storage, "delete") as remove:
+            with self.captureOnCommitCallbacks(execute=True):
+                root.delete()
+                remove.assert_not_called()
+            self.assertEqual(
+                {call.args[0] for call in remove.call_args_list},
+                {"categories/root.png", "categories/child.png"},
+            )
 
     def test_public_categories_order_hierarchy_visibility_and_escaping(self):
         root = Category.objects.create(name="Fruit", position=2)

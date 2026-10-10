@@ -94,6 +94,8 @@ class AdminAccessTests(TestCase):
             reverse("admin:index"),
             reverse("admin:catalog_category_changelist"),
             reverse("admin:catalog_category_add"),
+            reverse("admin:settings"),
+            reverse("admin:catalog_parent_categories"),
         ]
         for user in (None, self.customer, self.staff, self.inactive):
             self.client.logout()

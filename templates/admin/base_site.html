@@ -3,10 +3,8 @@
 {% block title %}{{ title }} | {{ site_title|default:_("Retail admin") }}{% endblock %}
 {% block dark-mode-vars %}{% endblock %}
 {% block responsive %}{{ block.super }}<style>{% include "retail_admin/admin_styles.html" %}</style>{% endblock %}
-{% block welcome-msg %}<span class="retail-account-name">{% firstof user.get_short_name user.get_username %}</span>{% endblock %}
-{% block userlinks %}
-  {% if user.has_usable_password %}<a href="{% url 'admin:password_change' %}">{% translate "Change password" %}</a>{% endif %}
-  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button type="submit">{% translate "Sign out" %}</button></form>
-{% endblock %}
+{% block usertools %}{% endblock %}
+{% block nav-breadcrumbs %}{% if has_permission %}<div class="retail-overview-header"><span>Workspace</span><span aria-hidden="true">/</span><strong>{{ workspace_header|default:title }}</strong></div>{% endif %}{% endblock %}
 {% block nav-global %}{% endblock %}
+{% block extrabody %}{{ block.super }}{% if has_permission and opts.model_name == 'category' %}{% include "catalog/delete_dialog.html" %}{% endif %}{% endblock %}
 {% block footer %}<div class="retail-footer">{% translate "Retail administration" %}</div>{% endblock %}

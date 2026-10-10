@@ -14,6 +14,11 @@
     image.style.objectPosition = `${x.value}% ${y.value}%`;
     image.style.transform = `scale(${zoom.value / 100})`;
   }
+  image.addEventListener('error', () => {
+    image.hidden = true;
+    empty.hidden = false;
+    status.textContent = 'This photo could not be displayed. Choose another JPEG, PNG or WebP.';
+  });
   function show(url) {
     image.hidden = !url;
     empty.hidden = Boolean(url);
@@ -27,7 +32,9 @@
     const file = input.files[0];
     status.textContent = '';
     if (!file) { show(clear && clear.checked ? '' : original); return; }
-    if (file.size > 8 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    const supported = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+      || (!file.type && /\.(jpe?g|png|webp)$/i.test(file.name));
+    if (file.size > 8 * 1024 * 1024 || !supported) {
       input.value = '';
       status.textContent = 'Choose a JPEG, PNG or WebP photo up to 8 MB.';
       show(clear && clear.checked ? '' : original);

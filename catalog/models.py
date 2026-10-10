@@ -4,6 +4,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import connection, models, transaction
 from django.db.models.functions import Lower, Trim
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 def category_photo_path(instance, filename):
@@ -12,14 +14,25 @@ def category_photo_path(instance, filename):
 
 
 class CategoryQuerySet(models.QuerySet):
+    def parents(self):
+        return self.alias(
+            is_used_as_parent=models.Exists(
+                self.model.objects.filter(parent_id=models.OuterRef("pk"))
+            )
+        ).filter(models.Q(is_parent_category=True) | models.Q(is_used_as_parent=True))
+
     def delete(self):
-        raise ValidationError("Categories cannot be deleted. Deactivate them instead.")
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(734003004)")
+            return super().delete()
 
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    is_parent_category = models.BooleanField(default=False, editable=False)
     parent = models.ForeignKey(
-        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="children"
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="children"
     )
     position = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
     is_active = models.BooleanField(default=True)
@@ -75,4 +88,14 @@ class Category(models.Model):
             return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise ValidationError("Categories cannot be deleted. Deactivate them instead.")
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(734003004)")
+            return super().delete(*args, **kwargs)
+
+
+@receiver(post_delete, sender=Category)
+def delete_category_photo(sender, instance, using, **kwargs):
+    if instance.photo:
+        storage, name = instance.photo.storage, instance.photo.name
+        transaction.on_commit(lambda: storage.delete(name), using=using)
