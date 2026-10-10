@@ -113,3 +113,7 @@ Pure environment tests can run without a database: `uv run --frozen python -m un
 ## Foundation validation history
 
 Frozen dependency installation, Django system check, five pure configuration tests and lint/format checks ran successfully. Windows Application Control blocks both local PostgreSQL initdb and the psycopg binary DLL on this workstation; approved PostgreSQL and psycopg/libpq runtimes are required. Database migration/full Django tests and the documented runserver migration probe are blocked, not passed. Independent QA exercised the normal config.wsgi application through stdlib wsgiref without backend alterations: 11 HTTP scenarios passed on the prior candidate. This commit requires renewed QA; no browser result is claimed here. Do not bypass host controls or replace PostgreSQL with SQLite/cloud. See docs/tickets/MVP-001.md for evidence.
+
+### Local category photos
+
+Run `uv sync --frozen --python 3.13` and `uv run --frozen python manage.py migrate` after pulling the category-photo revision. Photos are stored under `media/categories/` by default; set `MEDIA_ROOT` locally to use another folder. Media stays gitignored. The admin serves images through its authenticated category-photo endpoint, including when DEBUG is false. Upload a JPEG, PNG or WebP up to 8 MB, adjust the square preview and save. The original image is retained; saved position/zoom controls thumbnail display. Removing/replacing a photo deletes the previous local file after a successful save.

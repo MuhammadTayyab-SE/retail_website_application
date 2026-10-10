@@ -243,3 +243,34 @@ body.retail-admin {
 @media(prefers-reduced-motion:reduce) { .retail-admin * { transition:none!important; animation:none!important; scroll-behavior:auto!important; } }
 
 .retail-admin .retail-menu-close { background:var(--sidebar-bg); color:var(--card-bg); border:1px solid var(--border); border-radius:8px; min-height:40px; padding:8px 16px; margin-bottom:24px; }
+
+/* Category management: native Django forms/results, shared retail palette. */
+.retail-admin .category-filter-bar { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:16px; padding:24px; background:var(--page-bg); border-bottom:1px solid var(--border); align-items:end; }
+.retail-admin .category-filter-bar label { display:block; margin-bottom:8px; color:var(--text); font-weight:600; }
+.retail-admin .category-filter-bar input,.retail-admin .category-filter-bar select { width:100%; min-width:0; min-height:40px; box-sizing:border-box; }
+.retail-admin .category-filter-actions { display:flex; align-items:center; gap:16px; }
+.retail-admin.model-category #changelist .changelist-form-container { width:100%; }
+.retail-admin.model-category #changelist.filtered { display:block; }
+.retail-admin .category-thumb { display:block; width:48px; height:48px; overflow:hidden; border-radius:8px; background:var(--page-bg); }
+.retail-admin .category-thumb img { display:block; width:100%; height:100%; object-fit:cover; }
+.retail-admin .category-photo-placeholder { font-size:12px; color:var(--muted); }
+.retail-admin .category-flow-note { padding:16px 24px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; margin-bottom:24px; }
+.retail-admin .category-flow-note p { color:var(--muted); margin:8px 0 0; }
+.retail-admin .category-editor-layout { display:grid; grid-template-columns:minmax(0,2fr) minmax(280px,1fr); gap:24px; }
+.retail-admin .category-editor-layout > * { min-width:0; }
+.retail-admin .category-photo-editor { padding:24px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; }
+.retail-admin .category-photo-editor > h2 { font-size:18px; margin:0 0 8px; }
+.retail-admin .category-photo-editor > p { color:var(--muted); }
+.retail-admin .category-photo-preview { position:relative; display:grid; place-items:center; width:100%; aspect-ratio:1; overflow:hidden; background:var(--page-bg); border:1px solid var(--border); border-radius:12px; margin:24px 0; }
+.retail-admin .category-photo-preview img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+.retail-admin .category-photo-preview [hidden] { display:none; }
+.retail-admin .category-photo-editor .module { border:0; box-shadow:none; }
+.retail-admin .category-photo-editor .module h2 { display:none; }
+.retail-admin .category-photo-editor .form-row { padding:16px 0; }
+.retail-admin .category-photo-editor label { float:none; width:auto; display:block; padding:0 0 8px; }
+.retail-admin .category-photo-editor input { max-width:100%; }
+.retail-admin .category-photo-editor .file-upload a { overflow-wrap:anywhere; }
+.retail-admin .category-photo-editor input[type=range] { width:100%; accent-color:var(--accent); padding:0; }
+@media(max-width:1100px) { .retail-admin .category-filter-bar { grid-template-columns:1fr 1fr; } }
+@media(max-width:900px) { .retail-admin .category-editor-layout { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:767px) { .retail-admin .category-filter-bar { grid-template-columns:minmax(0,1fr); padding:16px; } }

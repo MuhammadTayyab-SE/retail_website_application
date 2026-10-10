@@ -60,3 +60,8 @@ ASGI_APPLICATION = "config.asgi.application"
 USE_TZ = True
 TIME_ZONE = "UTC"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+MEDIA_ROOT = os.environ.get(
+    "MEDIA_ROOT", os.path.join(os.path.dirname(os.path.dirname(__file__)), "media")
+)
+MEDIA_URL = "/media/"

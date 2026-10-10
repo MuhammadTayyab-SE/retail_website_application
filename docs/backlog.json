@@ -251,5 +251,28 @@
       "Independent QA records defects with evidence, developer fixes and exact-SHA retests; unavailable visual checks remain pending"
     ],
     "description": "Exact navy/emerald design tokens and explicit 248px sidebar/64px header shell in existing retail-admin-visual worktree and PR #25. Screenshot is broken-implementation evidence, not desired design. Developer checks: 31 PostgreSQL tests, Django check, Ruff and static asset HTTP checks passed. Independent PM source review passed; browser visual/interaction/console verification and independent QA remain pending."
+  },
+  {
+    "id": "CATALOG-UI-002",
+    "title": "Category photo editor and hierarchy management",
+    "status": "In Development",
+    "priority": "P1",
+    "owner": "Developer",
+    "dependencies": "ADMIN-UI-001",
+    "description": "Same admin-visual branch/PR. Category list inspired by supplied screenshot, existing palette retained. Single optional category photo stored locally with zoom/position preview, upload/replacement/removal. Existing parent hierarchy provides parent category then category. User explicitly defers QA until requested.",
+    "acceptanceCriteria": [
+      "Category create/edit supports optional local JPEG/PNG/WebP photo and square preview adjustment",
+      "Category list includes photo, search, status/parent filters and actions",
+      "Parent category and child category creation retain cycle validation",
+      "No QA execution until user authorizes it"
+    ]
+  },
+  {
+    "id": "CATALOG-FLOW-003",
+    "title": "Brand and product management beneath categories",
+    "status": "Backlog",
+    "priority": "P1",
+    "dependencies": "CATALOG-UI-002",
+    "description": "User confirmed category photos and hierarchy first. Define brand/product relationships and required fields before implementation; intended flow is parent category -> category -> brand/product."
   }
 ]

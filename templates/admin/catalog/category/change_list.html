@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+{% block content_title %}<div class="retail-page-heading"><div><h1>Categories</h1><p>Organize parent categories and their children.</p></div><div class="retail-heading-actions">{% if has_add_permission %}<a class="retail-button secondary" href="{% url 'admin:catalog_category_add' %}?parent=">Add parent category</a><a class="retail-button" href="{% url 'admin:catalog_category_add' %}">Add category</a>{% endif %}</div></div>{% endblock %}
+{% block object-tools %}{% endblock %}
+{% block search %}
+<form method="get" class="category-filter-bar" role="search">
+  <div><label for="category-search">Search categories</label><input id="category-search" type="search" name="q" value="{{ cl.query }}" placeholder="Search by name or ID"></div>
+  <div><label for="category-status">Status</label><select id="category-status" name="is_active__exact"><option value="">All statuses</option><option value="1"{% if selected_status == '1' %} selected{% endif %}>Active</option><option value="0"{% if selected_status == '0' %} selected{% endif %}>Inactive</option></select></div>
+  <div><label for="category-parent">Parent category</label><select id="category-parent" name="parent__id__exact"><option value="">All parents</option>{% for category in category_parents %}<option value="{{ category.pk }}"{% if selected_parent == category.pk|stringformat:'s' %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
+  <div class="category-filter-actions"><a href="{% url 'admin:catalog_category_changelist' %}">Clear all</a><button class="retail-button" type="submit">Apply filters</button></div>
+</form>
+{% endblock %}
+{% block filters %}{% endblock %}

@@ -119,3 +119,5 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
 - Latest visual direction: user-supplied `supporting docs/POS-Standalone.html`. Same admin-visual branch/PR #25; navy navigation, emerald actions, mint selection, compact category dashboard and cool-gray workspace replace the grocery promotional treatment. In Development; QA deferred by user.
 
 ADMIN-UI-001 latest revision: exact-token navy/emerald shell in PR #25; explicit sidebar grid and single navigation. Developer 31-test/static checks and independent PM source review passed. Browser screenshots, interaction/console checks and independent QA remain pending; In Development. See docs/tickets/ADMIN-UI-001.md.
+
+CATALOG-UI-002 ? In Development: category photos, adjustment sidebar, local storage, thumbnail list and existing parent/child hierarchy. Same admin-visual PR #25. QA deferred explicitly by user. CATALOG-FLOW-003 ? Backlog: brand/product management follows category work, as confirmed by user.

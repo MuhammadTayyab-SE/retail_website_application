@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.urls import path
 from django.views.decorators.http import require_safe
 
-from catalog.views import category_list
+from catalog.views import category_list, category_photo
 from config.admin import site
 
 
@@ -16,6 +16,7 @@ def health(request):
 
 urlpatterns = [
     path("health/", health, name="health"),
+    path("admin/category-photo/<int:pk>/", category_photo, name="category-photo"),
     path("admin/", site.urls),
     path("categories/", category_list, name="category-list"),
 ]

@@ -1,6 +1,14 @@
+from uuid import uuid4
+
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import connection, models, transaction
 from django.db.models.functions import Lower, Trim
+
+
+def category_photo_path(instance, filename):
+    extension = filename.rsplit(".", 1)[-1].lower()
+    return f"categories/{uuid4().hex}.{extension}"
 
 
 class CategoryQuerySet(models.QuerySet):
@@ -15,6 +23,15 @@ class Category(models.Model):
     )
     position = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
     is_active = models.BooleanField(default=True)
+
+    photo = models.ImageField(upload_to=category_photo_path, blank=True)
+    photo_x = models.PositiveSmallIntegerField(default=50, validators=[MaxValueValidator(100)])
+    photo_y = models.PositiveSmallIntegerField(default=50, validators=[MaxValueValidator(100)])
+    photo_zoom = models.PositiveSmallIntegerField(
+        default=100,
+        validators=[MinValueValidator(100), MaxValueValidator(200)],
+        help_text="100 to 200 percent.",
+    )
 
     objects = CategoryQuerySet.as_manager()
 
