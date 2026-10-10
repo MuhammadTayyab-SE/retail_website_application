@@ -2,6 +2,8 @@
 
 import os
 
+from django.urls import reverse_lazy
+
 from config.environment import configuration
 
 _configuration = configuration(os.environ)
@@ -30,6 +32,7 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -51,6 +54,7 @@ STATIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), "staticfi
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 ROOT_URLCONF = "config.urls"
+LOGIN_REDIRECT_URL = reverse_lazy("admin:index")
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 USE_TZ = True

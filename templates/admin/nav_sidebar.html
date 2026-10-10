@@ -1,0 +1,9 @@
+{% load i18n %}
+<button class="sticky toggle-nav-sidebar" id="toggle-nav-sidebar" aria-label="{% translate 'Toggle navigation' %}"></button>
+<nav class="sticky" id="nav-sidebar" aria-label="{% translate 'Administration navigation' %}">
+  <span class="retail-nav-label">{% translate "YOUR WORKSPACE" %}</span>
+  <a class="retail-overview-link" href="{% url 'admin:index' %}"{% if request.resolver_match.url_name == 'index' %} aria-current="page"{% endif %}><span aria-hidden="true">▦</span> {% translate "Store overview" %}</a>
+  <input type="search" id="nav-filter" placeholder="{% translate 'Find a section…' %}" aria-label="{% translate 'Filter navigation items' %}">
+  {% include 'admin/app_list.html' with app_list=available_apps show_changelinks=False %}
+  <div class="retail-sidebar-note"><span aria-hidden="true">✦</span><strong>{% translate "Keep it fresh." %}</strong><p>{% translate "A well-organized catalog makes shopping a little easier." %}</p></div>
+</nav>

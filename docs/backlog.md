@@ -94,3 +94,22 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
 | MVP-012 | [#13](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/13) |
 | MVP-013 | [#14](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/14) |
 | MVP-014 | [#15](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/15) |
+
+## ADMIN-UI-001 ? Consistent Zilly-inspired administration
+
+- Issue: [#22](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/22).
+- Priority P1. State: In QA; visual acceptance pending browser availability.
+- Owner: Developer. Reviewer: PM. Validator: independent QA agent.
+- User authorized full admin styling after the login-only PR #21. MVP-003/004
+  and login PR #21 are merged; earlier blocked-state entries above are historical.
+- Scope: dashboard, shared navigation, app overview, categories list/search/filter/
+  inline edits, add/edit/history, password change and logout; coherent Zilly-inspired
+  green/sage/yellow/white palette, original assets, responsive layout and focus/errors.
+- Preserve owner-only access, CSRF, POST logout, category validation/deactivation and
+  deletion restrictions. Dashboard counts must come from database; no fake commerce data.
+- QA records linked defects, severity, exact SHA, evidence, developer fix and retest;
+  desktop/tablet/mobile screenshots are required for visual acceptance. Browser
+  unavailability blocks visual signoff, not functional implementation.
+- Developer fixed QA-ADMIN-001 shared-shell gap and QA-ADMIN-002 login fallback;
+  31 PostgreSQL tests passed. Independent QA results and remaining visual checks are
+  recorded in docs/tickets/ADMIN-UI-001.md and the linked PR. Done still requires merge.
