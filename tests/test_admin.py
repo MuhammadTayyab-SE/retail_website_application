@@ -17,6 +17,20 @@ class AdminPolicyTests(SimpleTestCase):
         self.assertContains(response, 'name="csrfmiddlewaretoken"')
         self.assertContains(response, 'name="password"')
 
+    def test_custom_login_keeps_validation_and_redirect_target(self):
+        target = reverse("admin:catalog_category_changelist")
+        response = self.client.post(
+            reverse("admin:login"),
+            {"username": "<owner>", "password": "", "next": target},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "retail_admin/login.html")
+        self.assertContains(response, "This field is required.")
+        self.assertContains(response, 'role="alert"')
+        self.assertContains(response, 'value="&lt;owner&gt;"')
+        self.assertContains(response, f'name="next" value="{target}"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+
     def test_only_active_staff_superusers_pass_the_site_gate(self):
         from itertools import product
         from types import SimpleNamespace

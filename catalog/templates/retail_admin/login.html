@@ -1,0 +1,87 @@
+{% load i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% translate "Sign in" %} | {{ site_title }}</title>
+  <style>{% include "retail_admin/login_styles.html" %}</style>
+  {{ form.media }}
+</head>
+<body>
+  <a class="skip-link" href="#login-form">{% translate "Skip to sign in" %}</a>
+  <header class="page-header">
+    <a class="brand" href="{% url 'admin:index' %}" aria-label="{% translate 'Retail administration' %}">
+      <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M7 12h18l-2 14H9L7 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 13V9a4 4 0 0 1 8 0v4M13 18v3m6-3v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span>retail<span class="brand-dot">.</span><small>{% translate "STORE MANAGEMENT" %}</small></span>
+    </a>
+    <span class="header-label"><span class="status-dot"></span>{% translate "Administrator portal" %}</span>
+  </header>
+
+  <main class="login-layout">
+    <section class="welcome-panel" aria-labelledby="welcome-title">
+      <div class="welcome-copy">
+        <span class="eyebrow"><span></span>{% translate "A FRESH START, EVERY DAY" %}</span>
+        <h1 id="welcome-title">{% translate "Good things" %}<br>{% translate "start with" %} <span>{% translate "your store." %}</span></h1>
+        <p>{% translate "A little care behind the scenes. A better shopping experience for everyone." %}</p>
+      </div>
+      <div class="grocery-art" aria-hidden="true">{% include "retail_admin/grocery_art.html" %}</div>
+      <div class="panel-note"><span class="note-icon" aria-hidden="true">✓</span><div><strong>{% translate "Your store. In good hands." %}</strong><span>{% translate "Keep your catalog fresh and organized." %}</span></div></div>
+    </section>
+
+    <section class="form-panel" aria-labelledby="sign-in-title">
+      <div class="form-content">
+        <span class="form-eyebrow">{% translate "WELCOME BACK" %}</span>
+        <h2 id="sign-in-title">{% translate "Let’s get to work." %}</h2>
+        <p class="form-intro">{% translate "Sign in to manage your store." %}</p>
+
+        {% if form.errors %}
+        <div class="error-message" role="alert">
+          {% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}{% translate "Please check the highlighted fields below." %}{% endif %}
+        </div>
+        {% endif %}
+        {% if user.is_authenticated %}
+        <p class="error-message" role="alert">{% blocktranslate %}You are signed in as {{ username }}. Use an authorized administrator account to continue.{% endblocktranslate %}</p>
+        {% endif %}
+
+        <form action="{{ app_path }}" method="post" id="login-form">
+          {% csrf_token %}
+          <div class="field{% if form.username.errors %} field-error{% endif %}">
+            {{ form.username.label_tag }}
+            {{ form.username }}
+            {{ form.username.errors }}
+          </div>
+          <div class="field{% if form.password.errors %} field-error{% endif %}">
+            {{ form.password.label_tag }}
+            <div class="password-input">{{ form.password }}<button class="password-toggle" type="button" aria-controls="id_password" aria-pressed="false" hidden>{% translate "Show" %}</button></div>
+            {{ form.password.errors }}
+          </div>
+          <input type="hidden" name="next" value="{{ next }}">
+          {% url 'admin_password_reset' as password_reset_url %}
+          {% if password_reset_url %}<a class="reset-link" href="{{ password_reset_url }}">{% translate "Forgot password?" %}</a>{% endif %}
+          <button class="submit-button" type="submit">{% translate "Sign in" %}<span aria-hidden="true">→</span></button>
+        </form>
+        <div class="access-note"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><path d="m12 3 7 3v5c0 5-7 10-7 10S5 16 5 11V6l7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="m9 11 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>{% translate "For authorized store administrators only." %}</span></div>
+        <p class="help-note">{% translate "Need access? Contact your store owner." %}</p>
+      </div>
+      <div class="form-footer"><span class="footer-line"></span>{% translate "A little simpler. A little fresher." %}<span class="footer-line"></span></div>
+    </section>
+  </main>
+  <footer class="page-footer"><span>© {% now "Y" %} {% translate "Retail. All rights reserved." %}</span><span>{% translate "Made for your everyday essentials." %}</span></footer>
+  <script>
+    (() => {
+      const password = document.getElementById('id_password');
+      const toggle = document.querySelector('.password-toggle');
+      if (!password || !toggle) return;
+      toggle.hidden = false;
+      toggle.addEventListener('click', () => {
+        const reveal = password.type === 'password';
+        password.type = reveal ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(reveal));
+        toggle.textContent = reveal ? '{% translate "Hide"|escapejs %}' : '{% translate "Show"|escapejs %}';
+      });
+    })();
+  </script>
+</body>
+</html>
