@@ -99,3 +99,19 @@ class AuditEvent(models.Model):
 
     def __str__(self):
         return f"{self.actor_name or 'Anonymous'}: {self.action} ({self.outcome})"
+
+    @property
+    def action_label(self):
+        return self.action.replace("_", " ").title()
+
+    @property
+    def module_label(self):
+        return {
+            "catalog.category": "Categories",
+            "auth.user": "Workers",
+            "access.role": "Roles",
+            "access.workerprofile": "Worker roles",
+            "access.auditevent": "Activity log",
+            "authentication": "Authentication",
+            "portal": "Dashboard",
+        }.get(self.module, self.module)

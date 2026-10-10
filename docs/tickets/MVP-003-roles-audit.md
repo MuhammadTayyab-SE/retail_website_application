@@ -98,3 +98,31 @@ list. No rendered desktop/mobile or keyboard acceptance is claimed. Independent
 PM review and QA of the exact PR SHA in a separate checkout/database must verify
 these flows at desktop 1440px and mobile 360px/390px/767px before user review.
 The separate admin QA fixes PR #27 remains independent of this feature.
+
+## User follow-up: team management visuals and existing attribution
+
+The user requested matching `supporting docs/index.html` on 2026-10-11. Its
+Settings screen is the visual reference for Workers: Team & access heading,
+Team members card, name/email/role/status columns and Manage actions. Shared
+management templates now apply matching card spacing, badges, buttons, search,
+filters and empty states to Workers, Roles and Activity log. Worker/role forms
+use responsive parallel cards; role permissions are accessible checkbox choices.
+All authentication, server permissions and persistence remain real Django flows;
+the source HTML's demo-only statements and code are not application instructions.
+The final active staff Super Admin cannot be deactivated through the worker form.
+View catalog immediately follows Parent Categories, whose title casing is now
+consistent across navigation and page headings.
+
+The sole existing local account (ID 1) was verified as an active staff Super Admin.
+On the user's explicit instruction, all 10 existing Category/Parent Category
+records were assigned to that account as creator and updater through
+`python manage.py assign_catalog_owner <existing-username>`. This command is
+transactional and idempotent, records each attribution reassignment in AuditEvent,
+and preserves unknown historical creation timestamps. It is an explicit local
+data operation, not a migration that reassigns every future installation's data.
+
+Developer validation after the visual update: 75 PostgreSQL-backed tests passed,
+including filter/date/count rendering, management forms, navigation order,
+last-admin protection and audited/idempotent attribution assignment. Browser
+connection remains unavailable; visual comparison and keyboard/mobile acceptance
+still require independent QA. Candidate SHA is recorded in PR #28.

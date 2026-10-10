@@ -242,7 +242,7 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertEqual(response.context["category_metrics"]["independent"], 1)
         self.assertContains(response, "Without categories")
         self.assertContains(response, "Add parent category")
-        self.assertContains(response, "<strong>Parent categories</strong>")
+        self.assertContains(response, "<strong>Parent Categories</strong>")
         self.assertNotContains(response, 'id="category-parent"')
         filtered = self.client.get(url, {"q": "Empty"})
         self.assertEqual(list(filtered.context["cl"].result_list), [empty_parent])

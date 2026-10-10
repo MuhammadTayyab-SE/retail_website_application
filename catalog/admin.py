@@ -239,7 +239,7 @@ class CategoryAdmin(admin.ModelAdmin):
         context = dict(extra_context or {})
         context["is_parent_list"] = request.resolver_match.url_name == "catalog_parent_categories"
         if context["is_parent_list"]:
-            context["title"] = "Parent categories"
+            context["title"] = "Parent Categories"
         context.update(
             {
                 "category_parents": Category.objects.parents().order_by("name")

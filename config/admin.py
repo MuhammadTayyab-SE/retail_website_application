@@ -39,7 +39,7 @@ class RetailAdminSite(AdminSite):
         context["workspace_header"] = {
             "index": "Overview",
             "catalog_category_changelist": "Categories",
-            "catalog_parent_categories": "Parent categories",
+            "catalog_parent_categories": "Parent Categories",
             "settings": "Settings",
             "password_change": "Settings / Change password",
             "password_change_done": "Settings / Change password",

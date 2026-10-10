@@ -1,0 +1,5 @@
+{% extends "admin/change_form.html" %}
+{% load admin_urls %}
+{% block bodyclass %}{{ block.super }} retail-management-form{% endblock %}
+{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>{% if opts.model_name == 'auditevent' %}Activity details{% else %}{{ title }}{% endif %}</h1><p>{% if opts.model_name == 'user' %}Manage account details, assigned role and sign-in access.{% elif opts.model_name == 'role' %}Choose which modules and actions your team can use.{% else %}A permanent record of activity in your store.{% endif %}</p></div><a class="retail-button secondary" href="{% url opts|admin_urlname:'changelist' %}">Back to {% if opts.model_name == 'user' %}workers{% elif opts.model_name == 'role' %}roles{% else %}activity log{% endif %}</a></div>{% endblock %}
+{% block field_sets %}<div class="management-form-grid{% if opts.model_name == 'auditevent' %} management-form-single{% endif %}">{% for fieldset in adminform %}<section class="management-form-card">{% include "admin/includes/fieldset.html" %}</section>{% endfor %}</div>{% endblock %}

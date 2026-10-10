@@ -478,3 +478,57 @@ body.retail-admin {
 .retail-admin .category-delete-dialog .category-delete-confirmation { padding:0; border:0; box-shadow:none; }
 .retail-admin .category-delete-dialog #deleted-objects { max-height:240px; overflow:auto; padding:12px 12px 12px 28px; background:var(--page-bg); border-radius:8px; overflow-wrap:anywhere; }
 .retail-admin .category-delete-dialog [data-delete-status]:empty { display:none; }
+
+/* Team management follows the reference Settings / Team & access layout. */
+.retail-management-list #changelist { padding:24px; }
+.retail-management-list #changelist .changelist-form-container { width:100%; min-width:0; }
+.retail-management-list #changelist .results { margin:0; width:100%; overflow-x:auto; }
+.retail-management-list #changelist .paginator { width:100%; margin:0; padding:20px 0 0; border:0; background:transparent; }
+.management-table-heading { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+.retail-admin .management-table-heading h2 { display:flex; align-items:center; gap:10px; background:none; padding:0; margin:0; border:0; font-size:18px; }
+.management-table-heading > span { color:var(--muted); font-size:12px; }
+.management-toolbar { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+.management-toolbar > div { flex:1 1 150px; min-width:0; max-width:230px; }
+.management-toolbar > .management-search { flex:2 1 280px; max-width:380px; }
+.management-toolbar label { display:block; color:var(--muted); font-size:12px; margin-bottom:7px; font-weight:600; }
+.management-toolbar input,.management-toolbar select { width:100%; max-width:100%; }
+.management-toolbar > a { padding:12px 0; font-size:12px; white-space:nowrap; }
+[data-management-status] { margin:0; color:var(--muted); font-size:12px; }
+[data-management-status]:not(:empty) { margin-bottom:12px; }
+.retail-admin .management-table { width:100%; min-width:650px; table-layout:auto; }
+.retail-admin .management-table thead th { text-transform:none; letter-spacing:0; padding:13px 14px; font-size:12px; font-weight:500; white-space:nowrap; border:0; }
+.retail-admin .management-table tbody td,.retail-admin .management-table tbody th { padding:16px 14px; border-bottom:1px solid #eef2f6; text-align:left; font-size:13px; font-weight:400; overflow-wrap:anywhere; }
+.retail-admin .management-table tbody tr:last-child td,.retail-admin .management-table tbody tr:last-child th { border-bottom:0; }
+.retail-admin .management-table .management-action { width:100px; text-align:right; white-space:nowrap; }
+.management-person { display:flex; align-items:center; gap:12px; }
+.management-person strong { font-size:13px; font-weight:650; }
+.management-avatar { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--selected); color:var(--accent); font-weight:650; flex-shrink:0; }
+.management-table small { display:block; margin-top:3px; font-size:11px; color:var(--muted); font-weight:400; }
+.management-badge { display:inline-block; background:#d1fae5; color:#065f46; padding:5px 9px; border-radius:20px; font-size:11px; white-space:nowrap; }
+.management-badge.neutral { background:#eef2f6; color:#64748b; }
+.management-badge.warning { background:#fff3db; color:#92400e; }
+.management-role { font-weight:500; }
+.retail-admin a.management-row-button { display:inline-flex; padding:8px 13px; border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text); background:var(--card-bg); font-weight:500; }
+.retail-admin a.management-row-button:hover { background:var(--page-bg); border-color:var(--accent); }
+.management-permissions { display:flex; gap:6px; flex-wrap:wrap; max-width:620px; }
+.management-permission { background:var(--page-bg); color:var(--muted); border-radius:5px; padding:4px 8px; font-size:11px; }
+.retail-admin .management-table .management-empty { padding:48px 24px; text-align:center; color:var(--muted); }
+.management-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; align-items:stretch; }
+.management-form-single { grid-template-columns:minmax(0,1fr); max-width:1000px; }
+.management-form-card { min-width:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+.retail-admin .management-form-card fieldset.module { border:0; margin:0; border-radius:0; box-shadow:none; }
+.retail-management-form .management-form-card .aligned label { float:none; display:block; width:auto; padding:0; margin-bottom:8px; font-weight:600; }
+.retail-management-form .management-form-card .aligned .form-row > div { width:100%; min-width:0; max-width:100%; }
+.retail-management-form .management-form-card .form-row { padding:18px 24px; }
+.retail-management-form .management-form-card input:not([type=checkbox]),.retail-management-form .management-form-card select { width:100%; max-width:100%; }
+.retail-management-form .management-form-card .related-widget-wrapper { float:none; }
+.retail-management-form .management-form-card .help,.retail-management-form .management-form-card .readonly { margin-left:0; padding-left:0; overflow-wrap:anywhere; }
+.retail-management-form .permission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.retail-management-form .permission-grid label { display:flex!important; align-items:center; gap:9px; padding:12px!important; border:1px solid var(--border); border-radius:8px; margin:0!important; font-size:12px; }
+.retail-management-form .permission-grid input { flex-shrink:0; }
+@media(max-width:767px) {
+ .retail-management-list #changelist { padding:18px; }
+ .management-toolbar > div,.management-toolbar > .management-search { max-width:none; flex-basis:100%; }
+ .management-form-grid { grid-template-columns:minmax(0,1fr); }
+ .retail-management-form .permission-grid { grid-template-columns:minmax(0,1fr); }
+}
