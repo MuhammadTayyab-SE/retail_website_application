@@ -2,7 +2,7 @@
 
 User authorized the complete admin visual update and independent QA/developer issue
 workflow. Backlog: https://github.com/MuhammadTayyab-SE/retail_website_application/issues/22 .
-Developer claimed In Development on GitHub; this candidate is handed to In QA.
+State: In Development. User requested a further visual revision first; QA is deferred.
 Branch: `feature/admin-visual-system`, checkout: `retail-admin-visual`, baseline `9038b9f`.
 
 ## Scope and implementation
@@ -38,7 +38,7 @@ Open http://127.0.0.1:8011/admin/ and use your existing local owner account.
 only. The shared theme CSS is embedded, but native Django scripts/static assets
 must still be served normally in deployment. No production deployment is performed.
 
-## Developer validation
+## Historical developer validation (before the latest visual revision)
 
 - Frozen offline dependency install with Python 3.13.14: passed.
 - Django system check: passed.
@@ -66,3 +66,13 @@ Independent QA must use the exact candidate commit in a separate checkout, with
 its own disposable PostgreSQL role/database and synthetic data/media. QA findings,
 fix references and actual retest results will be attached to Issue #22 and the draft
 PR. No visual acceptance, independent PM signoff, merge or deployment is claimed.
+
+## Visual revision ? 2026-10-10
+
+Continues in the same retail-admin-visual checkout, feature/admin-visual-system branch and PR #25. The developer strengthened the grocery green/yellow identity, redesigned the dark green navigation and dashboard banner, enlarged reading/control sizes, and refined list search/actions/filters, forms, account screens and login. Native Django behavior is retained.
+
+QA is deferred at the user's request. Earlier 31-test/44-HTTP results apply to the previous candidate only and do not validate this revision. Developer syntax/system checks will be recorded separately; no screenshots or visual acceptance are claimed.
+
+Latest revision developer checks: `manage.py check` passed (0 issues); six shared/login/dashboard templates compiled via `manage.py shell`; `git diff --check` passed. No regression suite, browser session, screenshot checks or independent QA were run for this revision.
+
+Developer checks for this revision: Django system check passed with zero issues; six affected templates compiled successfully through manage.py; git diff --check passed. No QA/regression suite or browser visual checks were run for this revision.

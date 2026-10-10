@@ -239,7 +239,7 @@
     "id": "ADMIN-UI-001",
     "title": "Consistent Zilly-inspired administration",
     "priority": "P1",
-    "status": "In QA",
+    "status": "In Development",
     "owner": "Developer",
     "validator": "Independent QA",
     "issue": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/22",
@@ -250,6 +250,6 @@
       "Actual category data; preserve Django permissions, CSRF, validation, deactivation and deletion restrictions",
       "Independent QA records defects with evidence, developer fixes and exact-SHA retests; unavailable visual checks remain pending"
     ],
-    "description": "User authorized full admin styling and QA/developer defect workflow. Isolated feature/admin-visual-system; developer checks 31 tests passed. Independent QA handoff; screenshots blocked by unavailable browser. See docs/tickets/ADMIN-UI-001.md."
+    "description": "User requested visual revision first in the existing retail-admin-visual worktree/feature/admin-visual-system/PR #25. Stronger green/yellow design and more readable dashboard/login/navigation/tables/forms implemented. QA explicitly deferred until user visual review; previous 31-test and 44-HTTP results apply only to f8d7682. Current revision developer startup/template checks passed."
   }
 ]

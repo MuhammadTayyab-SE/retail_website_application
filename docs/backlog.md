@@ -98,7 +98,7 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
 ## ADMIN-UI-001 ? Consistent Zilly-inspired administration
 
 - Issue: [#22](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/22).
-- Priority P1. State: In QA; visual acceptance pending browser availability.
+- Priority P1. State: In Development; visual revision requested, QA deferred by user.
 - Owner: Developer. Reviewer: PM. Validator: independent QA agent.
 - User authorized full admin styling after the login-only PR #21. MVP-003/004
   and login PR #21 are merged; earlier blocked-state entries above are historical.
@@ -113,3 +113,5 @@ ID / linked feature and PR; severity and priority; state; responsible developer 
 - Developer fixed QA-ADMIN-001 shared-shell gap and QA-ADMIN-002 login fallback;
   31 PostgreSQL tests passed. Independent QA results and remaining visual checks are
   recorded in docs/tickets/ADMIN-UI-001.md and the linked PR. Done still requires merge.
+
+- 2026-10-10 visual revision: Developer is refining the existing admin-visual branch/PR #25 in place. Strong green/yellow shell, readable type, dashboard, login, tables and forms are updated first. Prior test evidence covers the earlier candidate only; renewed QA will follow user visual review.

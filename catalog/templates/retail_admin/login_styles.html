@@ -1,4 +1,4 @@
-:root { color-scheme: light; --green: #245b35; --green-dark: #153d25; --ink: #1b3023; --muted: #66736b; --line: #e1e7df; }
+:root { color-scheme: light; --green: #14843b; --green-dark: #103e27; --ink: #1b3023; --muted: #66736b; --line: #e1e7df; }
 * { box-sizing: border-box; }
 body { margin: 0; background: #fafbf7; color: var(--ink); font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; -webkit-font-smoothing: antialiased; }
 a { color: var(--green); }
@@ -64,3 +64,28 @@ h2 { font-size: 34px; line-height: 1.2; font-weight: 700; letter-spacing: -1.2px
 @media (max-width: 820px) { .page-header { padding: 24px; } .login-layout { margin-top: 14px; grid-template-columns: .9fr 1fr; min-height: 600px; } .welcome-panel { padding: 36px 24px 26px; } h1 { font-size: 36px; } .form-panel { padding: 44px 28px 26px; } h2 { font-size: 29px; } .grocery-art { margin-inline: -12px; } .page-footer { padding-inline: 28px; } }
 @media (max-width: 640px) { .page-header { padding: 22px 20px; } .brand { font-size: 29px; } .brand-icon { width: 40px; height: 40px; border-radius: 11px; } .brand small { font-size: 7px; letter-spacing: 1.5px; } .header-label { font-size: 10px; gap: 6px; } .login-layout { display: block; min-height: 0; margin: 8px 16px 0; border-radius: 18px; } .welcome-panel { padding: 26px 26px 23px; } .eyebrow { font-size: 9px; letter-spacing: 1.5px; } h1 { font-size: 29px; line-height: 1.15; margin: 14px 0 12px; letter-spacing: -.9px; } h1 br { display: none; } .welcome-copy p { max-width: 100%; font-size: 12px; } .grocery-art, .panel-note { display: none; } .form-panel { padding: 32px 26px 26px; } h2 { font-size: 29px; } .form-intro { margin-bottom: 26px; } .form-footer { margin-top: 28px; } .page-footer { padding: 24px 20px; justify-content: center; text-align: center; line-height: 1.5; } .page-footer > span:last-child { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* The sign-in shares the workspace's vivid grocery identity. */
+body { background: #f4f7f4; border-top: 5px solid #14843b; }
+.brand-icon { border-radius: 50%; width: 48px; height: 48px; }
+.header-label { font-size: 13px; background: #e9f5ec; border: 1px solid #d3e8d8; padding: 10px 15px; border-radius: 24px; }
+.login-layout { border-radius: 20px; box-shadow: 0 18px 60px #103e2710; }
+.welcome-panel { background: #103e27; color: #fff; padding-top: 58px; }
+.welcome-panel::after { border-color: #3d6c4e; }
+.eyebrow { color: #ffd43b; font-size: 11px; }
+.eyebrow > span { background: #ffd43b; }
+h1 { font-weight: 800; font-size: clamp(38px, 3.6vw, 52px); }
+h1 > span { color: #ffd43b; }
+.welcome-copy p { color: #d4e6da; font-size: 15px; }
+.grocery-art { border-radius: 50%; background: #edf4df; margin: 28px 14px; padding: 12px; }
+.panel-note { border-color: #3b674d; }
+.panel-note strong { color: #fff; font-size: 14px; }
+.panel-note div > span { color: #cee2d5; font-size: 12px; }
+.note-icon { background: #ffd43b; color: #103e27; }
+.form-eyebrow { color: #14843b; font-size: 11px; }
+.field label { font-size: 14px; }
+.field input { background: #fff; height: 54px; border-color: #d2dfd6; }
+.submit-button { min-height: 54px; font-size: 15px; box-shadow: 0 5px 16px #14843b20; }
+.access-note, .help-note { font-size: 12px; }
+.form-footer, .page-footer { font-size: 12px; }
+@media (max-width: 640px) { .welcome-panel { padding: 28px; } h1 { font-size: 31px; } .welcome-copy p { font-size: 13px; } .header-label { padding: 8px 10px; font-size: 10px; } .form-panel { padding: 32px 26px; } }
