@@ -90,8 +90,9 @@ uv run --frozen python manage.py createsuperuser
 uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload
 ```
 
-Open `http://127.0.0.1:8000/admin/`. Only active staff superusers can log in or access
-admin operations. Logout uses the admin's POST form. No default account/password is provided.
+Open `http://127.0.0.1:8000/admin/`. Active staff Super Admins and workers with an
+assigned role can sign in. Workers can use only their role's module/action permissions.
+Logout uses the admin's POST form. No default account/password is provided.
 For local admin CSS with `DJANGO_DEBUG=false`, first run `uv run --frozen python manage.py collectstatic --noinput`
 and use `uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload --insecure`.
 The `--insecure` flag is for local static asset serving only, never production. Alternatively,
@@ -104,9 +105,9 @@ Delete actions require confirmation. Deleting a parent also deletes its subcateg
 from `http://127.0.0.1:8000/categories/`, without changing their own active flags.
 The public page includes an empty state; products and storefront styling are later tickets.
 
-The implementation is in the isolated `retail-mvp-003-004` checkout on
-`feature/mvp-003-004-admin-categories`. The main checkout remains unchanged until review/merge.
-See [implementation and validation notes](docs/tickets/MVP-003-004.md).
+The expanded MVP-003 implementation is in the isolated `retail-mvp-003` checkout on
+`feature/mvp-003-roles-audit`. See [roles and audit notes](docs/tickets/MVP-003-roles-audit.md)
+and the [original implementation history](docs/tickets/MVP-003-004.md).
 
 Pure environment tests can run without a database: `uv run --frozen python -m unittest tests.test_foundation.EnvironmentTests -v`. This does not validate HTTP or PostgreSQL. Full tests include real PostgreSQL test-database verification and transaction rollback.
 
@@ -136,3 +137,20 @@ account menu contains Sign out.
 Delete opens an in-place confirmation popup listing affected items. Confirming a
 parent deletion removes all descendants and schedules photo removal after commit.
 The server confirmation page remains a fallback when JavaScript is unavailable.
+
+### Workers, roles and activity logs
+
+Run `python manage.py migrate` to apply access migration 0001 and catalog migration
+0005. Sign in as your existing Super Admin, open Roles and choose module/action
+permissions, then open Workers to create an account and assign its role. Categories
+and Parent Categories have separate view/add/change/delete permissions. Workers
+without an assigned role cannot sign in. Access changes apply on the next request.
+
+Only Super Admin manages accounts, roles and the Activity log. Passwords are hashed
+and never displayed; use Set a new password on an employee account to reset it.
+Workers can change their own password in Settings. Deactivate employees rather than
+deleting their attribution history. Record history on category forms shows who
+created/updated the entry and when; legacy creation values remain unknown.
+
+Product persistence is a later MVP-005 feature and must inherit the provided
+attribution foundation. No Product CRUD is introduced by MVP-003.

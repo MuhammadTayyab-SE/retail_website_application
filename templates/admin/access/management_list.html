@@ -1,0 +1,37 @@
+{% extends "admin/change_list.html" %}
+{% load admin_list %}
+{% block bodyclass %}{{ block.super }} retail-management-list{% endblock %}
+{% block content_title %}
+<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>{{ title }}</h1><p>{{ management_description }}</p></div>{% if management_add_url and has_add_permission %}<a class="retail-button" href="{% url management_add_url %}">+ {{ management_add_label }}</a>{% endif %}</div>
+{% endblock %}
+{% block object-tools %}{% endblock %}
+{% block date_hierarchy %}{% endblock %}
+{% block filters %}{% endblock %}
+{% block search %}
+<div class="management-table-heading" data-management-summary aria-live="polite"><h2>{{ management_table_title }} <span class="category-count">{{ cl.result_count }}</span></h2><span>Showing {{ cl.result_list|length }} of {{ cl.result_count }} {{ management_noun }}{% if cl.result_count != cl.full_result_count %} &middot; {{ cl.full_result_count }} total{% endif %}</span></div>
+<form method="get" class="management-toolbar" data-management-filters role="search">
+<div class="management-search"><label for="management-search">Search {{ management_noun }}</label><input id="management-search" name="q" type="search" value="{{ cl.query }}" placeholder="{% if management_kind == 'workers' %}Search by name, username or email{% elif management_kind == 'roles' %}Search roles{% else %}Search employee or record ID{% endif %}" autocomplete="off"></div>
+{% for filter in management_filters %}<div><label for="filter-{{ forloop.counter }}">{{ filter.label }}</label><select id="filter-{{ forloop.counter }}" name="{{ filter.name }}"><option value="">{{ filter.empty_label }}</option>{% for value,label in filter.options %}<option value="{{ value }}"{% if filter.selected == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endfor %}
+{% if management_kind == 'activity' %}<div><label for="activity-from">From date</label><input id="activity-from" type="date" name="occurred_at__date__gte" value="{{ activity_dates.from }}"></div><div><label for="activity-to">To date</label><input id="activity-to" type="date" name="occurred_at__date__lte" value="{{ activity_dates.to }}"></div>{% endif %}
+<a href="{{ request.path }}" data-management-clear>Clear all</a><noscript><button class="retail-button" type="submit">Search</button></noscript>
+</form><p role="status" aria-live="polite" data-management-status></p>
+{% endblock %}
+{% block result_list %}
+<div class="results"><table id="result_list" class="management-table management-{{ management_kind }}">
+{% if management_kind == 'workers' %}
+<colgroup><col style="width:28%"><col style="width:25%"><col style="width:23%"><col style="width:12%"><col style="width:12%"></colgroup>
+<thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col" class="management-action">Actions</th></tr></thead>
+<tbody>{% for worker in cl.result_list %}<tr><th scope="row"><div class="management-person"><span class="management-avatar" aria-hidden="true">{% firstof worker.first_name|first|upper worker.username|first|upper %}</span><div><strong>{% firstof worker.get_full_name worker.username %}</strong><small>@{{ worker.username }}</small></div></div></th><td>{{ worker.email|default:"—" }}</td><td><span class="management-role">{% if worker.is_superuser %}Super Admin{% else %}{{ worker.workerprofile.role|default:"No role" }}{% endif %}</span></td><td><span class="management-badge{% if not worker.is_active %} neutral{% endif %}">{% if worker.is_active %}Active{% else %}Inactive{% endif %}</span></td><td class="management-action"><a class="management-row-button" href="{% url 'admin:auth_user_change' worker.pk %}" aria-label="Manage {{ worker.username }}">Manage</a></td></tr>{% empty %}<tr><td colspan="5" class="management-empty">No team members match these filters.</td></tr>{% endfor %}</tbody>
+{% elif management_kind == 'roles' %}
+<colgroup><col style="width:23%"><col style="width:55%"><col style="width:10%"><col style="width:12%"></colgroup>
+<thead><tr><th scope="col">Role</th><th scope="col">Module access</th><th scope="col">Workers</th><th scope="col" class="management-action">Actions</th></tr></thead>
+<tbody>{% for role in cl.result_list %}<tr><th scope="row"><strong>{{ role.name }}</strong></th><td><div class="management-permissions">{% for permission in role.permissions.all %}<span class="management-permission">{{ permission.name }}</span>{% empty %}<span class="quiet">No module access</span>{% endfor %}</div></td><td>{{ role.worker_count }}</td><td class="management-action"><a class="management-row-button" href="{% url 'admin:access_role_change' role.pk %}" aria-label="Manage {{ role.name }}">Manage</a></td></tr>{% empty %}<tr><td colspan="4" class="management-empty">No roles yet. Create a role to define your team's access.</td></tr>{% endfor %}</tbody>
+{% else %}
+<colgroup><col style="width:18%"><col style="width:16%"><col style="width:18%"><col style="width:25%"><col style="width:11%"><col style="width:12%"></colgroup>
+<thead><tr><th scope="col">Date &amp; time (UTC)</th><th scope="col">Employee</th><th scope="col">Action</th><th scope="col">Module / record</th><th scope="col">Outcome</th><th scope="col" class="management-action">Actions</th></tr></thead>
+<tbody>{% for event in cl.result_list %}<tr><th scope="row"><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:"M j, Y" }}<small>{{ event.occurred_at|date:"H:i:s" }}</small></time></th><td>{{ event.actor_name|default:"Anonymous" }}</td><td>{{ event.action_label }}</td><td>{{ event.module_label }}{% if event.target_id %}<small>Record #{{ event.target_id }}</small>{% endif %}</td><td><span class="management-badge{% if event.outcome != 'success' %} warning{% endif %}">{{ event.outcome|title }}</span></td><td class="management-action"><a class="management-row-button" href="{% url 'admin:access_auditevent_change' event.pk %}" aria-label="View activity {{ event.pk }}">View</a></td></tr>{% empty %}<tr><td colspan="6" class="management-empty">No activity matches these filters.</td></tr>{% endfor %}</tbody>
+{% endif %}
+</table></div>
+{% endblock %}
+{% block pagination %}{% pagination cl %}{% endblock %}
+{% block extrabody %}{{ block.super }}<script>{% include "retail_admin/management_filters_script.html" %}</script>{% endblock %}

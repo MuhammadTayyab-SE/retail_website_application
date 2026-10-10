@@ -16,9 +16,10 @@
     </div>
     <p class="category-photo-hint">Position and zoom your photo inside the circle. This is how it will appear in the category list.</p>
     {% for fieldset in adminform %}{% if forloop.counter == 2 %}{% include "admin/includes/fieldset.html" %}{% endif %}{% endfor %}
-    <div class="category-photo-actions"><button type="button" class="retail-button secondary" data-photo-remove>Remove photo</button><button type="button" class="retail-button secondary" data-photo-reset>Reset adjustment</button></div>
+    {% if has_change_permission or add %}<div class="category-photo-actions"><button type="button" class="retail-button secondary" data-photo-remove>Remove photo</button><button type="button" class="retail-button secondary" data-photo-reset>Reset adjustment</button></div>{% endif %}
     <p role="status" aria-live="polite" data-photo-status></p>
   </aside>
 </div>
+{% for fieldset in adminform %}{% if forloop.counter > 2 %}<section class="retail-card category-record-history">{% include "admin/includes/fieldset.html" %}</section>{% endif %}{% endfor %}
 {% endblock %}
 {% block admin_change_form_document_ready %}{{ block.super }}<script>{% include "catalog/category_photo_script.html" %}</script>{% endblock %}

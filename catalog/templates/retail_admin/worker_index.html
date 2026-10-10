@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>Welcome, {% firstof user.first_name user.username %}</h1><p>Your assigned role: {{ worker_role.role|default:"No role" }}. Choose a module to get started.</p></div></div>
+<div class="retail-dashboard-grid">
+{% if can_view_categories or can_add_categories %}<section class="retail-card"><div class="retail-card-heading"><h2>Categories</h2></div><p>Manage the categories available to your role.</p>{% if can_view_categories %}<a class="retail-button" href="{% url 'admin:catalog_category_changelist' %}">View categories</a>{% endif %}{% if can_add_categories %}<a class="retail-button secondary" href="{% url 'admin:catalog_category_add' %}">Add category</a>{% endif %}</section>{% endif %}
+{% if can_view_parents or can_add_parents %}<section class="retail-card"><div class="retail-card-heading"><h2>Parent Categories</h2></div><p>Organize your store sections.</p>{% if can_view_parents %}<a class="retail-button" href="{% url 'admin:catalog_parent_categories' %}">View parent categories</a>{% endif %}{% if can_add_parents %}<a class="retail-button secondary" href="{% url 'admin:catalog_category_add' %}?kind=parent">Add parent category</a>{% endif %}</section>{% endif %}
+</div>
+{% if not can_view_categories and not can_add_categories and not can_view_parents and not can_add_parents %}<section class="retail-card"><h2>No modules assigned</h2><p>Ask your Super Admin to update your role permissions.</p></section>{% endif %}
+{% endblock %}
