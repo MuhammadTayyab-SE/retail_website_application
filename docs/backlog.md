@@ -13,26 +13,25 @@ Workflow: Backlog -> Ready -> In Development -> In QA -> Awaiting My Review -> D
 
 ## MVP tickets
 
-MVP-001 is Blocked by Windows Application Control (PostgreSQL/driver runtime unavailable), owned by Developer role; PM recorded Ready -> In Development on Issue #2 before implementation. All other application tickets are Backlog and unowned. PM may move a ticket to Ready only when its dependencies and material decisions are resolved. Each ticket must link its eventual Issue, branch, draft PR, reviewed commit, and evidence.
+MVP-001 is merged (PR #19). User removed MVP-002 and authorized MVP-003 then MVP-004 on 2026-10-10. Developer owns both in isolated branch `feature/mvp-003-004-admin-categories`. Implementation exists; both are Blocked for required PostgreSQL validation and GitHub publication. See docs/tickets/MVP-003-004.md. Other tickets remain Backlog. GitHub is not authenticated in this session; these are local statuses, not claims of remote transitions.
 
-### MVP-001 - Django/PostgreSQL foundation (active implementation)
+### MVP-001 - Django/PostgreSQL foundation (merged PR #19)
 - Priority: P0. Dependencies: SETUP-001 merged (Done); D-001 adopted. Current scope is local development/testing; production hosting is deferred.
 - Acceptance: Django project and dependency lock exist; development and automated-test configuration uses PostgreSQL; configuration comes from environment; startup fails clearly for missing required settings; example environment contains placeholders only; health endpoint exposes no secrets; clean-install and test commands are documented and actually run; no storefront feature is included.
 
-### MVP-002 - Isolated local retailer configuration
-- Priority: P0. Dependencies: MVP-001; current local D-002/D-003 agreed.
-- Acceptance: one code revision configures two independent local retailer instances on one development machine; instances use distinct ports/local hosts, PostgreSQL databases/users, secrets and filesystem media roots; test media roots are separate and media is gitignored; storage backend remains configurable for later cloud selection; smoke checks demonstrate data and image isolation; eventual independent production servers/domains/storage remain required but deferred; no cloud setup or production deployment is included.
+### MVP-002 - Isolated local retailer configuration (Removed)
+- Removed by user on 2026-10-10; retained here for historical traceability only.
 
 ### MVP-003 - Retailer staff authentication and access control
 - Priority: P0. Dependencies: MVP-001; D-004 admin-only scope agreed; Django admin selected by PM.
 - Acceptance: single admin/superuser can log in/out through Django admin; anonymous, inactive and non-admin users cannot access admin operations; tests cover direct URL access and permission failures; no staff role matrix, custom admin UI or public registration is included.
 
 ### MVP-004 - Dynamic categories
-- Priority: P0. Dependencies: MVP-003; D-005 catalog rules.
+- Priority: P0. Dependencies: MVP-003; category decisions confirmed 2026-10-10. Parent/subcategories; deactivate only, permanent deletion disabled. Remaining D-005 product rules affect MVP-005.
 - Acceptance: authorized staff can create, edit, order and deactivate categories; storefront reads active categories from database; duplicate/invalid values receive useful errors; product-associated deletion behavior is defined and tested; empty catalog renders safely.
 
 ### MVP-005 - Products, variants and images
-- Priority: P0. Dependencies: MVP-004, MVP-002; D-005, D-006.
+- Priority: P0. Dependencies: MVP-004; D-005, D-006.
 - Acceptance: staff manage products and agreed variant attributes/SKUs; products belong to database categories; active/inactive visibility is enforced; validated image uploads use configured storage; invalid uploads fail safely; variant identifiers are unique within the retailer; product and variant edit permissions are tested.
 
 ### MVP-006 - Variant prices and stock
@@ -48,7 +47,7 @@ MVP-001 is Blocked by Windows Application Control (PostgreSQL/driver runtime una
 - Acceptance: customers add/update/remove agreed variants; quantities are validated; totals are calculated server-side using current authoritative prices; stale price and stock changes are explained; cart persistence follows agreed guest/account rules; tampered totals cannot affect order values.
 
 ### MVP-009 - Branding and homepage banners
-- Priority: P1. Dependencies: MVP-002-003, MVP-007; D-009.
+- Priority: P1. Dependencies: MVP-003, MVP-007; D-009.
 - Acceptance: staff configure retailer name, logo, agreed colors/contact fields and ordered active banners; configured branding appears responsively; invalid images/links are rejected; inactive banners are hidden; missing configuration has safe defaults.
 
 ### MVP-010 - Delivery settings and checkout eligibility

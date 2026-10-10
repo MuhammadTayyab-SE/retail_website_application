@@ -1,6 +1,6 @@
 # Decision register
 
-Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled local choice; "production deferred" and "cloud deferred" preserve future decisions without blocking local implementation. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-09.
+Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled local choice; "production deferred" and "cloud deferred" preserve future decisions without blocking local implementation. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-10.
 
 | ID | Status | Decision / question | Impact / blocking tickets |
 |---|---|---|---|
@@ -8,7 +8,7 @@ Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled
 | D-002 | Agreed current scope; production deferred | Run and test locally now. Production hosting provider, OS, rollout, retention and recovery objectives are deferred. | Local MVP-002, MVP-014; production follow-up |
 | D-003 | Agreed current scope; cloud deferred | Local filesystem media now with configurable storage and distinct retailer/test media roots, gitignored. Cloud storage is deferred. Upload format/size limits remain a technical follow-up requiring explicit implementation review. | MVP-002, MVP-005 |
 | D-004 | Agreed scope; technical choice recorded | Only admin role now, no staff role matrix. PM selects Django admin with a single superuser/admin; anonymous, inactive and non-admin users are denied. Custom admin UI is not required unless later requested. | MVP-003 |
-| D-005 | Unresolved | Category hierarchy, SKU rules, units/weights, variant attributes, product deletion/archive and catalog import needs? | MVP-004-005 |
+| D-005 | Categories agreed; product rules unresolved | User confirmed parent/subcategories and deactivate-only categories on 2026-10-10. Names globally unique ignoring case/outer whitespace; nonnegative sibling ordering; inactive ancestors hide descendants. SKU rules, units/weights, variants, product deletion/archive and imports remain unresolved. | MVP-004 category scope; MVP-005 product rules |
 | D-006 | Unresolved | Who supplies product photos/content and what image formats, size limits and rights apply? | MVP-005 |
 | D-007 | Unresolved | Currency PKR agreed by user. Launch country, tax-inclusive/exclusive pricing, rounding and invoice requirements remain unresolved. | MVP-006, MVP-008 |
 | D-008 | Unresolved | Stock units, reservations, backorders, substitutions, overselling, expiry and audit expectations? | MVP-006 |
@@ -23,3 +23,5 @@ Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled
 | D-017 | Agreed | User approval required for merge, production deploy and branch-protection changes; no direct protected-base pushes. | All workflow |
 
 No unresolved business requirement is silently treated as an approved default. PM should prioritize launch country/currency/payment, delivery model before making dependent tickets Ready. Infrastructure research can continue without production changes.
+
+On 2026-10-10 the user removed MVP-002 and authorized MVP-003 and MVP-004 implementation in dependency order. The two-instance local configuration demonstration is removed; eventual independent deployment requirements remain. No merge is authorized by this implementation request.
