@@ -11,6 +11,7 @@ class RetailAdminAuthenticationForm(AdminAuthenticationForm):
 
 class RetailAdminSite(AdminSite):
     login_form = RetailAdminAuthenticationForm
+    login_template = "retail_admin/login.html"
     site_header = "Retail administration"
     site_title = "Retail admin"
 
