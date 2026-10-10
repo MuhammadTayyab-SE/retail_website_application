@@ -495,12 +495,14 @@ body.retail-admin {
 .management-toolbar > a { padding:12px 0; font-size:12px; white-space:nowrap; }
 [data-management-status] { margin:0; color:var(--muted); font-size:12px; }
 [data-management-status]:not(:empty) { margin-bottom:12px; }
-.retail-admin .management-table { width:100%; min-width:650px; table-layout:auto; }
-.retail-admin .management-table thead th { text-transform:none; letter-spacing:0; padding:13px 14px; font-size:12px; font-weight:500; white-space:nowrap; border:0; }
-.retail-admin .management-table tbody td,.retail-admin .management-table tbody th { padding:16px 14px; border-bottom:1px solid #eef2f6; text-align:left; font-size:13px; font-weight:400; overflow-wrap:anywhere; }
+.retail-admin.retail-management-list #changelist #result_list { width:100%; min-width:760px; table-layout:fixed; }
+.retail-admin.retail-management-list #changelist #result_list th,.retail-admin.retail-management-list #changelist #result_list td { text-align:left; vertical-align:middle; overflow-wrap:anywhere; }
+.retail-admin.retail-management-list #changelist #result_list thead th { text-transform:none; letter-spacing:.02em; padding:14px 12px; font-size:11px; font-weight:600; white-space:normal; background:#f8fafb; border-bottom:1px solid var(--border); }
+.retail-admin.retail-management-list #changelist #result_list tbody td,.retail-admin.retail-management-list #changelist #result_list tbody th { height:64px; padding:14px 12px; border-bottom:1px solid #edf1f4; font-size:13px; font-weight:400; }
 .retail-admin .management-table tbody tr:last-child td,.retail-admin .management-table tbody tr:last-child th { border-bottom:0; }
-.retail-admin .management-table .management-action { width:100px; text-align:right; white-space:nowrap; }
-.management-person { display:flex; align-items:center; gap:12px; }
+.retail-admin.retail-management-list #changelist #result_list .management-action { white-space:nowrap; overflow:visible; }
+.management-person { display:flex; align-items:center; gap:12px; min-width:0; }
+.management-person > div { min-width:0; }
 .management-person strong { font-size:13px; font-weight:650; }
 .management-avatar { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--selected); color:var(--accent); font-weight:650; flex-shrink:0; }
 .management-table small { display:block; margin-top:3px; font-size:11px; color:var(--muted); font-weight:400; }
@@ -510,6 +512,8 @@ body.retail-admin {
 .management-role { font-weight:500; }
 .retail-admin a.management-row-button { display:inline-flex; padding:8px 13px; border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text); background:var(--card-bg); font-weight:500; }
 .retail-admin a.management-row-button:hover { background:var(--page-bg); border-color:var(--accent); }
+.retail-admin a.management-row-button { min-width:62px; justify-content:center; padding:7px 10px; }
+.retail-admin .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
 .management-permissions { display:flex; gap:6px; flex-wrap:wrap; max-width:620px; }
 .management-permission { background:var(--page-bg); color:var(--muted); border-radius:5px; padding:4px 8px; font-size:11px; }
 .retail-admin .management-table .management-empty { padding:48px 24px; text-align:center; color:var(--muted); }
