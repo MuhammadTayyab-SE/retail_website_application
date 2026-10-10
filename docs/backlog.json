@@ -85,8 +85,8 @@
     "id": "MVP-005",
     "title": "Products, variants and images",
     "priority": "P0",
-    "status": "Backlog",
-    "dependencies": "MVP-004; D-005, D-006.",
+    "status": "In Development",
+    "dependencies": "MVP-004 (merged); D-005/D-006 implementation choices confirmed 2026-10-11",
     "acceptanceCriteria": [
       "staff manage products and agreed variant attributes/SKUs",
       "products belong to database categories",
@@ -96,7 +96,7 @@
       "variant identifiers are unique within the retailer",
       "product and variant edit permissions are tested."
     ],
-    "description": "- Priority: P0. Dependencies: MVP-004; D-005, D-006.\n- Acceptance: staff manage products and agreed variant attributes/SKUs; products belong to database categories; active/inactive visibility is enforced; validated image uploads use configured storage; invalid uploads fail safely; variant identifiers are unique within the retailer; product and variant edit permissions are tested."
+    "description": "Flexible text attributes and required store-wide unique normalized SKUs; permanent confirmed deletion; JPEG/PNG/WebP up to 8 MB. See docs/tickets/MVP-005.md. Draft PR and independent QA required."
   },
   {
     "id": "MVP-006",

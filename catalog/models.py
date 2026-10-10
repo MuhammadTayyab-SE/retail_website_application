@@ -107,3 +107,138 @@ def delete_category_photo(sender, instance, using, **kwargs):
     if instance.photo:
         storage, name = instance.photo.storage, instance.photo.name
         transaction.on_commit(lambda: storage.delete(name), using=using)
+
+
+def product_photo_path(instance, filename):
+    extension = filename.rsplit(".", 1)[-1].lower()
+    return f"products/{uuid4().hex}.{extension}"
+
+
+class ProductQuerySet(models.QuerySet):
+    def visible(self):
+        # Evaluate the category hierarchy without a fixed depth limit.
+        parents = dict(Category.objects.values_list("pk", "parent_id"))
+        inactive = set(Category.objects.filter(is_active=False).values_list("pk", flat=True))
+        hidden = set()
+        for category_id in parents:
+            current, seen = category_id, set()
+            while current is not None:
+                if current in inactive or current in seen:
+                    hidden.add(category_id)
+                    break
+                seen.add(current)
+                current = parents.get(current)
+        return (
+            self.filter(is_active=True, variants__is_active=True)
+            .exclude(category_id__in=hidden)
+            .distinct()
+        )
+
+
+class Product(AttributedModel):
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
+    is_active = models.BooleanField(default=True)
+    objects = ProductQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["name", "pk"]
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(name=""), name="product_name_not_empty")
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Enter a product name."})
+        if self.category_id and Category.objects.parents().filter(pk=self.category_id).exists():
+            raise ValidationError({"category": "Choose a category, rather than a parent category."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProductVariant(AttributedModel):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
+    sku = models.CharField(max_length=100, unique=True)
+    attributes = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Example: {"size": "1 litre"}. Empty means a standard variant.',
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sku", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower(Trim("sku")), name="product_variant_sku_normalized_unique"
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(sku=""), name="product_variant_sku_not_empty"
+            ),
+        ]
+        verbose_name = "product variant"
+
+    def __str__(self):
+        return f"{self.product}: {self.sku}"
+
+    def clean(self):
+        super().clean()
+        self.sku = self.sku.strip().upper()
+        if not self.sku or not self.sku.isprintable():
+            raise ValidationError({"sku": "Enter a non-empty printable SKU."})
+        if ProductVariant.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists():
+            raise ValidationError({"sku": "This SKU is already used in the store."})
+        if not isinstance(self.attributes, dict):
+            raise ValidationError(
+                {"attributes": "Enter an object of attribute names and text values."}
+            )
+        normalized = {}
+        for name, value in self.attributes.items():
+            if (
+                not isinstance(name, str)
+                or not isinstance(value, str)
+                or not name.strip()
+                or not value.strip()
+            ):
+                raise ValidationError(
+                    {"attributes": "Attribute names and values must be non-empty text."}
+                )
+            key = name.strip().lower()
+            if key in normalized:
+                raise ValidationError(
+                    {"attributes": "Attribute names must be unique ignoring case and spaces."}
+                )
+            normalized[key] = value.strip()
+        self.attributes = normalized
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProductPhoto(AttributedModel):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to=product_photo_path)
+    alt_text = models.CharField(max_length=200, blank=True)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "pk"]
+
+    def __str__(self):
+        return self.alt_text or f"Photo for {self.product}"
+
+
+@receiver(post_delete, sender=ProductPhoto)
+def delete_product_photo(sender, instance, using, **kwargs):
+    if instance.image:
+        storage, name = instance.image.storage, instance.image.name
+        transaction.on_commit(lambda: storage.delete(name), using=using)

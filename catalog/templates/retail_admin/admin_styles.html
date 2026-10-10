@@ -537,3 +537,18 @@ body.retail-admin {
  .management-form-grid { grid-template-columns:minmax(0,1fr); }
  .retail-management-form .permission-grid { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Products use matching header/cell insets and reserve room for both actions. */
+.retail-admin.retail-product-list #changelist #result_list { width:100%; min-width:700px; table-layout:fixed; }
+.retail-admin.retail-product-list #result_list thead th { padding:14px 12px; background:#f8fafb; text-align:left; }
+.retail-admin.retail-product-list #result_list thead th .text { padding:0; }
+.retail-admin.retail-product-list #result_list thead th .text a { padding:0; }
+.retail-admin.retail-product-list #result_list tbody th,.retail-admin.retail-product-list #result_list tbody td { padding:16px 12px; text-align:left; vertical-align:middle; overflow-wrap:anywhere; }
+.retail-admin.retail-product-list #result_list .column-row_actions { width:180px; }
+.retail-admin.retail-product-list #result_list .column-is_active { width:100px; }
+.retail-admin.retail-product-list #result_list .column-variant_count { width:100px; }
+.retail-admin.retail-product-list #result_list .column-category { width:25%; }
+.product-photo-thumb { width:100px; height:100px; object-fit:contain; border:1px solid var(--border); border-radius:12px; }
+.retail-admin.model-product .inline-group { margin-top:24px; border:1px solid var(--border); border-radius:12px; background:var(--card-bg); overflow:auto; }
+.retail-admin.model-product .inline-group textarea { max-width:100%; min-width:180px; }
+.retail-admin.model-product .inline-group input[type=file] { max-width:100%; }

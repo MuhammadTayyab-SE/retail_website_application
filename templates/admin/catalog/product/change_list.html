@@ -1,0 +1,4 @@
+{% extends "admin/change_list.html" %}{% load admin_urls %}
+{% block bodyclass %}{{ block.super }} retail-product-list{% endblock %}
+{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>{{ title }}</h1><p>{% if opts.model_name == 'product' %}Manage your products, variants and photos in one place.{% else %}Manage SKUs and flexible attributes across your catalog.{% endif %}</p></div>{% if has_add_permission %}<a class="retail-button" href="{% url opts|admin_urlname:'add' %}">+ Add {% if opts.model_name == 'product' %}product{% else %}variant{% endif %}</a>{% endif %}</div>{% endblock %}
+{% block object-tools %}{% endblock %}

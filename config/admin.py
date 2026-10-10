@@ -61,6 +61,15 @@ class RetailAdminSite(AdminSite):
         ) or request.user.has_perm("catalog.change_parentcategory")
         context["can_add_categories"] = request.user.has_perm("catalog.add_category")
         context["can_add_parents"] = request.user.has_perm("catalog.add_parentcategory")
+        context["can_view_products"] = request.user.has_perm(
+            "catalog.view_product"
+        ) or request.user.has_perm("catalog.change_product")
+        context["can_add_products"] = request.user.has_perm(
+            "catalog.add_product"
+        ) and request.user.has_perm("catalog.add_productvariant")
+        context["can_view_variants"] = request.user.has_perm(
+            "catalog.view_productvariant"
+        ) or request.user.has_perm("catalog.change_productvariant")
         if request.user.is_authenticated and not request.user.is_superuser:
             context["worker_role"] = (
                 WorkerProfile.objects.filter(user=request.user).select_related("role").first()

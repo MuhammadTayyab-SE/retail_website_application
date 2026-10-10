@@ -6,5 +6,5 @@
 {% block usertools %}{% endblock %}
 {% block nav-breadcrumbs %}{% if has_permission %}<div class="retail-overview-header"><span>Workspace</span><span aria-hidden="true">/</span><strong>{{ workspace_header|default:title }}</strong></div>{% endif %}{% endblock %}
 {% block nav-global %}{% endblock %}
-{% block extrabody %}{{ block.super }}{% if has_permission and opts.model_name == 'category' %}{% include "catalog/delete_dialog.html" %}{% endif %}{% endblock %}
+{% block extrabody %}{{ block.super }}{% if has_permission %}{% if opts.model_name == 'category' or opts.model_name == 'product' or opts.model_name == 'productvariant' %}{% include "catalog/delete_dialog.html" %}{% endif %}{% endif %}{% endblock %}
 {% block footer %}<div class="retail-footer">{% translate "Retail administration" %}</div>{% endblock %}

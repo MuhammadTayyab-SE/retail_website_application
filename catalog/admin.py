@@ -6,6 +6,7 @@ from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 
+from catalog import product_admin  # noqa: F401
 from catalog.forms import CategoryForm
 from catalog.models import Category
 from config.admin import site

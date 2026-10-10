@@ -1,7 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.forms.models import BaseInlineFormSet
 
-from catalog.models import Category
+from catalog.models import Category, Product, ProductPhoto
 
 
 class CategoryPhotoInput(forms.ClearableFileInput):
@@ -52,3 +53,50 @@ class CategoryForm(forms.ModelForm):
             extension = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[photo.image.format]
             photo.name = f"photo.{extension}"
         return photo
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ["name", "description", "category", "is_active"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "category" in self.fields:
+            self.fields["category"].queryset = Category.objects.exclude(
+                pk__in=Category.objects.parents()
+            ).order_by("name")
+
+
+class VariantInlineFormSet(BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        seen = set()
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                continue
+            sku = form.cleaned_data.get("sku", "").strip().upper()
+            if sku and sku in seen:
+                raise ValidationError("Each variant must have a different SKU.")
+            seen.add(sku)
+
+
+class ProductPhotoForm(forms.ModelForm):
+    class Meta:
+        model = ProductPhoto
+        fields = ["image", "alt_text", "position"]
+        widgets = {
+            "image": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"})
+        }
+
+    def clean_image(self):
+        image = self.cleaned_data["image"]
+        if hasattr(image, "content_type"):
+            if image.size > 8 * 1024 * 1024:
+                raise ValidationError("Choose a photo smaller than 8 MB.")
+            if image.image.format not in {"JPEG", "PNG", "WEBP"}:
+                raise ValidationError("Choose a JPEG, PNG or WebP photo.")
+            extension = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image.image.format]
+            image.name = f"photo.{extension}"
+        return image

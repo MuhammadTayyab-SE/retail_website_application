@@ -108,6 +108,9 @@ class AuditEvent(models.Model):
     def module_label(self):
         return {
             "catalog.category": "Categories",
+            "catalog.product": "Products",
+            "catalog.productvariant": "Product variants",
+            "catalog.productphoto": "Product photos",
             "auth.user": "Workers",
             "access.role": "Roles",
             "access.workerprofile": "Worker roles",

@@ -58,7 +58,9 @@ class PermissionChoices(forms.ModelMultipleChoiceField):
 
 class RoleForm(forms.ModelForm):
     permissions = PermissionChoices(
-        queryset=Permission.objects.filter(content_type__app_label="catalog").order_by("codename"),
+        queryset=Permission.objects.filter(content_type__app_label="catalog")
+        .exclude(content_type__model="productphoto")
+        .order_by("codename"),
         widget=forms.CheckboxSelectMultiple(attrs={"class": "permission-grid"}),
         required=False,
         help_text="Select the actions this role can perform. Changes apply on the next request.",

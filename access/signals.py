@@ -43,6 +43,13 @@ def before_save(sender, instance, **kwargs):
             "photo_y",
             "photo_zoom",
             "photo",
+            "sku",
+            "attributes",
+            "description",
+            "category",
+            "product",
+            "image",
+            "alt_text",
         }
     ]
     instance._audit_before = sender.objects.filter(pk=instance.pk).values(*fields).first()
