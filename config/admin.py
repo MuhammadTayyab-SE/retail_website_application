@@ -35,6 +35,10 @@ class RetailAdminSite(AdminSite):
 
     def each_context(self, request):
         context = super().each_context(request)
+        context["has_team_navigation"] = any(
+            app["app_label"] != "catalog" and any(model.get("admin_url") for model in app["models"])
+            for app in context["available_apps"]
+        )
         route = request.resolver_match.url_name if request.resolver_match else ""
         context["workspace_header"] = {
             "index": "Overview",
