@@ -1,0 +1,46 @@
+<script>
+(() => {
+  const menu = document.querySelector('.retail-menu-button');
+  const sidebar = document.getElementById('nav-sidebar');
+  const backdrop = document.querySelector('.retail-menu-backdrop');
+  const workspace = document.querySelector('.retail-workspace');
+  const close = document.querySelector('.retail-menu-close');
+  if (!menu || !sidebar || !backdrop || !workspace || !close) return;
+  const mobile = window.matchMedia('(max-width: 767px)');
+  function setOpen(open, restoreFocus = false) {
+    document.body.classList.toggle('retail-menu-open', open);
+    menu.setAttribute('aria-expanded', String(open));
+    backdrop.hidden = !open;
+    workspace.inert = open;
+    close.hidden = !open;
+    if (open) {
+      sidebar.setAttribute('role', 'dialog');
+      sidebar.setAttribute('aria-modal', 'true');
+      close.focus();
+    } else {
+      sidebar.removeAttribute('role');
+      sidebar.removeAttribute('aria-modal');
+    }
+    if (!open && restoreFocus) menu.focus();
+  }
+  function updateViewport() {
+    menu.hidden = !mobile.matches;
+    setOpen(false);
+  }
+  document.body.classList.add('retail-menu-ready');
+  menu.addEventListener('click', () => setOpen(menu.getAttribute('aria-expanded') !== 'true'));
+  backdrop.addEventListener('click', () => setOpen(false, true));
+  close.addEventListener('click', () => setOpen(false, true));
+  document.addEventListener('keydown', event => {
+    if (menu.getAttribute('aria-expanded') !== 'true') return;
+    if (event.key === 'Escape') { setOpen(false, true); return; }
+    if (event.key !== 'Tab') return;
+    const links = Array.from(sidebar.querySelectorAll('a[href], summary, button:not([disabled])')).filter(element => element.getClientRects().length);
+    const first = links[0], last = links[links.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+  mobile.addEventListener('change', updateViewport);
+  updateViewport();
+})();
+</script>

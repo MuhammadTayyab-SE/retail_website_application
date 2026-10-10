@@ -12,6 +12,16 @@ Use GitHub Issues when authenticated access is available. Track AI ownership thr
 
 Developer opens a draft PR targeting development and links the Issue. PM independently reviews the actual diff. QA prepares scenarios before handoff and tests the exact PR commit SHA in a separate checkout and separate disposable test database with synthetic data. Record SHA, environment, commands, outcomes and browser viewports. Test positive, negative, permissions and relevant edges. Bugs link the originating Issue/PR and follow docs/backlog.md template; PM routes them to the responsible developer. Fixes stay on the same feature branch. Every new commit requires renewed PM review and affected QA/regression checks. Advance to Awaiting My Review only with evidence and explicit remaining limitations.
 
+## Local development configuration
+
+Use `python manage.py` for local commands; it loads the checkout's `.env` directly.
+Do not introduce a separate `manage_local.py` launcher. When creating a feature
+worktree from development, copy the development checkout's `.env` into the new
+worktree locally, without overwriting an existing `.env`. Keep `.env` ignored and
+never commit or print its contents. Install the worktree's Python environment so
+the user can run it. Independent QA must still use a separate disposable test
+database and its own configuration.
+
 ## Approval and safety
 Never merge without explicit user approval. Never push directly to master/main or development. Never deploy production or alter branch protections without explicit user approval. Do not commit secrets or use production customer data. Do not expose credentials in logs or commands. Use environment configuration, placeholder examples and synthetic test fixtures. Report unavailable tooling and blocked checks; never claim an unrun check passed. Resolve conflicts with PM without discarding existing work.
 

@@ -1,0 +1,24 @@
+{% extends "admin/change_form.html" %}
+{% block content_title %}
+<div class="retail-page-heading"><div><h1>{{ title }}</h1><p>{% if adding_parent %}Create an independent parent to organize categories.{% else %}Create or update a category, with an optional parent.{% endif %}</p></div><a class="retail-button secondary" href="{% if adding_parent or original.is_parent_category %}{% url 'admin:catalog_parent_categories' %}{% else %}{% url 'admin:catalog_category_changelist' %}{% endif %}">Back to {% if adding_parent or original.is_parent_category %}parent categories{% else %}categories{% endif %}</a></div>
+{% endblock %}
+{% block form_top %}
+<div class="category-flow-note"><strong>{% if adding_parent %}Independent parent category{% else %}Parent category is optional{% endif %}</strong><p>{% if adding_parent %}Save this parent on its own. You can assign categories to it later.{% else %}Leave Parent category empty to keep this category independent, or choose a parent to group it.{% endif %}</p></div>
+{% endblock %}
+{% block field_sets %}
+<div class="category-editor-layout">
+  <section class="category-details-editor" aria-labelledby="category-details-heading"><div class="category-editor-heading"><h2 id="category-details-heading">{% if adding_parent or original.is_parent_category %}Parent category details{% else %}Category details{% endif %}</h2><p>Set the name, display order and availability.</p></div>{% for fieldset in adminform %}{% if forloop.first %}{% include "admin/includes/fieldset.html" %}{% endif %}{% endfor %}</section>
+  <aside class="category-photo-editor" aria-label="Category photo editor">
+    <div class="category-editor-heading"><h2>Category photo</h2><p>Choose a JPEG, PNG or WebP up to 8 MB.</p></div>
+    <div class="category-photo-preview" data-photo-preview aria-label="Circular category thumbnail preview">
+      {% if original.photo %}<img src="{% url 'category-photo' original.pk %}" alt="Circular category photo preview" data-photo-image>{% else %}<img alt="Circular category photo preview" data-photo-image hidden>{% endif %}
+      <span data-photo-empty{% if original.photo %} hidden{% endif %}>No photo selected</span>
+    </div>
+    <p class="category-photo-hint">Position and zoom your photo inside the circle. This is how it will appear in the category list.</p>
+    {% for fieldset in adminform %}{% if forloop.counter == 2 %}{% include "admin/includes/fieldset.html" %}{% endif %}{% endfor %}
+    <div class="category-photo-actions"><button type="button" class="retail-button secondary" data-photo-remove>Remove photo</button><button type="button" class="retail-button secondary" data-photo-reset>Reset adjustment</button></div>
+    <p role="status" aria-live="polite" data-photo-status></p>
+  </aside>
+</div>
+{% endblock %}
+{% block admin_change_form_document_ready %}{{ block.super }}<script>{% include "catalog/category_photo_script.html" %}</script>{% endblock %}

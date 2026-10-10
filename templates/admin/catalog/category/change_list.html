@@ -1,0 +1,27 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_list %}
+{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>{% if is_parent_list %}Parent categories{% else %}Categories{% endif %}</h1><p>{% if is_parent_list %}Organize your catalog into clear store sections.{% else %}Group your products into easy-to-browse categories.{% endif %}</p></div><div class="retail-heading-actions">{% if has_add_permission %}<a class="retail-button secondary" href="{% url 'admin:catalog_category_add' %}?kind=parent">Add parent category</a>{% if not is_parent_list %}<a class="retail-button" href="{% url 'admin:catalog_category_add' %}">Add category</a>{% endif %}{% endif %}</div></div>{% endblock %}
+{% block content %}
+<section class="category-metric-grid" aria-label="Category overview">
+  <article><span>Total</span><strong>{{ category_metrics.total }}</strong></article>
+  <article><span>Active</span><strong>{{ category_metrics.active }}</strong></article>
+  <article><span>Inactive</span><strong>{{ category_metrics.inactive }}</strong></article>
+  <article><span>{% if is_parent_list %}Without categories{% else %}Independent{% endif %}</span><strong>{{ category_metrics.independent }}</strong></article>
+</section>
+{{ block.super }}
+{% endblock %}
+{% block object-tools %}{% endblock %}
+{% block search %}
+<div class="category-table-heading" data-category-summary aria-live="polite"><h2>{% if is_parent_list %}Parent categories{% else %}Categories{% endif %} <span class="category-count">{{ cl.result_count }}</span></h2><span>Showing {{ cl.result_list|length }} of {{ cl.result_count }}{% if cl.result_count != cl.full_result_count %} &middot; {{ cl.full_result_count }} total{% endif %}</span></div>
+<form method="get" class="category-filter-bar{% if is_parent_list %} parent-category-filter{% endif %}" role="search" data-category-filters>
+  <div><label for="category-search">Search {% if is_parent_list %}parent categories{% else %}categories{% endif %}</label><input id="category-search" type="search" name="q" value="{{ cl.query }}" placeholder="Search by name or ID" autocomplete="off" aria-controls="changelist-form"></div>
+  <div><label for="category-status">Status</label><select id="category-status" name="is_active__exact" aria-controls="changelist-form"><option value="">All statuses</option><option value="1"{% if selected_status == '1' %} selected{% endif %}>Active</option><option value="0"{% if selected_status == '0' %} selected{% endif %}>Inactive</option></select></div>
+  {% if not is_parent_list %}<div><label for="category-parent">Parent category</label><select id="category-parent" name="parent__id__exact" aria-controls="changelist-form"><option value="">All parents</option>{% for category in category_parents %}<option value="{{ category.pk }}"{% if selected_parent == category.pk|stringformat:'s' %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>{% endif %}
+  <div class="category-filter-actions"><a href="{% if is_parent_list %}{% url 'admin:catalog_parent_categories' %}{% else %}{% url 'admin:catalog_category_changelist' %}{% endif %}" data-category-clear>Clear all</a></div>
+  <noscript><button class="retail-button" type="submit">Search categories</button></noscript>
+</form>
+<p class="category-filter-status" role="status" aria-live="polite" data-category-filter-status></p>
+{% endblock %}
+{% block filters %}{% endblock %}
+{% block pagination %}{% pagination cl %}{% endblock %}
+{% block extrabody %}{{ block.super }}<script>{% include "catalog/category_filters_script.html" %}</script>{% endblock %}

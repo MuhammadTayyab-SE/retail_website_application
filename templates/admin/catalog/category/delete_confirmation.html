@@ -1,0 +1,12 @@
+﻿{% extends "admin/delete_confirmation.html" %}
+{% block delete_confirm %}
+<section class="retail-card category-delete-confirmation">
+  <h2>Delete {{ object }}?</h2>
+  <p>{% if deleting_parent_category %}This will permanently delete this parent category and all of its subcategories.{% else %}This category will be permanently deleted.{% endif %} Uploaded photos will also be removed. This cannot be undone.</p>
+  <h3>Items to be deleted</h3>
+  <ul id="deleted-objects">{{ deleted_objects|unordered_list }}</ul>
+  <form method="post">{% csrf_token %}<input type="hidden" name="post" value="yes">
+    <div class="category-confirm-actions"><a class="retail-button secondary" href="{% if deleting_parent_category %}{% url 'admin:catalog_parent_categories' %}{% else %}{% url 'admin:catalog_category_changelist' %}{% endif %}">Cancel</a><button type="submit" class="retail-button category-confirm-delete">{% if deleting_parent_category %}Delete parent and subcategories{% else %}Delete category{% endif %}</button></div>
+  </form>
+</section>
+{% endblock %}

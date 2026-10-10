@@ -3,7 +3,11 @@ name = "retail-foundation"
 version = "0.1.0"
 description = "Reusable grocery ecommerce foundation"
 requires-python = ">=3.13,<3.14"
-dependencies = ["Django>=5.2,<5.3", "psycopg[binary]>=3.2,<4"]
+dependencies = [
+    "Django>=5.2,<5.3",
+    "pillow>=12,<13",
+    "psycopg[binary]>=3.2,<4",
+]
 
 [dependency-groups]
 dev = ["ruff>=0.14,<1"]
