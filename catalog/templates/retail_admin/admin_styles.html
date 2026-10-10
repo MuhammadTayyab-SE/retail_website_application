@@ -203,14 +203,18 @@ body.retail-admin {
 .retail-admin.popup #content { padding:24px; }
 @media(max-width:1100px) { .retail-admin .retail-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .retail-admin .retail-page-heading { flex-wrap:wrap; } }
 @media(max-width:900px) { .retail-admin .retail-dashboard-grid { grid-template-columns:minmax(0,1fr); } .retail-admin #user-tools { gap:8px; } .retail-account-name { display:none; } }
-@media(max-width:767px) {
+@media(max-width:1024px) {
  .retail-admin #container.retail-shell { display:block; }
  .retail-admin #nav-sidebar { position:static; width:100%; height:auto; max-height:none; }
  .retail-admin.retail-menu-ready #nav-sidebar { display:none; position:fixed; inset:0 auto 0 0; width:min(248px,calc(100vw - 32px)); min-width:0; height:100dvh; max-height:100dvh; z-index:50; }
  .retail-admin.retail-menu-open #nav-sidebar { display:flex; }
  .retail-admin.retail-menu-open { overflow:hidden; }
  .retail-admin .retail-menu-backdrop:not([hidden]) { display:block; position:fixed; inset:0; border:0; background:rgb(23 38 56 / 40%); z-index:40; }
- .retail-admin #header { height:64px; padding:0 16px; gap:8px; }
+ .retail-admin #header { flex-direction:row; justify-content:flex-start; height:64px; padding:0 16px; gap:12px; }
+ .retail-admin .retail-menu-button { flex-shrink:0; margin:0; }
+ .retail-admin .retail-overview-header { min-width:0; flex-wrap:wrap; gap:8px; }
+}
+@media(max-width:767px) {
  .retail-admin div.breadcrumbs { font-size:12px; }
  .retail-admin #user-tools a,.retail-admin .retail-account-name { display:none; }
  .retail-admin .retail-mobile-account { display:block; color:var(--border); padding:16px 8px; }

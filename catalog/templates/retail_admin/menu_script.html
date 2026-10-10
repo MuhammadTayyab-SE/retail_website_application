@@ -6,7 +6,7 @@
   const workspace = document.querySelector('.retail-workspace');
   const close = document.querySelector('.retail-menu-close');
   if (!menu || !sidebar || !backdrop || !workspace || !close) return;
-  const mobile = window.matchMedia('(max-width: 767px)');
+  const mobile = window.matchMedia('(max-width: 1024px)');
   function setOpen(open, restoreFocus = false) {
     document.body.classList.toggle('retail-menu-open', open);
     menu.setAttribute('aria-expanded', String(open));
