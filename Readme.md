@@ -154,3 +154,17 @@ created/updated the entry and when; legacy creation values remain unknown.
 
 Product persistence is a later MVP-005 feature and must inherit the provided
 attribution foundation. No Product CRUD is introduced by MVP-003.
+
+## Products (current MVP-005 branch)
+
+Run `python manage.py migrate` to apply catalog migration 0007, then restart the
+local server. Products have one unique SKU and one selling unit: kg, litre, ml
+or each. Manage details, category, visibility and photos from Products. There is
+no separate variants page. Product action permissions govern this workflow.
+The dashboard includes product counts and recent products; lists paginate at
+25 rows with search and status/category/unit filters.
+
+Migration preserves previous option records and copies a primary SKU. Review
+existing products displaying "Choose unit" and select their unit before saving.
+Unknown units are not inferred from arbitrary size descriptions. Prices/stock
+remain MVP-006; see docs/tickets/MVP-005.md for migration details and QA scope.
