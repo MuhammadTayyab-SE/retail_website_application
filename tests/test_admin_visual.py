@@ -214,10 +214,10 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertEqual(sidebar.count('href="/admin/catalog/category/"'), 1)
         self.assertLess(
             sidebar.index('href="/admin/catalog/category/"'),
-            sidebar.index('href="/categories/"'),
+            sidebar.index('href="/admin/catalog/view/"'),
         )
         self.assertLess(
-            sidebar.index('href="/categories/"'),
+            sidebar.index('href="/admin/catalog/view/"'),
             sidebar.index('href="/admin/settings/"'),
         )
         self.assertLess(

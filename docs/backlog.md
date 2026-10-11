@@ -33,7 +33,9 @@ MVP-001 is merged (PR #19). User removed MVP-002 and authorized MVP-003 then MVP
 - Acceptance: authorized staff can create, edit, order and deactivate categories; storefront reads active categories from database; duplicate/invalid values receive useful errors; product-associated deletion behavior is defined and tested; empty catalog renders safely.
 
 ### MVP-005 - Products, variants and images
-- Priority: P0. Dependencies: MVP-004; D-005, D-006.
+- Status: In Development; developer implementation complete, independent QA pending.
+- Priority: P0. Dependencies: MVP-004 (merged); product choices confirmed 2026-10-11.
+- Agreed: flexible text attributes; required store-wide unique normalized SKUs; permanent confirmed deletion; JPEG/PNG/WebP up to 8 MB. See docs/tickets/MVP-005.md.
 - Acceptance: staff manage products and agreed variant attributes/SKUs; products belong to database categories; active/inactive visibility is enforced; validated image uploads use configured storage; invalid uploads fail safely; variant identifiers are unique within the retailer; product and variant edit permissions are tested.
 
 ### MVP-006 - Variant prices and stock

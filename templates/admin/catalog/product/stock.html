@@ -1,0 +1,4 @@
+{% extends "admin/base_site.html" %}
+{% block bodyclass %}{{ block.super }} retail-product-form{% endblock %}
+{% block content_title %}<div class="product-form-heading"><div><h1>Receive inventory</h1><p>{{ product.name }} &middot; Currently {{ product.quantity }} units</p></div><a class="product-form-close" href="{% url 'admin:catalog_product_changelist' %}" aria-label="Back to products">&times;</a></div>{% endblock %}
+{% block content %}<div id="content-main"><form method="post" class="product-stock-form">{% csrf_token %}<div class="stock-form-intro"><span aria-hidden="true">&#8593;</span><div><strong>Stock delivery</strong><p>Enter the received quantity and optionally link it to a shipment.</p></div></div>{{ form.as_p }}<div class="product-form-actions"><a class="retail-button secondary" href="{% url 'admin:catalog_product_changelist' %}">Cancel</a><button class="retail-button" type="submit">Receive stock</button></div></form></div>{% endblock %}

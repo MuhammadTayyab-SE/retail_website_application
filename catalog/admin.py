@@ -6,13 +6,15 @@ from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 
+from catalog import product_admin  # noqa: F401
+from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import CategoryForm
 from catalog.models import Category
 from config.admin import site
 
 
 @admin.register(Category, site=site)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(PlainRelatedChoicesMixin, admin.ModelAdmin):
     readonly_fields = ["created_by", "created_at", "updated_by", "updated_at"]
 
     def _parent_record(self, request, obj=None):

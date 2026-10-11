@@ -1,0 +1,12 @@
+(() => {
+  const form = document.querySelector("[data-catalog-filters]");
+  if (!form) return;
+  const search = form.querySelector('input[name="q"]');
+  const category = form.querySelector('select[name="category"]');
+  let timer;
+  search.addEventListener("input", () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => form.requestSubmit(), 300);
+  });
+  category.addEventListener("change", () => form.requestSubmit());
+})();

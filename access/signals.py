@@ -43,6 +43,15 @@ def before_save(sender, instance, **kwargs):
             "photo_y",
             "photo_zoom",
             "photo",
+            "sku",
+            "price",
+            "quantity",
+            "attributes",
+            "description",
+            "category",
+            "product",
+            "image",
+            "alt_text",
         }
     ]
     instance._audit_before = sender.objects.filter(pk=instance.pk).values(*fields).first()
@@ -60,7 +69,8 @@ def after_save(sender, instance, created, **kwargs):
     changed_values = {
         name: {"before": before[name], "after": getattr(instance, name)}
         for name in changed
-        if name in {"role_id", "parent_id", "position", "is_active", "is_staff", "is_superuser"}
+        if name
+        in {"role_id", "parent_id", "position", "is_active", "is_staff", "is_superuser", "quantity"}
     }
     record(
         "create" if created else "update",

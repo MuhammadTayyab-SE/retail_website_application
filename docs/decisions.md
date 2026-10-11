@@ -25,3 +25,21 @@ Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled
 No unresolved business requirement is silently treated as an approved default. PM should prioritize launch country/currency/payment, delivery model before making dependent tickets Ready. Infrastructure research can continue without production changes.
 
 On 2026-10-10 the user removed MVP-002 and authorized MVP-003 and MVP-004 implementation in dependency order. The two-instance local configuration demonstration is removed; eventual independent deployment requirements remain. No merge is authorized by this implementation request.
+
+## MVP-005 implementation decisions - 2026-10-11
+
+Later user instruction supersedes flexible variant administration: one unit per
+product (kg, litre, ml, each), product-owned SKU, no separate variants page.
+Product forms, lists and dashboards use this simpler workflow. Previous option
+records and audit history remain preserved; see the current scope update in
+docs/tickets/MVP-005.md for conversion behavior.
+
+User confirmed flexible variants with required store-wide unique SKUs and permanent
+product deletion. SKUs normalize case and outer whitespace; attributes are named
+text values such as size, weight and color. Each new product requires a variant.
+User confirmed JPEG/PNG/WebP images up to 8 MB each, matching category uploads.
+Photos are supplied through staff uploads; no external assets were introduced.
+These resolve D-005/D-006 choices needed for this implementation. Import pipelines
+and broader content sourcing remain outside this ticket. Category deletion is
+protected while products reference it. Product deletion cascades variants/photos
+only after confirmation and permission checks. Prices/stock remain MVP-006.

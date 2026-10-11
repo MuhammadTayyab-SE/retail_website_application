@@ -1,0 +1,22 @@
+{% extends "admin/change_list.html" %}{% load admin_urls admin_list %}
+{% block bodyclass %}{{ block.super }} retail-product-list retail-management-list{% endblock %}
+{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>Inventory</h1><p>Keep your stock accurate and your shelves ready.</p></div>{% if has_add_permission %}<a class="retail-button" href="{% url opts|admin_urlname:'add' %}">+ Add product</a>{% endif %}</div>{% endblock %}
+{% block object-tools %}{% endblock %}{% block filters %}{% endblock %}
+{% block search %}
+<p class="visually-hidden" data-management-summary aria-live="polite">Showing {{ cl.result_list|length }} of {{ cl.result_count }} products.</p>
+<form method="get" class="management-toolbar" data-management-filters role="search"><div class="management-search"><label class="visually-hidden" for="product-search">Search products or SKU</label><input id="product-search" type="search" name="q" value="{{ cl.query }}" placeholder="Search products or SKU…" autocomplete="off"></div>{% for filter in management_filters %}<div><label class="visually-hidden" for="product-filter-{{ forloop.counter }}">{{ filter.label }}</label><select id="product-filter-{{ forloop.counter }}" name="{{ filter.name }}"><option value="">{{ filter.empty_label }}</option>{% for value,label in filter.options %}<option value="{{ value }}"{% if filter.selected == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>{% endfor %}<noscript><button class="retail-button" type="submit">Search</button></noscript></form><p role="status" aria-live="polite" data-management-status></p>
+{% endblock %}
+{% block result_list %}
+<div class="results"><table id="result_list" class="management-table product-table">
+<colgroup><col style="width:23%"><col style="width:10%"><col style="width:16%"><col style="width:10%"><col style="width:10%"><col style="width:12%"><col style="width:19%"></colgroup>
+<thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Available</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+<tbody>{% for item in cl.result_list %}<tr>
+<th scope="row"><span class="product-list-identity">{% with photo=item.photos.all|first %}{% if photo %}<img class="product-list-thumb" src="{% url 'product-photo' photo.pk %}" alt="">{% else %}<span class="product-list-fallback" aria-hidden="true">{{ item.name|first|upper }}</span>{% endif %}{% endwith %}<span class="product-list-name"><strong>{{ item.name }}</strong>{% if item.is_on_sale %}<span class="product-sale-tag" aria-label="{{ item.discount_percentage }} percent off">{{ item.discount_percentage }}% OFF</span>{% endif %}</span></span></th>
+<td>{{ item.sku|default:"Not set" }}</td><td>{{ item.category }}</td>
+<td class="product-number">{% if item.is_on_sale %}<span class="product-price-sale"><del>Rs {{ item.price|floatformat:"-2" }}</del><strong>Rs {{ item.sale_price|floatformat:"-2" }}</strong></span>{% else %}Rs {{ item.price|floatformat:"-2" }}{% endif %}</td><td class="product-number">{{ item.quantity }} units</td>
+<td>{% if not item.is_active %}<span class="product-stock-badge neutral">Inactive</span>{% elif item.quantity == 0 %}<span class="product-stock-badge neutral">Out of stock</span>{% elif item.quantity <= 10 %}<span class="product-stock-badge warning">Low stock</span>{% else %}<span class="product-stock-badge">In stock</span>{% endif %}</td>
+<td><span class="category-row-actions"><a class="management-row-button" href="{% url opts|admin_urlname:'change' item.pk %}">Details</a>{% if has_change_permission %}<a class="management-row-button" href="{% url 'admin:catalog_product_stock' item.pk %}" aria-label="Receive stock for {{ item.name }}">+ Stock</a>{% endif %}{% if has_delete_permission %}<a class="management-row-button product-delete-button" href="{% url opts|admin_urlname:'delete' item.pk %}" aria-label="Delete {{ item.name }}">Delete</a>{% endif %}</span></td>
+</tr>{% empty %}<tr><td colspan="7" class="management-empty">No products match these filters.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}
+{% block pagination %}{% pagination cl %}{% endblock %}
+{% block extrabody %}{{ block.super }}<script>{% include "retail_admin/management_filters_script.html" %}</script>{% endblock %}

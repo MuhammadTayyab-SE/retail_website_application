@@ -29,7 +29,8 @@ class AuditMiddleware:
         try:
             response = self.get_response(request)
             if request.path.startswith("/admin/") or (
-                request.user.is_authenticated and request.path.startswith("/categories/")
+                request.user.is_authenticated
+                and request.path.startswith(("/categories/", "/products/"))
             ):
                 context = getattr(response, "context_data", None) or {}
                 form = context.get("adminform")
@@ -46,7 +47,13 @@ class AuditMiddleware:
                     "status": response.status_code,
                 }
                 module = "portal"
-                if match and match.url_name:
+                if match and match.url_name and ("product" in match.url_name):
+                    module = (
+                        "catalog.productvariant"
+                        if "productvariant" in match.url_name
+                        else "catalog.product"
+                    )
+                elif match and match.url_name:
                     if match.url_name.startswith("catalog_") or match.url_name in {
                         "category-photo",
                         "category-list",

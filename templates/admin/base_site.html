@@ -3,8 +3,8 @@
 {% block title %}{{ title }} | {{ site_title|default:_("Retail admin") }}{% endblock %}
 {% block dark-mode-vars %}{% endblock %}
 {% block responsive %}{{ block.super }}<style>{% include "retail_admin/admin_styles.html" %}</style>{% endblock %}
-{% block usertools %}{% endblock %}
+{% block usertools %}{% if has_permission %}<div class="retail-header-right"><span class="retail-header-badge">{% if user.is_superuser %}{% translate "Super Admin" %}{% else %}{{ worker_role.role|default:_("Worker") }}{% endif %}</span><span class="retail-header-avatar" aria-hidden="true">{% firstof user.first_name|first|upper user.username|first|upper %}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}</span></div>{% endif %}{% endblock %}
 {% block nav-breadcrumbs %}{% if has_permission %}<div class="retail-overview-header"><span>Workspace</span><span aria-hidden="true">/</span><strong>{{ workspace_header|default:title }}</strong></div>{% endif %}{% endblock %}
 {% block nav-global %}{% endblock %}
-{% block extrabody %}{{ block.super }}{% if has_permission and opts.model_name == 'category' %}{% include "catalog/delete_dialog.html" %}{% endif %}{% endblock %}
+{% block extrabody %}{{ block.super }}{% if has_permission %}{% if opts.model_name == 'category' or opts.model_name == 'product' or opts.model_name == 'productvariant' %}{% include "catalog/delete_dialog.html" %}{% endif %}{% endif %}{% endblock %}
 {% block footer %}<div class="retail-footer">{% translate "Retail administration" %}</div>{% endblock %}

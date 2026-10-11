@@ -91,7 +91,7 @@ class ManagementScreenTests(TestCase):
         self.assertContains(role_page, 'class="permission-grid"')
         html = self.client.get(reverse("admin:index")).content.decode()
         parent = html.index('href="/admin/catalog/category/parents/"')
-        catalog = html.index('href="/categories/"', parent)
+        catalog = html.index('href="/admin/catalog/view/"', parent)
         workers = html.index('href="/admin/auth/user/"', parent)
         self.assertLess(parent, catalog)
         self.assertLess(catalog, workers)

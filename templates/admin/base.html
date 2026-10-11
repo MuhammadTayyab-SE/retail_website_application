@@ -82,7 +82,11 @@
         {% block messages %}
           {% if messages %}
             <ul class="messagelist">{% for message in messages %}
-              <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|capfirst }}</li>
+              <li{% if message.tags %} class="{{ message.tags }}"{% endif %} role="{% if 'error' in message.tags %}alert{% else %}status{% endif %}">
+                <span class="retail-message-icon" aria-hidden="true">{% if 'error' in message.tags %}!{% elif 'warning' in message.tags %}!{% elif 'success' in message.tags %}✓{% else %}i{% endif %}</span>
+                <span class="retail-message-copy"><strong>{% if 'error' in message.tags %}{% translate "Action needed" %}{% elif 'warning' in message.tags %}{% translate "Please review" %}{% elif 'success' in message.tags %}{% translate "Success" %}{% else %}{% translate "Notice" %}{% endif %}</strong><span>{{ message|capfirst }}</span></span>
+                <button class="retail-message-close" type="button" aria-label="{% translate 'Dismiss notification' %}">&times;</button>
+              </li>
             {% endfor %}</ul>
           {% endif %}
         {% endblock messages %}
@@ -114,6 +118,7 @@
 </svg>
 <!-- END SVGs -->
 {% include "retail_admin/menu_script.html" %}
+{% include "retail_admin/message_script.html" %}
 {% block extrabody %}{% endblock extrabody %}
 </body>
 </html>
