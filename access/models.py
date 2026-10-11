@@ -118,3 +118,90 @@ class AuditEvent(models.Model):
             "authentication": "Authentication",
             "portal": "Dashboard",
         }.get(self.module, self.module)
+
+    @property
+    def actor_display(self):
+        return self.details.get("actor_display") or self.actor_name or "Anonymous user"
+
+    @property
+    def target_label(self):
+        return self.details.get("target_name") or (
+            f"Record #{self.target_id}" if self.target_id else ""
+        )
+
+    @property
+    def target_type(self):
+        return self.details.get("target_type") or {
+            "catalog.category": "Category",
+            "catalog.product": "Product",
+            "catalog.productvariant": "Product variant",
+            "catalog.productphoto": "Product photo",
+            "auth.user": "Worker",
+            "access.role": "Role",
+            "access.workerprofile": "Worker role",
+            "access.auditevent": "Activity entry",
+            "portal": "Dashboard",
+        }.get(self.module, self.module_label)
+
+    @property
+    def activity_title(self):
+        if self.module == "authentication":
+            return {
+                "login": "Signed in" if self.outcome == "success" else "Sign-in failed",
+                "logout": "Signed out",
+            }.get(self.action, self.action_label)
+        sale = self.details.get("changes", {}).get("Active On Sale", {})
+        if self.module == "catalog.product" and sale.get("after") == "Yes":
+            return "Started sale for Product"
+        if self.module == "catalog.product" and sale.get("after") == "No":
+            return "Ended sale for Product"
+        active = self.details.get("changes", {}).get("Is Active", {})
+        if self.action == "update" and active.get("after") == "Yes":
+            return f"Activated {self.target_type}"
+        if self.action == "update" and active.get("after") == "No":
+            return f"Deactivated {self.target_type}"
+        if self.module == "catalog.productphoto" and self.action == "create":
+            return "Added Product photo"
+        if self.module == "catalog.productphoto" and self.action == "delete":
+            return "Removed Product photo"
+        verbs = {
+            "create": "Created",
+            "update": "Updated",
+            "delete": "Deleted",
+            "view": "Viewed",
+            "request": "Submitted changes to",
+            "permissions_change": "Changed permissions for",
+            "password_change": "Changed password for",
+            "password_reset": "Reset password for",
+            "stock_received": "Added stock to",
+        }
+        return f"{verbs.get(self.action, self.action_label)} {self.target_type}".strip()
+
+    @property
+    def activity_summary(self):
+        if self.module == "authentication":
+            return "Account authentication"
+        if self.target_label:
+            return self.target_label
+        route = self.details.get("route")
+        return route.replace("_", " ").title() if route else self.module_label
+
+    @property
+    def change_items(self):
+        changes = self.details.get("changes", {})
+        return [
+            {"field": field, "before": values.get("before"), "after": values.get("after")}
+            for field, values in changes.items()
+        ]
+
+    @property
+    def history_module(self):
+        return self.details.get("subject_module") or self.module
+
+    @property
+    def history_id(self):
+        return self.details.get("subject_id") or self.target_id
+
+    @property
+    def has_record_history(self):
+        return bool(self.history_id and self.history_module.startswith(("catalog.", "access.")))

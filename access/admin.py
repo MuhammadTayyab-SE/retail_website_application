@@ -4,9 +4,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.contrib.auth.models import Permission
-from django.db.models import Count
-from django.urls import reverse
-from django.utils.html import format_html
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Q
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
+from django.utils.html import format_html, format_html_join
 
 from access.models import AuditEvent, Role, WorkerProfile
 from config.admin import site
@@ -132,6 +134,8 @@ class WorkerCreationForm(WorkerFormMixin, UserCreationForm):
 
 @admin.register(get_user_model(), site=site)
 class WorkerAdmin(SuperAdminOnly, UserAdmin):
+    list_per_page = 25
+    list_max_show_all = 25
     change_list_template = "admin/access/management_list.html"
     change_form_template = "admin/access/management_form.html"
     form = WorkerChangeForm
@@ -222,6 +226,8 @@ class WorkerAdmin(SuperAdminOnly, UserAdmin):
 
 @admin.register(Role, site=site)
 class RoleAdmin(SuperAdminOnly, admin.ModelAdmin):
+    list_per_page = 25
+    list_max_show_all = 25
     change_list_template = "admin/access/management_list.html"
     change_form_template = "admin/access/management_form.html"
     form = RoleForm
@@ -270,14 +276,103 @@ class RoleAdmin(SuperAdminOnly, admin.ModelAdmin):
 
 @admin.register(AuditEvent, site=site)
 class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
+    list_per_page = 100
+    list_max_show_all = 100
     change_list_template = "admin/access/management_list.html"
     change_form_template = "admin/access/management_form.html"
     list_display = ["occurred_at", "actor_name", "action", "module", "target_id", "outcome"]
     list_filter = ["action", "module", "outcome", "actor_name", "occurred_at"]
     search_fields = ["actor_name", "=actor_id", "=target_id"]
-    readonly_fields = [f.name for f in AuditEvent._meta.fields]
+    fields = [
+        "occurred_at",
+        "actor_detail",
+        "activity_detail",
+        "changes_detail",
+        "outcome",
+    ]
+    readonly_fields = fields
     actions = None
     date_hierarchy = None
+
+    def get_queryset(self, request):
+        return (
+            super().get_queryset(request).exclude(action__in=["view", "request"], outcome="success")
+        )
+
+    def get_urls(self):
+        return [
+            path(
+                "history/<str:module>/<str:object_id>/",
+                self.admin_site.admin_view(self.history_view),
+                name="access_auditevent_history",
+            )
+        ] + super().get_urls()
+
+    def history_view(self, request, module, object_id):
+        if not self.has_view_permission(request):
+            raise PermissionDenied
+        events = AuditEvent.objects.filter(
+            Q(module=module, target_id=object_id)
+            | Q(details__subject_module=module, details__subject_id=object_id)
+        ).exclude(action__in=["view", "request"], outcome="success")
+        latest = events.first()
+        subject_name = f"Record #{object_id}"
+        subject_type = AuditEvent(module=module).target_type
+        if latest:
+            subject_name = (
+                latest.details.get("subject_name")
+                or latest.details.get("target_name")
+                or subject_name
+            )
+            subject_type = latest.details.get("subject_type") or subject_type
+        return TemplateResponse(
+            request,
+            "admin/access/history.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": f"History for {subject_name}",
+                "subject_name": subject_name,
+                "subject_type": subject_type,
+                "events": events,
+                "opts": self.model._meta,
+            },
+        )
+
+    @admin.display(description="Performed by")
+    def actor_detail(self, obj):
+        return obj.actor_display
+
+    @admin.display(description="Activity")
+    def activity_detail(self, obj):
+        return format_html(
+            "<strong>{}</strong><br><span>{}</span>",
+            obj.activity_title,
+            obj.activity_summary,
+        )
+
+    @admin.display(description="What changed")
+    def changes_detail(self, obj):
+        if obj.action == "stock_received":
+            shipment = obj.details.get("shipment_number") or "Not provided"
+            return format_html(
+                "<strong>Quantity added:</strong> {}<br>"
+                "<strong>New quantity:</strong> {}<br>"
+                "<strong>Shipment:</strong> {}",
+                obj.details.get("quantity_added"),
+                obj.details.get("new_quantity"),
+                shipment,
+            )
+        if not obj.change_items:
+            return "No field changes were recorded for this event."
+        return format_html(
+            '<div class="activity-change-list">{}</div>',
+            format_html_join(
+                "",
+                '<div><strong>{}</strong><span class="activity-before">{}</span>'
+                '<span aria-hidden="true">→</span><span class="activity-after">{}</span></div>',
+                ((item["field"], item["before"], item["after"]) for item in obj.change_items),
+            ),
+        )
 
     def changelist_view(self, request, extra_context=None):
         context = management_context(
@@ -288,6 +383,7 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
             "events",
             "activity",
         )
+        visible_events = self.get_queryset(request)
         context["management_filters"] = [
             filter_context(
                 request,
@@ -295,7 +391,7 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
                 "Employee",
                 [
                     (name, name or "Anonymous")
-                    for name in AuditEvent.objects.values_list("actor_name", flat=True)
+                    for name in visible_events.values_list("actor_name", flat=True)
                     .distinct()
                     .order_by("actor_name")
                 ],
@@ -305,8 +401,8 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
                 "module",
                 "Module",
                 [
-                    (name, name)
-                    for name in AuditEvent.objects.values_list("module", flat=True)
+                    (name, AuditEvent(module=name).module_label)
+                    for name in visible_events.values_list("module", flat=True)
                     .distinct()
                     .order_by("module")
                 ],
@@ -323,7 +419,7 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
                 "Action",
                 [
                     (name, name.replace("_", " ").title())
-                    for name in AuditEvent.objects.values_list("action", flat=True)
+                    for name in visible_events.values_list("action", flat=True)
                     .distinct()
                     .order_by("action")
                 ],

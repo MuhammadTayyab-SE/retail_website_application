@@ -88,13 +88,48 @@ class Category(AttributedModel):
                 Category.objects.filter(pk=ancestor_id).values_list("parent_id", flat=True).first()
             )
 
+    def _has_inactive_ancestor(self):
+        ancestor_id = self.parent_id
+        seen = set()
+        while ancestor_id is not None and ancestor_id not in seen:
+            seen.add(ancestor_id)
+            ancestor = (
+                Category.objects.filter(pk=ancestor_id).values("parent_id", "is_active").first()
+            )
+            if ancestor is None:
+                break
+            if not ancestor["is_active"]:
+                return True
+            ancestor_id = ancestor["parent_id"]
+        return False
+
+    def _descendant_ids(self):
+        descendants, pending = set(), {self.pk}
+        while pending:
+            children = set(
+                Category.objects.filter(parent_id__in=pending).values_list("pk", flat=True)
+            )
+            children -= descendants
+            descendants.update(children)
+            pending = children
+        return descendants
+
     def save(self, *args, **kwargs):
         # Serialize hierarchy validation so concurrent reparenting cannot create a cycle.
         with transaction.atomic():
             with connection.cursor() as cursor:
                 cursor.execute("SELECT pg_advisory_xact_lock(734003004)")
+            if self.is_active and self._has_inactive_ancestor():
+                self.is_active = False
+                if kwargs.get("update_fields") is not None:
+                    kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_active"}
             self.full_clean()
-            return super().save(*args, **kwargs)
+            result = super().save(*args, **kwargs)
+            if not self.is_active:
+                affected_categories = {self.pk, *self._descendant_ids()}
+                Category.objects.filter(pk__in=affected_categories).update(is_active=False)
+                Product.objects.filter(category_id__in=affected_categories).update(is_active=False)
+            return result
 
     def delete(self, *args, **kwargs):
         with transaction.atomic():
@@ -206,6 +241,22 @@ class Product(AttributedModel):
         multiplier = Decimal(100 - self.discount_percentage) / Decimal(100)
         return (self.price * multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    @property
+    def is_effectively_active(self):
+        if not self.is_active:
+            return False
+        category_id = self.category_id
+        seen = set()
+        while category_id is not None and category_id not in seen:
+            seen.add(category_id)
+            category = (
+                Category.objects.filter(pk=category_id).values("parent_id", "is_active").first()
+            )
+            if category is None or not category["is_active"]:
+                return False
+            category_id = category["parent_id"]
+        return True
+
     def clean(self):
         super().clean()
         self.name = self.name.strip()
@@ -231,6 +282,20 @@ class Product(AttributedModel):
             self.discount_percentage = None
 
     def save(self, *args, **kwargs):
+        if self.is_active and self.category_id:
+            category_id = self.category_id
+            seen = set()
+            while category_id is not None and category_id not in seen:
+                seen.add(category_id)
+                category = (
+                    Category.objects.filter(pk=category_id).values("parent_id", "is_active").first()
+                )
+                if category is None or not category["is_active"]:
+                    self.is_active = False
+                    if kwargs.get("update_fields") is not None:
+                        kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_active"}
+                    break
+                category_id = category["parent_id"]
         self.full_clean()
         return super().save(*args, **kwargs)
 

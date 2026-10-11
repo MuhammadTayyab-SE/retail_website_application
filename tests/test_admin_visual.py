@@ -1,6 +1,8 @@
+from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils.html import escape
 
 from catalog.models import Category
 
@@ -58,6 +60,14 @@ class AdminVisualIntegrationTests(TestCase):
                 self.assertNotContains(response, "admin/css/nav_sidebar.css")
                 self.assertContains(response, 'id="logout-form"')
 
+    def test_parent_categories_precede_categories_in_navigation(self):
+        response = self.client.get(reverse("admin:index"))
+        html = response.content.decode()
+        self.assertLess(
+            html.index(f'href="{reverse("admin:catalog_parent_categories")}"'),
+            html.index(f'href="{reverse("admin:catalog_category_changelist")}"'),
+        )
+
     def test_invalid_category_submission_retains_shell_and_error_feedback(self):
         response = self.client.post(
             reverse("admin:catalog_category_add"), {"name": "", "position": -1}
@@ -66,6 +76,46 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertContains(response, "This field is required.")
         self.assertTemplateUsed(response, "admin/base_site.html")
         self.assertEqual(Category.objects.count(), 2)
+
+    def test_category_edit_delete_action_uses_the_shared_destructive_style(self):
+        response = self.client.get(reverse("admin:catalog_category_change", args=[self.child.pk]))
+        self.assertContains(response, 'class="deletelink"')
+        self.assertContains(response, ".submit-row a.deletelink {")
+        self.assertContains(response, "border:1px solid #fecaca")
+
+    def test_category_lists_use_accessible_icon_actions(self):
+        for url, item in (
+            (reverse("admin:catalog_category_changelist"), self.child),
+            (reverse("admin:catalog_parent_categories"), self.parent),
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, 'class="category-icon-button"')
+                self.assertContains(response, f'aria-label="Edit {escape(item.name)}"')
+                self.assertContains(response, f'aria-label="Delete {escape(item.name)}"')
+                self.assertContains(response, 'viewBox="0 0 24 24"')
+
+    def test_category_lists_pin_names_and_hide_photos_on_mobile_and_tablet(self):
+        for url in (
+            reverse("admin:catalog_category_changelist"),
+            reverse("admin:catalog_parent_categories"),
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(
+                    response,
+                    ".column-photo_thumbnail,.retail-admin.model-category.change-list "
+                    "#result_list .field-photo_thumbnail { display:none; }",
+                )
+                self.assertContains(
+                    response,
+                    ".column-name,.retail-admin.model-category.change-list #result_list "
+                    ".field-name { position:sticky; left:0; width:180px;",
+                )
+                self.assertContains(
+                    response,
+                    ".retail-admin #header { position:sticky; top:0; z-index:30;",
+                )
 
     def test_logout_keeps_shell_and_clears_session(self):
         response = self.client.post(reverse("admin:logout"))
@@ -160,6 +210,8 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertContains(response, "q=Bulk")
         self.assertEqual(len(response.context["cl"].result_list), 25)
         self.assertContains(response, "Showing 25 of 28")
+        self.assertContains(response, 'class="paginator-summary">28 categories</span>')
+        self.assertNotContains(response, 'class="showall"')
 
     def test_result_summary_matches_filtered_rows_and_empty_state(self):
         Category.objects.bulk_create(
@@ -275,7 +327,12 @@ class AdminVisualIntegrationTests(TestCase):
         response = self.client.get(reverse("admin:index"))
         self.assertContains(response, "Store overview")
         self.assertContains(response, "YOUR RETAIL WORKSPACE")
-        self.assertContains(response, 'class="retail-kpi-icon"', count=4)
+        category_metrics = (
+            response.content.decode()
+            .split('aria-label="Category summary"', 1)[1]
+            .split("</section>", 1)[0]
+        )
+        self.assertEqual(category_metrics.count('class="retail-kpi-icon"'), 4)
         self.assertContains(response, "Recent activity")
         self.assertContains(response, "Sign out")
         self.assertNotContains(response, "INTERACTIVE PROTOTYPE")
@@ -283,3 +340,42 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertEqual(response.context["category_summary"]["total"], 2)
         self.assertEqual(response.context["parent_category_count"], 2)
         self.assertEqual(set(response.context["recent_categories"]), {independent, self.child})
+
+    def test_dashboard_shows_five_categories_before_products_without_pagination(self):
+        Category.objects.bulk_create(
+            [Category(name=f"Dashboard {index:02}") for index in range(11)]
+        )
+        response = self.client.get(reverse("admin:index"))
+        self.assertEqual(len(response.context["recent_categories"]), 5)
+        self.assertNotContains(response, "dashboard-category-scroll")
+        self.assertNotContains(response, 'aria-label="Latest category pages"')
+        html = response.content.decode()
+        self.assertLess(html.index("Category summary"), html.index("Product summary"))
+
+    def test_dashboard_recent_activity_is_fixed_height_and_limited_to_five(self):
+        for index in range(6):
+            LogEntry.objects.create(
+                user=self.owner,
+                object_id=str(index),
+                object_repr=f"Activity {index}",
+                action_flag=ADDITION,
+            )
+        response = self.client.get(reverse("admin:index"))
+        self.assertContains(response, "Latest 5 updates")
+        self.assertContains(
+            response,
+            f'href="{reverse("admin:access_auditevent_changelist")}">View all',
+        )
+        self.assertContains(
+            response,
+            "retail-card retail-latest-categories dashboard-overview-panel",
+            count=1,
+        )
+        self.assertContains(
+            response,
+            "retail-card retail-recent-activity dashboard-overview-panel",
+            count=1,
+        )
+        self.assertNotContains(response, "Activity 0")
+        for index in range(1, 6):
+            self.assertContains(response, f"Activity {index}")

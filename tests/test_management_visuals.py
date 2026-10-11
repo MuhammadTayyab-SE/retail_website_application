@@ -62,7 +62,15 @@ class ManagementScreenTests(TestCase):
         self.assertContains(response, "Access roles")
         self.assertContains(response, "Can view category")
         event = AuditEvent.objects.create(
-            actor_name="worker", action="view", module="catalog.category", target_id="12"
+            actor_name="worker",
+            action="update",
+            module="catalog.category",
+            target_id="12",
+            details={
+                "target_name": "Dairy & eggs",
+                "target_type": "Category",
+                "changes": {"Name": {"before": "Dairy", "after": "Dairy & eggs"}},
+            },
         )
         response = self.client.get(
             reverse("admin:access_auditevent_changelist"),
@@ -76,8 +84,10 @@ class ManagementScreenTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["cl"].result_count, 1)
-        self.assertContains(response, "Record #12")
-        self.assertContains(response, "Date &amp; time (UTC)")
+        self.assertContains(response, "Dairy &amp; eggs")
+        self.assertContains(response, "Performed by")
+        self.assertContains(response, "Updated Category")
+        self.assertContains(response, "Dairy")
 
     def test_management_forms_and_sidebar_order(self):
         for url in [

@@ -113,6 +113,7 @@ class RetailAdminSite(AdminSite):
                 total=Count("pk"),
                 active=Count("pk", filter=Q(is_active=True)),
                 inactive=Count("pk", filter=Q(is_active=False)),
+                on_sale=Count("pk", filter=Q(is_on_sale=True)),
             )
             context["recent_products"] = Product.objects.select_related("category").order_by("-pk")[
                 :5

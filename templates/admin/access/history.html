@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% block bodyclass %}{{ block.super }} retail-activity-history{% endblock %}
+{% block nav-breadcrumbs %}<div class="retail-overview-header"><span>Workspace</span><span aria-hidden="true">/</span><a href="{% url 'admin:access_auditevent_changelist' %}">Activity log</a><span aria-hidden="true">/</span><strong>{{ subject_name }}</strong></div>{% endblock %}
+{% block content_title %}
+<div class="retail-page-heading"><div><span class="retail-eyebrow">COMPLETE RECORD HISTORY</span><h1>{{ subject_name }}</h1><p>Every recorded change to this {{ subject_type|lower }}, including who made it and what changed.</p></div><a class="retail-button secondary" href="{% url 'admin:access_auditevent_changelist' %}">Back to activity log</a></div>
+{% endblock %}
+{% block content %}
+<section class="activity-history-card" aria-label="History for {{ subject_name }}">
+  <div class="activity-history-summary"><div><strong>{{ events|length }}</strong><span>recorded event{{ events|length|pluralize }}</span></div><span>Newest activity first</span></div>
+  {% if events %}<ol class="activity-timeline">
+  {% for event in events %}<li>
+    <span class="activity-timeline-marker" aria-hidden="true"></span>
+    <article>
+      <header><div><strong>{{ event.activity_title }}</strong><span>{{ event.activity_summary }}</span></div><span class="management-badge{% if event.outcome != 'success' %} warning{% endif %}">{{ event.outcome|title }}</span></header>
+      <div class="activity-timeline-meta"><span>By <strong>{{ event.actor_display }}</strong></span><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:"M j, Y" }} at {{ event.occurred_at|date:"H:i T" }}</time></div>
+      {% if event.action == 'stock_received' %}<div class="activity-event-note"><strong>Stock received</strong><span>+{{ event.details.quantity_added }} units</span><span>New quantity: {{ event.details.new_quantity }}</span>{% if event.details.shipment_number %}<span>Shipment: {{ event.details.shipment_number }}</span>{% endif %}</div>{% endif %}
+      {% if event.change_items %}<div class="activity-change-list">{% for change in event.change_items %}<div><strong>{{ change.field }}</strong><span class="activity-before">{{ change.before }}</span><span aria-hidden="true">→</span><span class="activity-after">{{ change.after }}</span></div>{% endfor %}</div>{% endif %}
+    </article>
+  </li>{% endfor %}
+  </ol>{% else %}<div class="management-empty">No history has been recorded for this item yet.</div>{% endif %}
+</section>
+{% endblock %}

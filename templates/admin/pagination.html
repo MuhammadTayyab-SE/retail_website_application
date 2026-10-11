@@ -1,0 +1,8 @@
+{% load admin_list i18n %}
+{% if pagination_required %}
+<nav class="paginator" aria-label="{{ cl.opts.verbose_name_plural|capfirst }} pages">
+  <span class="paginator-summary">{{ cl.result_count }} {% if cl.result_count == 1 %}{{ cl.opts.verbose_name }}{% else %}{{ cl.opts.verbose_name_plural }}{% endif %}</span>
+  <span class="paginator-pages">{% for i in page_range %}{% paginator_number cl i %}{% endfor %}</span>
+  {% if cl.formset and cl.result_count %}<input type="submit" name="_save" class="default" value="{% translate 'Save' %}">{% endif %}
+</nav>
+{% endif %}

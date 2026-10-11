@@ -91,6 +91,20 @@ class ProductForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        category = cleaned.get("category")
+        if cleaned.get("is_active") and category:
+            current = category
+            seen = set()
+            while current and current.pk not in seen:
+                seen.add(current.pk)
+                if not current.is_active:
+                    self.add_error(
+                        "is_active",
+                        f'This product cannot be activated because the category "{current.name}" '
+                        "is inactive. Activate that category first.",
+                    )
+                    break
+                current = current.parent
         if cleaned.get("is_on_sale"):
             if cleaned.get("discount_percentage") is None:
                 self.add_error(

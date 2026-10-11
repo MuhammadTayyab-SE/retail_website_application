@@ -1,15 +1,16 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
+from django.utils.safestring import mark_safe
 
 from catalog import product_admin  # noqa: F401
 from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import CategoryForm
-from catalog.models import Category
+from catalog.models import Category, Product
 from config.admin import site
 
 
@@ -98,19 +99,56 @@ class CategoryAdmin(PlainRelatedChoicesMixin, admin.ModelAdmin):
         @admin.display(description="Actions")
         def permitted_actions(obj):
             links = []
-            if self.has_view_permission(request, obj):
+            if request.user.is_superuser:
                 links.append(
                     format_html(
-                        '<a href="{}">{}</a>',
+                        '<a class="category-icon-button" href="{}" '
+                        'aria-label="View history for {}" title="History">'
+                        '<svg viewBox="0 0 24 24" fill="none" '
+                        'stroke="currentColor" stroke-width="1.7" aria-hidden="true">'
+                        '<path d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6" stroke-linecap="round" '
+                        'stroke-linejoin="round"/><path d="M12 7v5l3 2" stroke-linecap="round" '
+                        'stroke-linejoin="round"/></svg></a>',
+                        reverse(
+                            "admin:access_auditevent_history",
+                            args=["catalog.category", obj.pk],
+                        ),
+                        obj.name,
+                    )
+                )
+            if self.has_view_permission(request, obj):
+                can_change = self.has_change_permission(request, obj)
+                label = ("Edit" if can_change else "View") + f" {obj.name}"
+                icon = (
+                    '<path d="m4 16-.8 4 4-.8L18 9.4 14.6 6Z" stroke-linecap="round" '
+                    'stroke-linejoin="round"/><path d="m13.5 7.1 3.4 3.4"/>'
+                    if can_change
+                    else '<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/>'
+                    '<circle cx="12" cy="12" r="2.5"/>'
+                )
+                links.append(
+                    format_html(
+                        '<a class="category-icon-button" href="{}" aria-label="{}" title="{}">'
+                        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                        'stroke-width="1.7" aria-hidden="true">{}</svg></a>',
                         reverse("admin:catalog_category_change", args=[obj.pk]),
-                        "Edit" if self.has_change_permission(request, obj) else "View",
+                        label,
+                        label,
+                        mark_safe(icon),  # Icon markup is selected from constants above.
                     )
                 )
             if self.has_delete_permission(request, obj):
                 links.append(
                     format_html(
-                        '<a class="category-delete-link" href="{}">Delete</a>',
+                        '<a class="category-icon-button category-delete-link" href="{}" '
+                        'aria-label="Delete {}" title="Delete {}"><svg viewBox="0 0 24 24" '
+                        'fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">'
+                        '<path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7" stroke-linecap="round" '
+                        'stroke-linejoin="round"/><path d="M10 11v5m4-5v5" stroke-linecap="round"/>'
+                        "</svg></a>",
                         reverse("admin:catalog_category_delete", args=[obj.pk]),
+                        obj.name,
+                        obj.name,
                     )
                 )
             return format_html(
@@ -185,10 +223,6 @@ class CategoryAdmin(PlainRelatedChoicesMixin, admin.ModelAdmin):
                     fieldsets[0][0],
                     {"fields": [f for f in fieldsets[0][1]["fields"] if f != "parent"]},
                 )
-        if obj:
-            fieldsets.append(
-                ("Record history (blank means legacy / unknown)", {"fields": self.readonly_fields})
-            )
         return fieldsets
 
     def add_view(self, request, form_url="", extra_context=None):
@@ -280,6 +314,7 @@ class CategoryAdmin(PlainRelatedChoicesMixin, admin.ModelAdmin):
     search_fields = ["name", "=id"]
     list_editable = ["position"]
     list_per_page = 25
+    list_max_show_all = 25
     list_select_related = ["parent"]
     actions = None
 
@@ -295,11 +330,37 @@ class CategoryAdmin(PlainRelatedChoicesMixin, admin.ModelAdmin):
         if request.method == "POST" and request.POST.get("post") != "yes":
             return HttpResponseBadRequest("Confirm deletion before submitting.")
         obj = self.get_object(request, object_id)
+        if obj is not None and not self.has_delete_permission(request, obj):
+            raise PermissionDenied
         request.deleting_parent_category = bool(
             obj and (obj.is_parent_category or obj.children.exists())
         )
+        affected_category_ids = self._descendant_ids(obj) if obj else set()
+        protected_product_count = Product.objects.filter(
+            category_id__in=affected_category_ids
+        ).count()
+        if obj and protected_product_count and request.method == "POST":
+            obj.is_active = False
+            obj.save(update_fields=["is_active", "updated_at", "updated_by"])
+            self.log_change(
+                request,
+                obj,
+                f"Deactivated because this category contains {protected_product_count} products.",
+            )
+            messages.success(
+                request,
+                f'"{obj}" was deactivated. Its categories and products are now inactive.',
+            )
+            destination = (
+                "admin:catalog_parent_categories"
+                if request.deleting_parent_category
+                else "admin:catalog_category_changelist"
+            )
+            return HttpResponseRedirect(reverse(destination))
         context = dict(extra_context or {})
         context["deleting_parent_category"] = request.deleting_parent_category
+        context["category_has_products"] = bool(protected_product_count)
+        context["protected_product_count"] = protected_product_count
         return super().delete_view(request, object_id, context)
 
     def response_delete(self, request, obj_display, obj_id):

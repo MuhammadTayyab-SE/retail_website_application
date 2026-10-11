@@ -4,7 +4,8 @@ from django.db import IntegrityError, transaction
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from catalog.models import Category
+from access.models import AuditEvent
+from catalog.models import Category, Product
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -32,6 +33,23 @@ class CategoryTests(TestCase):
         self.assertEqual(category.name, "Fresh fruit")
         self.assertEqual(category.position, 0)
         self.assertFalse(category.is_active)
+        history_url = reverse(
+            "admin:access_auditevent_history", args=["catalog.category", category.pk]
+        )
+        category_list = self.client.get(reverse("admin:catalog_category_changelist"))
+        self.assertContains(category_list, history_url)
+        history = self.client.get(history_url)
+        self.assertContains(history, "Created Category")
+        self.assertContains(history, "Deactivated Category")
+        self.assertContains(history, "Fresh fruit")
+        self.assertContains(history, "owner")
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                details__subject_module="catalog.category",
+                details__subject_id=str(category.pk),
+            ).count(),
+            2,
+        )
 
     def test_hierarchy_cycles_and_invalid_values_rejected(self):
         root = Category.objects.create(name="Fruit")
@@ -81,6 +99,32 @@ class CategoryTests(TestCase):
         self.assertRedirects(response, reverse("admin:catalog_category_changelist"))
         self.assertEqual(set(Category.objects.all()), {root, sibling})
 
+    def test_category_with_products_is_deactivated_after_confirmation(self):
+        root = Category.objects.create(name="Dairy", is_parent_category=True)
+        child = Category.objects.create(name="Milk", parent=root)
+        product = Product.objects.create(name="Fresh milk", category=child, sku="MILK-1")
+        self.client.force_login(self.owner)
+        url = reverse("admin:catalog_category_delete", args=[root.pk])
+
+        response = self.client.get(url)
+        self.assertContains(response, "This category contains 1 product and cannot be deleted.")
+        self.assertContains(response, "You can only deactivate it.")
+        self.assertContains(response, "Deactivate category")
+        self.assertEqual(self.client.post(url, {"cancel": "1"}).status_code, 400)
+        root.refresh_from_db()
+        self.assertTrue(root.is_active)
+
+        response = self.client.post(url, {"post": "yes"}, follow=True)
+        self.assertRedirects(response, reverse("admin:catalog_parent_categories"))
+        self.assertContains(response, "was deactivated", count=1)
+        self.assertNotContains(response, "was deleted successfully")
+        root.refresh_from_db()
+        child.refresh_from_db()
+        product.refresh_from_db()
+        self.assertFalse(root.is_active)
+        self.assertFalse(child.is_active)
+        self.assertFalse(product.is_active)
+
     def test_delete_requires_permission_and_csrf(self):
         root = Category.objects.create(name="Fruit")
         url = reverse("admin:catalog_category_delete", args=[root.pk])
@@ -123,9 +167,14 @@ class CategoryTests(TestCase):
         self.assertNotContains(response, "<script>")
         root.is_active = False
         root.save()
+        self.assertFalse(Category.objects.get(name="Apples").is_active)
         self.assertNotContains(self.client.get(reverse("category-list")), "Apples")
         root.is_active = True
         root.save()
+        self.assertNotContains(self.client.get(reverse("category-list")), "Apples")
+        apples = Category.objects.get(name="Apples")
+        apples.is_active = True
+        apples.save()
         self.assertContains(self.client.get(reverse("category-list")), "Apples")
 
     def test_empty_catalog_and_read_only_public_endpoint(self):

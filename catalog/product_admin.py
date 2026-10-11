@@ -62,6 +62,7 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
     delete_confirmation_template = "admin/catalog/product/delete_confirmation.html"
     readonly_fields = ["created_by", "created_at", "updated_by", "updated_at"]
     list_per_page = 25
+    list_max_show_all = 25
     actions = None
 
     def changelist_view(self, request, extra_context=None):
@@ -71,6 +72,7 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
             "title": "Inventory",
             "has_change_permission": self.has_change_permission(request),
             "has_delete_permission": self.has_delete_permission(request),
+            "can_view_history": request.user.is_superuser,
             "management_filters": [
                 {
                     "label": "Category",
@@ -154,6 +156,11 @@ class ProductAdmin(ProductAdminBase):
                         "catalog.product",
                         product.pk,
                         details={
+                            "target_name": product.name,
+                            "target_type": "Product",
+                            "subject_module": "catalog.product",
+                            "subject_id": str(product.pk),
+                            "subject_name": product.name,
                             "quantity_added": form.cleaned_data["quantity"],
                             "new_quantity": product.quantity,
                             "shipment_number": shipment_number,

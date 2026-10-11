@@ -1,4 +1,15 @@
 ﻿{% extends "admin/delete_confirmation.html" %}
+{% block content %}
+{% if category_has_products %}
+<section class="retail-card category-delete-confirmation">
+  <h2>Deactivate {{ object }}?</h2>
+  <p>This category contains {{ protected_product_count }} product{{ protected_product_count|pluralize }} and cannot be deleted. You can only deactivate it. Deactivating it will also deactivate its subcategories and products.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="post" value="yes">
+    <div class="category-confirm-actions"><a class="retail-button secondary" href="{% if deleting_parent_category %}{% url 'admin:catalog_parent_categories' %}{% else %}{% url 'admin:catalog_category_changelist' %}{% endif %}">Cancel</a><button type="submit" class="retail-button category-confirm-deactivate">Deactivate category</button></div>
+  </form>
+</section>
+{% else %}{{ block.super }}{% endif %}
+{% endblock %}
 {% block delete_confirm %}
 <section class="retail-card category-delete-confirmation">
   <h2>Delete {{ object }}?</h2>

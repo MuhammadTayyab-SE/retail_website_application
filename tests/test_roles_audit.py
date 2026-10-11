@@ -287,7 +287,16 @@ class RolesAndAuditTests(TestCase):
         self.assertEqual(obj.created_at, created_at)
         self.assertEqual(obj.updated_by, self.editor)
         self.assertGreater(obj.updated_at, created_at)
-        self.assertContains(
+        event = AuditEvent.objects.filter(
+            module="catalog.category", action="update", target_id=str(obj.pk)
+        ).latest("pk")
+        self.assertEqual(event.details["target_name"], "Edited")
+        self.assertEqual(event.details["target_type"], "Category")
+        self.assertEqual(
+            event.details["changes"]["Name"],
+            {"before": "Independent", "after": "Edited"},
+        )
+        self.assertNotContains(
             self.client.get(reverse("admin:catalog_category_change", args=[obj.pk])),
             "Record history",
         )

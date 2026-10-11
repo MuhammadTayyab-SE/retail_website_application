@@ -87,7 +87,8 @@ def catalog_view(request):
     product_admin = site._registry[Product]
     if not product_admin.has_view_permission(request):
         raise PermissionDenied
-    products = Product.objects.visible().select_related("category").prefetch_related("photos")
+    visible_products = Product.objects.visible()
+    products = visible_products.select_related("category").prefetch_related("photos")
     query = request.GET.get("q", "").strip()
     selected_category = request.GET.get("category", "").strip()
     if query:
@@ -99,9 +100,9 @@ def catalog_view(request):
         "title": "Catalog",
         "opts": Product._meta,
         "products": products,
-        "categories": Category.objects.filter(is_active=True)
-        .exclude(pk__in=Category.objects.parents())
-        .order_by("name"),
+        "categories": Category.objects.filter(
+            pk__in=visible_products.values("category_id")
+        ).order_by("name"),
         "query": query,
         "selected_category": selected_category,
         "can_add_product": product_admin.has_add_permission(request),
