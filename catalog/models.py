@@ -1,3 +1,4 @@
+from decimal import ROUND_HALF_UP, Decimal
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
@@ -149,6 +150,22 @@ class Product(AttributedModel):
     name = models.CharField(max_length=200)
     sku = models.CharField("SKU", max_length=100, blank=True, default="")
     unit = models.CharField(max_length=5, choices=Unit.choices, blank=True, default="")
+    price = models.DecimalField(
+        "Price (PKR)",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
+    quantity = models.PositiveIntegerField("Available quantity", default=0)
+    is_on_sale = models.BooleanField("Active on sale", default=False)
+    discount_percentage = models.PositiveSmallIntegerField(
+        "Discount percentage",
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text="Enter a percentage from 1 to 100.",
+    )
     description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
     is_active = models.BooleanField(default=True)
@@ -157,6 +174,20 @@ class Product(AttributedModel):
     class Meta:
         ordering = ["name", "pk"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price__gte=0), name="product_price_nonnegative"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(is_on_sale=False, discount_percentage__isnull=True)
+                    | models.Q(
+                        is_on_sale=True,
+                        discount_percentage__gte=1,
+                        discount_percentage__lte=100,
+                    )
+                ),
+                name="product_sale_discount_consistent",
+            ),
             models.UniqueConstraint(
                 Lower(Trim("sku")),
                 condition=~models.Q(sku=""),
@@ -167,6 +198,13 @@ class Product(AttributedModel):
 
     def __str__(self):
         return self.name
+
+    @property
+    def sale_price(self):
+        if not self.is_on_sale or self.discount_percentage is None:
+            return self.price
+        multiplier = Decimal(100 - self.discount_percentage) / Decimal(100)
+        return (self.price * multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     def clean(self):
         super().clean()
@@ -185,6 +223,12 @@ class Product(AttributedModel):
             raise ValidationError({"name": "Enter a product name."})
         if self.category_id and Category.objects.parents().filter(pk=self.category_id).exists():
             raise ValidationError({"category": "Choose a category, rather than a parent category."})
+        if self.is_on_sale and self.discount_percentage is None:
+            raise ValidationError(
+                {"discount_percentage": "Enter the percentage discount for this sale."}
+            )
+        if not self.is_on_sale:
+            self.discount_percentage = None
 
     def save(self, *args, **kwargs):
         self.full_clean()

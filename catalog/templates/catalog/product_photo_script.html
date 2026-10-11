@@ -1,24 +1,166 @@
 (() => {
-  const urls = new WeakMap();
-  document.addEventListener('change', event => {
-    const input = event.target;
-    if (!input.matches('input[type="file"][name^="photos-"]')) return;
-    const container = input.closest('.inline-related');
-    if (!container) return;
-    let preview = container.querySelector('[data-product-upload-preview]');
-    if (!preview) {
-      preview = document.createElement('img');
-      preview.className = 'product-upload-preview';
-      preview.dataset.productUploadPreview = '';
-      preview.alt = 'Selected product photo preview';
-      input.closest('.form-row').append(preview);
+function initializeProductGallery() {
+  const group = document.getElementById('photos-group');
+  if (!group || group.dataset.productGalleryReady !== undefined) return;
+  group.dataset.productGalleryReady = '';
+  const picker = document.getElementById('product-photo-picker');
+  const editable = Boolean(picker);
+  const urls = new Map();
+  const fieldset = group.querySelector('fieldset');
+  const emptyState = document.getElementById('product-photo-empty');
+
+  function forms() {
+    return Array.from(group.querySelectorAll('.inline-related:not(.empty-form)'))
+      .filter(card => !card.hidden && !card.classList.contains('is-photo-placeholder') &&
+        !card.querySelector('input[name$="-DELETE"]:checked'));
+  }
+  function imageFor(card) {
+    let image = card.querySelector('.product-photo-thumb, [data-product-upload-preview]');
+    if (!image) {
+      image = document.createElement('img');
+      image.className = 'product-upload-preview';
+      image.dataset.productUploadPreview = '';
+      image.alt = 'Selected product photo preview';
+      card.prepend(image);
+    } else if (image.parentElement !== card) {
+      card.prepend(image);
     }
-    if (urls.has(input)) URL.revokeObjectURL(urls.get(input));
-    const file = input.files[0];
-    preview.hidden = !file;
-    if (!file) { preview.removeAttribute('src'); return; }
+    return image;
+  }
+  function normalize() {
+    const list = forms();
+    if (emptyState) emptyState.hidden = list.length > 0;
+    list.forEach((card, index) => {
+      const position = card.querySelector('input[name$="-position"]');
+      if (position) position.value = index;
+      card.classList.toggle('is-showcase', index === 0);
+      const badge = card.querySelector('[data-showcase-badge]');
+      if (badge) badge.hidden = index !== 0;
+      const make = card.querySelector('[data-make-showcase]');
+      if (make) make.hidden = index === 0;
+      const previous = card.querySelector('[data-photo-previous]');
+      const next = card.querySelector('[data-photo-next]');
+      if (previous) previous.hidden = index === 0;
+      if (next) next.hidden = index === list.length - 1;
+      const priority = card.querySelector('[data-photo-priority]');
+      if (priority) {
+        priority.replaceChildren(...list.map((unused, optionIndex) => {
+          const option = document.createElement('option');
+          option.value = String(optionIndex);
+          option.textContent = String(optionIndex + 1);
+          option.selected = optionIndex === index;
+          return option;
+        }));
+      }
+    });
+  }
+  function reorder(card, targetIndex) {
+    const list = forms();
+    const currentIndex = list.indexOf(card);
+    if (currentIndex < 0) return;
+    const destination = Math.max(0, Math.min(targetIndex, list.length - 1));
+    list.splice(currentIndex, 1);
+    list.splice(destination, 0, card);
+    applyOrder(list);
+  }
+  function applyOrder(list) {
+    const anchor = group.querySelector('.empty-form') || null;
+    list.forEach(item => fieldset.insertBefore(item, anchor));
+    normalize();
+  }
+  function decorate(card) {
+    if (!card || card.dataset.galleryReady !== undefined) return;
+    card.dataset.galleryReady = '';
+    const image = imageFor(card);
+    const file = card.querySelector('input[type="file"]');
+    if (!card.querySelector('.product-photo-thumb') && !file?.files.length &&
+        !card.querySelector('.errorlist, .errors')) {
+      card.classList.add('is-photo-placeholder');
+    }
+    const controls = document.createElement('div');
+    controls.className = 'product-photo-card-controls';
+    controls.innerHTML = '<span class="product-showcase-badge" data-showcase-badge hidden>Showcase</span>' + (editable ?
+      '<button type="button" class="product-photo-text-button" data-make-showcase>Make showcase</button>' +
+      '<label class="product-photo-priority">Priority <select data-photo-priority aria-label="Photo priority"></select></label>' +
+      '<div class="product-photo-order" aria-label="Change photo order">' +
+      '<button type="button" data-photo-previous aria-label="Move photo earlier">&#8592; Earlier</button>' +
+      '<button type="button" data-photo-next aria-label="Move photo later">Later &#8594;</button></div>' +
+      '<button type="button" class="product-photo-delete" data-photo-delete>Delete</button>' : '');
+    image.insertAdjacentElement('afterend', controls);
+    card.querySelector('[data-make-showcase]')?.addEventListener('click', () => {
+      reorder(card, 0);
+    });
+    card.querySelector('[data-photo-previous]')?.addEventListener('click', () => {
+      const list = forms(), index = list.indexOf(card);
+      reorder(card, index - 1);
+    });
+    card.querySelector('[data-photo-next]')?.addEventListener('click', () => {
+      const list = forms(), index = list.indexOf(card);
+      reorder(card, index + 1);
+    });
+    card.querySelector('[data-photo-priority]')?.addEventListener('change', event => {
+      reorder(card, Number(event.target.value));
+    });
+    card.querySelector('[data-photo-delete]')?.addEventListener('click', () => {
+      const deletion = card.querySelector('input[name$="-DELETE"]');
+      const remove = card.querySelector('.inline-deletelink');
+      if (deletion) { deletion.checked = true; card.hidden = true; }
+      else if (remove) remove.click();
+      else card.hidden = true;
+      normalize();
+    });
+  }
+  function emptyCard() {
+    return Array.from(group.querySelectorAll('.inline-related:not(.empty-form)')).find(card => {
+      const file = card.querySelector('input[type="file"]');
+      return file && !file.files.length && !card.classList.contains('has-pending-photo') &&
+        !card.querySelector('.product-photo-thumb');
+    });
+  }
+  function addFile(file) {
+    let card = emptyCard();
+    if (!card) {
+      group.querySelector('.add-row a')?.click();
+      card = emptyCard();
+    }
+    const input = card?.querySelector('input[type="file"]');
+    if (!input) return;
+    card.classList.remove('is-photo-placeholder');
+    card.classList.add('has-pending-photo');
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    const image = imageFor(card);
     const url = URL.createObjectURL(file);
-    urls.set(input, url);
-    preview.src = url;
+    if (urls.has(card)) URL.revokeObjectURL(urls.get(card));
+    urls.set(card, url);
+    image.src = url;
+    image.hidden = false;
+    image.alt = file.name;
+    const alt = card.querySelector('input[name$="-alt_text"]');
+    if (alt && !alt.value) alt.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+    decorate(card);
+  }
+
+  picker?.addEventListener('change', () => {
+    Array.from(picker.files).forEach(addFile);
+    picker.value = '';
+    normalize();
   });
+  document.addEventListener('formset:added', event => {
+    if (event.detail?.formsetName === 'photos') decorate(event.target);
+  });
+  group.querySelectorAll('.inline-related:not(.empty-form)').forEach(decorate);
+  const sorted = forms().sort((a, b) =>
+    Number(a.querySelector('input[name$="-position"]')?.value || 0) -
+    Number(b.querySelector('input[name$="-position"]')?.value || 0));
+  if (sorted.length) applyOrder(sorted);
+  else normalize();
+  group.closest('form')?.addEventListener('submit', normalize);
+}
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(initializeProductGallery));
+  } else {
+    requestAnimationFrame(initializeProductGallery);
+  }
 })();

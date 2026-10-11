@@ -4,7 +4,7 @@
 {% block nav-breadcrumbs %}<div class="retail-overview-header"><span>Workspace</span><span aria-hidden="true">/</span><strong>Overview</strong></div>{% endblock %}
 {% block content_title %}{% endblock %}
 {% block content %}
-<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>Store overview</h1><p>A clear picture of your catalog, all in one place.</p></div><div class="retail-heading-actions"><a class="retail-button secondary" href="{% url 'category-list' %}">View catalog</a><a class="retail-button" href="{% url 'admin:catalog_category_add' %}"><span aria-hidden="true">+</span> Add category</a></div></div>
+<div class="retail-page-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>Store overview</h1><p>A clear picture of your catalog, all in one place.</p></div><div class="retail-heading-actions">{% if can_view_products %}<a class="retail-button secondary" href="{% url 'catalog-view' %}">View catalog</a>{% endif %}<a class="retail-button" href="{% url 'admin:catalog_category_add' %}"><span aria-hidden="true">+</span> Add category</a></div></div>
 {% include "retail_admin/product_overview.html" %}
 <section class="retail-stat-grid" aria-label="Category summary">
   <article class="retail-stat"><span>Total categories<span class="retail-kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span></span><strong>{{ category_summary.total }}</strong><small>Across your catalog</small></article>

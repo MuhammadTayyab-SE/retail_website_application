@@ -66,6 +66,8 @@ class ProductTests(TestCase):
             "is_active": "on",
             "sku": " new-1 ",
             "unit": "each",
+            "price": "320.50",
+            "quantity": "48",
             "photos-TOTAL_FORMS": "0",
             "photos-INITIAL_FORMS": "0",
             "photos-MIN_NUM_FORMS": "0",
@@ -84,10 +86,32 @@ class ProductTests(TestCase):
         self.assertFalse(product.variants.exists())
         self.assertEqual(product.sku, "NEW-1")
         self.assertEqual(product.unit, "each")
+        self.assertEqual(str(product.price), "320.50")
+        self.assertEqual(product.quantity, 48)
         self.assertEqual(product.created_by, self.owner)
         self.assertTrue(
             AuditEvent.objects.filter(module="catalog.product", action="create").exists()
         )
+
+    def test_success_notification_uses_accessible_dismissible_toast(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("admin:catalog_product_change", args=[self.product.pk]),
+            self.product_data(
+                name="Updated milk",
+                sku=self.product.sku,
+                unit=self.product.unit,
+                category=self.product.category_id,
+            ),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="success" role="status"')
+        self.assertContains(response, 'class="retail-message-icon"')
+        self.assertContains(response, "<strong>Success</strong>", html=True)
+        self.assertContains(response, 'class="retail-message-close"')
+        self.assertContains(response, 'aria-label="Dismiss notification"')
+        self.assertContains(response, "window.setTimeout(remove, 250)")
 
     def test_sku_case_and_whitespace_are_normalized_and_unique_across_products(self):
         self.assertEqual(self.variant.sku, "MILK-1")
@@ -126,6 +150,139 @@ class ProductTests(TestCase):
         self.assertContains(response, "This SKU is already used in the store.")
         self.assertFalse(Product.objects.filter(name="New product").exists())
 
+    def test_inventory_rejects_negative_price_and_invalid_quantity(self):
+        self.client.force_login(self.owner)
+        for changes in [{"price": "-0.01"}, {"quantity": "-1"}, {"quantity": "1.5"}]:
+            with self.subTest(changes=changes):
+                response = self.client.post(
+                    reverse("admin:catalog_product_add"), self.product_data(**changes)
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(Product.objects.filter(name="New product").exists())
+
+    def test_sale_requires_valid_discount_and_clears_it_when_disabled(self):
+        self.client.force_login(self.owner)
+        add_url = reverse("admin:catalog_product_add")
+        for discount in ["", "0", "101", "1.5"]:
+            with self.subTest(discount=discount):
+                response = self.client.post(
+                    add_url,
+                    self.product_data(
+                        is_on_sale="on",
+                        discount_percentage=discount,
+                    ),
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertFalse(Product.objects.filter(name="New product").exists())
+
+        response = self.client.post(
+            add_url,
+            self.product_data(is_on_sale="on", discount_percentage="25"),
+        )
+        self.assertEqual(response.status_code, 302)
+        product = Product.objects.get(name="New product")
+        self.assertTrue(product.is_on_sale)
+        self.assertEqual(product.discount_percentage, 25)
+
+        product.is_on_sale = False
+        product.save()
+        self.assertIsNone(product.discount_percentage)
+
+    def test_sale_control_is_conditional_and_inventory_shows_discount_tag(self):
+        self.product.is_on_sale = True
+        self.product.discount_percentage = 20
+        self.product.price = "999.99"
+        self.product.save()
+        self.client.force_login(self.owner)
+
+        form_response = self.client.get(
+            reverse("admin:catalog_product_change", args=[self.product.pk])
+        )
+        self.assertContains(form_response, 'id="id_is_on_sale"')
+        self.assertContains(form_response, 'id="id_discount_percentage"')
+        self.assertContains(form_response, "discountRow.hidden = !enabled")
+        self.assertContains(form_response, "discountInput.required = enabled")
+
+        list_response = self.client.get(reverse("admin:catalog_product_changelist"))
+        self.assertContains(list_response, 'class="product-sale-tag"')
+        self.assertContains(list_response, "20% OFF")
+        self.assertContains(list_response, 'aria-label="20 percent off"')
+        self.assertContains(list_response, "<del>Rs 999.99</del>", html=True)
+        self.assertContains(list_response, "<strong>Rs 799.99</strong>", html=True)
+
+        sale_response = self.client.get(
+            reverse("admin:catalog_product_changelist"), {"is_on_sale__exact": "1"}
+        )
+        self.assertEqual(sale_response.context["cl"].result_count, 1)
+        regular_response = self.client.get(
+            reverse("admin:catalog_product_changelist"), {"is_on_sale__exact": "0"}
+        )
+        self.assertEqual(regular_response.context["cl"].result_count, 0)
+
+    def test_inventory_table_stock_boundaries(self):
+        self.client.force_login(self.owner)
+        url = reverse("admin:catalog_product_changelist")
+        for quantity, active, label in [
+            (0, True, "Out of stock"),
+            (1, True, "Low stock"),
+            (10, True, "Low stock"),
+            (11, True, "In stock"),
+            (12, False, "Inactive"),
+        ]:
+            with self.subTest(quantity=quantity, active=active):
+                self.product.quantity = quantity
+                self.product.is_active = active
+                self.product.save()
+                response = self.client.get(url)
+                self.assertContains(response, f">{label}</span>")
+                self.assertContains(response, f"{quantity} units")
+
+    def test_receive_stock_checks_permissions_validates_and_records_changes(self):
+        url = reverse("admin:catalog_product_stock", args=[self.product.pk])
+        self.client.force_login(self.worker)
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url, {"quantity": 5}).status_code, 403)
+        self.client.force_login(self.owner)
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'name="shipment_number"')
+        self.assertContains(page, "Optional. Add a delivery or shipment reference")
+        for quantity in [0, -1, "1.5", 2147483648]:
+            self.assertEqual(self.client.post(url, {"quantity": quantity}).status_code, 200)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 0)
+        for quantity, shipment_number in [(5, " SHP-0042 "), (8, "")]:
+            self.assertRedirects(
+                self.client.post(
+                    url,
+                    {"quantity": quantity, "shipment_number": shipment_number},
+                ),
+                reverse("admin:catalog_product_changelist"),
+            )
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 13)
+        self.assertEqual(self.product.updated_by, self.owner)
+        event = AuditEvent.objects.filter(module="catalog.product", action="update").latest("pk")
+        self.assertIn("quantity", event.details["changed_fields"])
+        receipt = AuditEvent.objects.filter(
+            module="catalog.product", action="stock_received", target_id=str(self.product.pk)
+        ).earliest("pk")
+        self.assertEqual(
+            receipt.details,
+            {"quantity_added": 5, "new_quantity": 5, "shipment_number": "SHP-0042"},
+        )
+
+    def test_receive_stock_cannot_overflow_existing_quantity(self):
+        self.product.quantity = 2147483647
+        self.product.save()
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("admin:catalog_product_stock", args=[self.product.pk]), {"quantity": 1}
+        )
+        self.assertContains(response, "The resulting quantity is too large.")
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 2147483647)
+
     def test_product_creation_requires_valid_unit_and_sku(self):
         self.client.force_login(self.owner)
         for changes in [{"unit": ""}, {"unit": "gallon"}, {"sku": "  "}]:
@@ -152,6 +309,60 @@ class ProductTests(TestCase):
         self.product.is_active = False
         self.product.save()
         self.assertNotContains(self.client.get(url), "Milk")
+
+    def test_staff_catalog_matches_reference_grid_and_filters_products(self):
+        self.product.price = "500.00"
+        self.product.quantity = 8
+        self.product.is_on_sale = True
+        self.product.discount_percentage = 20
+        self.product.save()
+        photo = ProductPhoto.objects.create(
+            product=self.product,
+            image=photo_file("catalog.png"),
+            alt_text="Milk carton",
+            position=0,
+        )
+        self.client.force_login(self.owner)
+        url = reverse("catalog-view")
+        response = self.client.get(url)
+        self.assertContains(response, "Browse your products")
+        self.assertContains(response, 'class="catalog-product-grid"')
+        self.assertContains(response, reverse("product-photo", args=[photo.pk]))
+        self.assertContains(response, "20% OFF")
+        self.assertContains(response, "Rs 400")
+        self.assertContains(response, "Low stock")
+        self.assertContains(
+            response, reverse("admin:catalog_product_change", args=[self.product.pk])
+        )
+        self.assertContains(response, reverse("admin:catalog_product_add"))
+        sidebar = response.content.decode().split('<aside id="nav-sidebar"')[1].split("</aside>")[0]
+        self.assertEqual(sidebar.count('aria-current="page"'), 1)
+        self.assertIn(f'href="{url}" aria-current="page"', sidebar)
+        self.assertNotIn(
+            f'href="{reverse("admin:catalog_product_changelist")}" aria-current="page"',
+            sidebar,
+        )
+
+        self.assertNotContains(self.client.get(url, {"q": "unknown"}), "Milk carton")
+        self.assertNotContains(
+            self.client.get(url, {"category": self.independent.pk}), "Milk carton"
+        )
+        self.assertContains(self.client.get(url, {"q": "milk-1"}), "Milk carton")
+
+    def test_staff_catalog_requires_product_permission_and_respects_read_only_access(self):
+        url = reverse("catalog-view")
+        self.assertRedirects(self.client.get(url), f"{reverse('admin:login')}?next={url}")
+        self.client.force_login(self.worker)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Milk")
+        self.assertNotContains(response, reverse("admin:catalog_product_add"))
+        self.assertNotContains(
+            response, reverse("admin:catalog_product_change", args=[self.product.pk])
+        )
+
+        self.role.permissions.clear()
+        self.assertEqual(self.client.get(url).status_code, 403)
 
     def test_product_edit_permission_and_read_only_direct_urls(self):
         self.client.force_login(self.worker)
@@ -299,6 +510,7 @@ class ProductTests(TestCase):
         photo = Product.objects.get(name="New product").photos.get()
         self.assertEqual(photo.created_by, self.owner)
         self.assertTrue(photo.image.storage.exists(photo.image.name))
+
         data = self.product_data(
             **{
                 "name": "Invalid upload",
@@ -308,11 +520,114 @@ class ProductTests(TestCase):
                 "photos-0-image": SimpleUploadedFile("bad.png", b"invalid"),
             }
         )
-        self.assertEqual(
-            self.client.post(reverse("admin:catalog_product_add"), data).status_code, 200
-        )
+        response = self.client.post(reverse("admin:catalog_product_add"), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "photos are not retained after a form error")
         self.assertFalse(Product.objects.filter(name="Invalid upload").exists())
         self.assertTrue(photo.image.storage.exists(photo.image.name))
+
+    def test_new_product_accepts_two_photos_in_one_submission(self):
+        self.client.force_login(self.owner)
+        add_page = self.client.get(reverse("admin:catalog_product_add"))
+        photo_formset = add_page.context["inline_admin_formsets"][0].formset
+        self.assertEqual(
+            photo_formset.total_form_count(),
+            4,
+        )
+        data = self.product_data(
+            **{
+                "photos-TOTAL_FORMS": "2",
+                "photos-INITIAL_FORMS": "0",
+                "photos-0-image": photo_file("front.png"),
+                "photos-0-alt_text": "Front package",
+                "photos-0-position": "0",
+                "photos-1-image": photo_file("back.png"),
+                "photos-1-alt_text": "Back package",
+                "photos-1-position": "1",
+            }
+        )
+        response = self.client.post(reverse("admin:catalog_product_add"), data)
+        self.assertEqual(response.status_code, 302, response.context and response.context["errors"])
+        product = Product.objects.get(name="New product")
+        self.assertEqual(product.photos.count(), 2)
+        self.assertEqual(
+            list(product.photos.values_list("alt_text", "position")),
+            [("Front package", 0), ("Back package", 1)],
+        )
+
+    def test_product_form_uses_one_multi_photo_picker_and_gallery_controls(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("admin:catalog_product_add"))
+        self.assertContains(response, 'id="product-photo-picker"', count=1)
+        self.assertContains(
+            response, 'type="file" accept="image/jpeg,image/png,image/webp" multiple'
+        )
+        self.assertContains(response, "Make showcase")
+        self.assertContains(response, "data-photo-delete")
+        self.assertContains(response, "data-photo-previous")
+        self.assertContains(response, "data-photo-next")
+        self.assertContains(response, "data-photo-priority")
+        self.assertContains(response, "Photo priority")
+        self.assertContains(response, "reorder(card, Number(event.target.value))")
+        self.assertContains(response, "new DataTransfer()")
+        self.assertContains(response, "requestAnimationFrame(initializeProductGallery)")
+        self.assertContains(response, "has-pending-photo")
+
+    def test_existing_product_photo_is_rendered_in_edit_gallery_without_duplicate_title(self):
+        photo = ProductPhoto.objects.create(
+            product=self.product,
+            image=photo_file("existing.png"),
+            alt_text="Existing package",
+            position=0,
+        )
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("admin:catalog_product_change", args=[self.product.pk]))
+        self.assertContains(response, "<h1>Product details</h1>", html=True)
+        self.assertNotContains(response, f"<h2>{self.product.name}</h2>", html=True)
+        self.assertNotContains(response, "Record history")
+        self.assertContains(response, 'class="product-photo-thumb"', count=1)
+        self.assertContains(response, reverse("product-photo", args=[photo.pk]))
+        self.assertContains(response, 'value="Existing package"')
+        self.assertContains(response, "Make showcase")
+        self.assertContains(response, "data-photo-delete")
+        self.assertContains(response, "image.parentElement !== card")
+
+    def test_product_photo_priority_and_deletion_are_saved(self):
+        self.client.force_login(self.owner)
+        first = ProductPhoto.objects.create(
+            product=self.product, image=photo_file("first.png"), alt_text="First", position=0
+        )
+        second = ProductPhoto.objects.create(
+            product=self.product, image=photo_file("second.png"), alt_text="Second", position=1
+        )
+        data = self.product_data(
+            name=self.product.name,
+            sku=self.product.sku,
+            unit=self.product.unit,
+            category=self.product.category_id,
+            **{
+                "photos-TOTAL_FORMS": "2",
+                "photos-INITIAL_FORMS": "2",
+                "photos-0-id": first.pk,
+                "photos-0-image": first.image.name,
+                "photos-0-alt_text": first.alt_text,
+                "photos-0-position": "1",
+                "photos-0-DELETE": "on",
+                "photos-1-id": second.pk,
+                "photos-1-image": second.image.name,
+                "photos-1-alt_text": second.alt_text,
+                "photos-1-position": "0",
+            },
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse("admin:catalog_product_change", args=[self.product.pk]), data
+            )
+        self.assertEqual(response.status_code, 302, response.context and response.context["errors"])
+        self.assertFalse(ProductPhoto.objects.filter(pk=first.pk).exists())
+        second.refresh_from_db()
+        self.assertEqual(second.position, 0)
+        self.assertEqual(self.product.photos.first(), second)
 
     def test_product_add_permission_does_not_require_variant_grants(self):
         self.role.permissions.add(
@@ -334,7 +649,7 @@ class ProductTests(TestCase):
         response = self.client.get(reverse("admin:catalog_category_add") + "?kind=parent")
         self.assertNotContains(response, 'id="add_id_parent"')
 
-    def test_catalog_list_actions_follow_current_role_permissions(self):
+    def test_inventory_actions_follow_current_role_permissions(self):
         for model, obj in [("product", self.product)]:
             change_url = reverse(f"admin:catalog_{model}_change", args=[obj.pk])
             delete_url = reverse(f"admin:catalog_{model}_delete", args=[obj.pk])
@@ -358,17 +673,21 @@ class ProductTests(TestCase):
                     )
                     self.client.force_login(actor)
                     response = self.client.get(reverse(f"admin:catalog_{model}_changelist"))
-                    label = "Manage" if change else "View"
                     self.assertContains(
                         response,
-                        f'<a class="management-row-button" href="{change_url}">{label}</a>',
+                        f'<a class="management-row-button" href="{change_url}">Details</a>',
                         html=True,
                     )
-                    delete_link = f'<a class="category-delete-link" href="{delete_url}">Delete</a>'
-                    if delete:
-                        self.assertContains(response, delete_link, html=True)
+                    if delete or actor.is_superuser:
+                        self.assertContains(response, delete_url)
+                        self.assertContains(response, f'aria-label="Delete {obj.name}"')
                     else:
-                        self.assertNotContains(response, delete_link, html=True)
+                        self.assertNotContains(response, delete_url)
+                    stock_url = reverse("admin:catalog_product_stock", args=[obj.pk])
+                    if change or actor.is_superuser:
+                        self.assertContains(response, stock_url)
+                    else:
+                        self.assertNotContains(response, stock_url)
 
     def test_product_lists_have_live_filters_aligned_columns_and_matching_counts(self):
         self.client.force_login(self.owner)
@@ -376,12 +695,37 @@ class ProductTests(TestCase):
             response = self.client.get(reverse(f"admin:catalog_{model}_changelist"))
             self.assertContains(response, "data-management-filters")
             self.assertContains(response, "<colgroup>")
-            self.assertContains(response, "Showing 1 of 1")
+            self.assertContains(response, "Inventory")
+            self.assertContains(response, "Showing 1 of 1 products.")
+            self.assertContains(response, "Search products or SKU")
+            self.assertContains(response, "All categories")
+            self.assertContains(response, "On sale")
+            self.assertContains(response, "Regular price")
+            self.assertNotContains(response, "All statuses")
+            self.assertNotContains(response, "All units")
             response = self.client.get(
                 reverse(f"admin:catalog_{model}_changelist"), {"is_active__exact": "0"}
             )
             self.assertEqual(response.context["cl"].result_count, 0)
-            self.assertContains(response, "Showing 0 of 0")
+            self.assertContains(response, "Showing 0 of 0 products.")
+
+    def test_inventory_uses_showcase_photo_and_category_filter(self):
+        photo = ProductPhoto.objects.create(
+            product=self.product,
+            image=photo_file("showcase.png"),
+            alt_text="Milk package",
+            position=0,
+        )
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("admin:catalog_product_changelist"))
+        self.assertContains(response, 'class="product-list-thumb"')
+        self.assertContains(response, reverse("product-photo", args=[photo.pk]))
+        response = self.client.get(
+            reverse("admin:catalog_product_changelist"),
+            {"category__id__exact": self.independent.pk},
+        )
+        self.assertEqual(response.context["cl"].result_count, 0)
+        self.assertContains(response, "No products match these filters.")
 
     def test_unit_choices_and_product_sku_database_uniqueness(self):
         self.client.force_login(self.owner)

@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+{% block title %}Catalog | Retail workspace{% endblock %}
+{% block bodyclass %}{{ block.super }} retail-catalog-page{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">Workspace</a><span aria-hidden="true">/</span> Catalog</div>{% endblock %}
+{% block content_title %}
+<div class="retail-page-heading catalog-heading"><div><span class="retail-eyebrow">YOUR RETAIL WORKSPACE</span><h1>Catalog</h1><p>Browse your products. Select an item to view and edit its details.</p></div>{% if can_add_product %}<a class="retail-button" href="{% url 'admin:catalog_product_add' %}">+ Add product</a>{% endif %}</div>
+{% endblock %}
+{% block content %}
+<form class="catalog-toolbar" method="get" role="search" data-catalog-filters>
+  <div><label class="visually-hidden" for="catalog-search">Search products</label><input id="catalog-search" type="search" name="q" value="{{ query }}" placeholder="Search products or SKU…" autocomplete="off"></div>
+  <div><label class="visually-hidden" for="catalog-category">Filter by category</label><select id="catalog-category" name="category"><option value="">All categories</option>{% for category in categories %}<option value="{{ category.pk }}"{% if selected_category == category.pk|stringformat:'s' %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
+  <noscript><button class="retail-button" type="submit">Apply filters</button></noscript>
+</form>
+<p class="catalog-results-summary" role="status">{{ products|length }} product{{ products|length|pluralize }}</p>
+<section class="catalog-product-grid" aria-label="Products">
+{% for product in products %}
+  <article class="catalog-product-card">
+    {% if can_change_product %}<a class="catalog-card-link" href="{% url 'admin:catalog_product_change' product.pk %}" aria-label="Edit {{ product.name }}">{% endif %}
+    <div class="catalog-product-image">
+      {% with photo=product.photos.all|first %}{% if photo %}<img src="{% url 'product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}">{% else %}<span class="catalog-product-placeholder" aria-hidden="true">{{ product.name|first|upper }}</span>{% endif %}{% endwith %}
+      {% if product.is_on_sale %}<span class="catalog-sale-tag">{{ product.discount_percentage }}% OFF</span>{% endif %}
+    </div>
+    <div class="catalog-product-body"><span class="catalog-product-category">{{ product.category.name }}</span><h2>{{ product.name }}</h2><p class="catalog-product-meta">{{ product.get_unit_display }}{% if product.sku %} · {{ product.sku }}{% endif %}</p>
+      <div class="catalog-product-price">{% if product.is_on_sale %}<strong>Rs {{ product.sale_price|floatformat:"-2" }}</strong><del>Rs {{ product.price|floatformat:"-2" }}</del>{% else %}<strong>Rs {{ product.price|floatformat:"-2" }}</strong>{% endif %}</div>
+      <div class="catalog-product-foot"><span>{{ product.quantity }} units available</span>{% if product.quantity == 0 %}<span class="product-stock-badge neutral">Out of stock</span>{% elif product.quantity <= 10 %}<span class="product-stock-badge warning">Low stock</span>{% else %}<span class="product-stock-badge">In stock</span>{% endif %}</div>
+    </div>
+    {% if can_change_product %}</a>{% endif %}
+  </article>
+{% empty %}<div class="catalog-empty"><strong>No matching products</strong><p>Try another search or category.</p></div>{% endfor %}
+</section>
+{% endblock %}
+{% block extrabody %}{{ block.super }}<script>{% include "catalog/catalog_filters_script.html" %}</script>{% endblock %}

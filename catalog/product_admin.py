@@ -1,10 +1,14 @@
-from django.contrib import admin
+from django import forms
+from django.contrib import admin, messages
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Count, Q
-from django.http import HttpResponseBadRequest
-from django.urls import reverse
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from django.template.response import TemplateResponse
+from django.urls import path, reverse
 from django.utils.html import format_html
 
+from access.audit import record
 from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import ProductForm, ProductPhotoForm
 from catalog.models import Category, Product, ProductPhoto
@@ -17,6 +21,11 @@ class PhotoInline(admin.StackedInline):
     fields = ["preview", "image", "alt_text", "position"]
     readonly_fields = ["preview"]
     extra = 1
+
+    def get_extra(self, request, obj=None, **kwargs):
+        # New products receive several hidden slots so one multi-file selection
+        # doesn't depend on the admin dynamically creating each additional form.
+        return 4 if obj is None else 1
 
     @admin.display(description="Preview")
     def preview(self, obj):
@@ -59,22 +68,10 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
         related = Category.objects.exclude(pk__in=Category.objects.parents())
         filter_name = "category__id__exact"
         context = {
-            "title": "Products",
+            "title": "Inventory",
             "has_change_permission": self.has_change_permission(request),
             "has_delete_permission": self.has_delete_permission(request),
-            "product_metrics": self.get_queryset(request).aggregate(
-                total=Count("pk", distinct=True),
-                active=Count("pk", filter=Q(is_active=True), distinct=True),
-                inactive=Count("pk", filter=Q(is_active=False), distinct=True),
-            ),
             "management_filters": [
-                {
-                    "label": "Status",
-                    "name": "is_active__exact",
-                    "empty_label": "All statuses",
-                    "options": [("1", "Active"), ("0", "Inactive")],
-                    "selected": request.GET.get("is_active__exact", ""),
-                },
                 {
                     "label": "Category",
                     "name": filter_name,
@@ -83,22 +80,16 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
                     "selected": request.GET.get(filter_name, ""),
                 },
                 {
-                    "label": "Unit",
-                    "name": "unit__exact",
-                    "empty_label": "All units",
-                    "options": Product.Unit.choices,
-                    "selected": request.GET.get("unit__exact", ""),
+                    "label": "Sale",
+                    "name": "is_on_sale__exact",
+                    "empty_label": "All products",
+                    "options": [("1", "On sale"), ("0", "Regular price")],
+                    "selected": request.GET.get("is_on_sale__exact", ""),
                 },
             ],
             **(extra_context or {}),
         }
         return super().changelist_view(request, context)
-
-    def get_fieldsets(self, request, obj=None):
-        fields = list(super().get_fieldsets(request, obj))
-        if obj:
-            fields.append(("Record history", {"fields": self.readonly_fields}))
-        return fields
 
     def delete_view(self, request, object_id, extra_context=None):
         if request.method == "POST" and request.POST.get("post") != "yes":
@@ -111,15 +102,81 @@ class ProductAdmin(ProductAdminBase):
     form = ProductForm
     list_display = ["name", "sku", "category", "unit", "is_active"]
     search_fields = ["name", "description", "sku"]
-    list_filter = ["is_active", "category", "unit"]
+    list_filter = ["is_active", "is_on_sale", "category", "unit"]
     list_select_related = ["category"]
     fieldsets = [
         (
             "Product details",
-            {"fields": ["name", "sku", "unit", "category", "description", "is_active"]},
+            {
+                "fields": [
+                    "name",
+                    ("category", "sku"),
+                    ("price", "quantity"),
+                    "unit",
+                    "description",
+                    "is_active",
+                    "is_on_sale",
+                    "discount_percentage",
+                ]
+            },
         )
     ]
     inlines = [PhotoInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("photos")
+
+    def get_urls(self):
+        return [
+            path(
+                "<int:object_id>/stock/",
+                self.admin_site.admin_view(self.stock_view),
+                name="catalog_product_stock",
+            ),
+        ] + super().get_urls()
+
+    def stock_view(self, request, object_id):
+        product = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_change_permission(request, product):
+            raise PermissionDenied
+        form = StockForm(request.POST if request.method == "POST" else None)
+        if request.method == "POST" and form.is_valid():
+            with transaction.atomic():
+                product = Product.objects.select_for_update().get(pk=product.pk)
+                product.quantity += form.cleaned_data["quantity"]
+                if product.quantity > 2147483647:
+                    form.add_error("quantity", "The resulting quantity is too large.")
+                else:
+                    product.save()
+                    shipment_number = form.cleaned_data["shipment_number"]
+                    record(
+                        "stock_received",
+                        "catalog.product",
+                        product.pk,
+                        details={
+                            "quantity_added": form.cleaned_data["quantity"],
+                            "new_quantity": product.quantity,
+                            "shipment_number": shipment_number,
+                        },
+                        request=request,
+                    )
+                    message = f"Added {form.cleaned_data['quantity']} units to {product.name}."
+                    if shipment_number:
+                        message += f" Shipment {shipment_number} was recorded."
+                    self.message_user(request, message, messages.SUCCESS)
+                    return HttpResponseRedirect(reverse("admin:catalog_product_changelist"))
+        return TemplateResponse(
+            request,
+            "admin/catalog/product/stock.html",
+            {
+                **self.admin_site.each_context(request),
+                "title": "Receive inventory",
+                "workspace_header": "Products / Receive inventory",
+                "product": product,
+                "form": form,
+                "opts": self.model._meta,
+            },
+        )
 
     def save_formset(self, request, form, formset, change):
         if formset.model is ProductPhoto:
@@ -138,3 +195,20 @@ class ProductAdmin(ProductAdminBase):
             formset.save_m2m()
         else:
             super().save_formset(request, form, formset, change)
+
+
+class StockForm(forms.Form):
+    quantity = forms.IntegerField(label="Quantity to add", min_value=1, max_value=2147483647)
+    shipment_number = forms.CharField(
+        label="Shipment number",
+        max_length=100,
+        required=False,
+        help_text="Optional. Add a delivery or shipment reference for the activity log.",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. SHP-2026-0042"}),
+    )
+
+    def clean_shipment_number(self):
+        shipment_number = self.cleaned_data["shipment_number"].strip()
+        if shipment_number and not shipment_number.isprintable():
+            raise forms.ValidationError("Enter a printable shipment number.")
+        return shipment_number

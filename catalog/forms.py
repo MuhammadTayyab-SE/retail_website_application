@@ -60,8 +60,27 @@ class ProductForm(forms.ModelForm):
 
     class Meta:
         model = Product
-        fields = ["name", "sku", "unit", "description", "category", "is_active"]
-        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+        fields = [
+            "name",
+            "sku",
+            "unit",
+            "price",
+            "quantity",
+            "is_on_sale",
+            "discount_percentage",
+            "description",
+            "category",
+            "is_active",
+        ]
+        labels = {"name": "Product name", "unit": "Selling unit"}
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "price": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
+            "quantity": forms.NumberInput(attrs={"min": 0, "step": 1}),
+            "discount_percentage": forms.NumberInput(
+                attrs={"min": 1, "max": 100, "step": 1, "inputmode": "numeric"}
+            ),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,6 +88,17 @@ class ProductForm(forms.ModelForm):
             self.fields["category"].queryset = Category.objects.exclude(
                 pk__in=Category.objects.parents()
             ).order_by("name")
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("is_on_sale"):
+            if cleaned.get("discount_percentage") is None:
+                self.add_error(
+                    "discount_percentage", "Enter the percentage discount for this sale."
+                )
+        else:
+            cleaned["discount_percentage"] = None
+        return cleaned
 
 
 class ProductPhotoForm(forms.ModelForm):
