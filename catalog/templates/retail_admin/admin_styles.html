@@ -618,6 +618,10 @@ body.retail-admin {
 .retail-management-form .permission-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 .retail-management-form .permission-grid label { display:flex!important; align-items:center; gap:9px; padding:12px!important; border:1px solid var(--border); border-radius:8px; margin:0!important; font-size:12px; }
 .retail-management-form .permission-grid input { flex-shrink:0; }
+@media(max-width:1024px) {
+ .retail-management-form .permission-grid { grid-template-columns:minmax(0,1fr); }
+ .retail-management-form .permission-grid label { min-width:0; overflow-wrap:anywhere; }
+}
 @media(max-width:767px) {
  .retail-management-list #changelist { padding:18px; }
  .management-toolbar > div,.management-toolbar > .management-search { max-width:none; flex-basis:100%; }
@@ -775,6 +779,12 @@ body.retail-admin {
  .retail-admin .product-form-actions .danger { margin-right:0; }
  .retail-admin.retail-product-list #changelist-form { padding:16px; }
  .retail-admin.retail-product-list .management-toolbar > .management-search,.retail-admin.retail-product-list .management-toolbar > div:not(.management-search) { flex-basis:100%; max-width:none; }
+}
+.catalog-filter-message { margin:0 0 14px; padding:11px 13px; border:1px solid #fde68a; border-radius:8px; background:#fffbeb; color:#92400e; font-size:12px; }
+.retail-admin.retail-dashboard,.retail-admin.retail-dashboard .retail-workspace,.retail-admin.retail-dashboard #main,.retail-admin.retail-dashboard #content-start,.retail-admin.retail-dashboard #content,.retail-admin.retail-dashboard .retail-dashboard-grid,.retail-admin.retail-dashboard .dashboard-overview-panel,.retail-admin.retail-dashboard .retail-table-scroll { min-width:0; max-width:100%; }
+@media(max-width:767px) {
+ .retail-admin.retail-dashboard { overflow-x:hidden; }
+ .retail-admin.retail-dashboard .retail-table-scroll { width:100%; overflow-x:auto; overscroll-behavior-inline:contain; }
 }
 
 /* Catalog card grid from the supplied Retail Desk reference. */

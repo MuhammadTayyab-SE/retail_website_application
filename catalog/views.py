@@ -91,10 +91,15 @@ def catalog_view(request):
     products = visible_products.select_related("category").prefetch_related("photos")
     query = request.GET.get("q", "").strip()
     selected_category = request.GET.get("category", "").strip()
+    catalog_filter_error = ""
     if query:
         products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
     if selected_category:
-        products = products.filter(category_id=selected_category)
+        if selected_category.isdecimal():
+            products = products.filter(category_id=selected_category)
+        else:
+            catalog_filter_error = "That category filter is not valid. Showing all products."
+            selected_category = ""
     context = {
         **site.each_context(request),
         "title": "Catalog",
@@ -105,6 +110,7 @@ def catalog_view(request):
         ).order_by("name"),
         "query": query,
         "selected_category": selected_category,
+        "catalog_filter_error": catalog_filter_error,
         "can_add_product": product_admin.has_add_permission(request),
         "can_change_product": product_admin.has_change_permission(request),
     }

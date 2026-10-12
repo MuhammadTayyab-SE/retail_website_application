@@ -295,9 +295,12 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
     date_hierarchy = None
 
     def get_queryset(self, request):
-        return (
+        queryset = (
             super().get_queryset(request).exclude(action__in=["view", "request"], outcome="success")
         )
+        if getattr(request, "_audit_anonymous_filter", False):
+            queryset = queryset.filter(actor_name="")
+        return queryset
 
     def get_urls(self):
         return [
@@ -375,6 +378,12 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
         )
 
     def changelist_view(self, request, extra_context=None):
+        anonymous_selected = request.GET.get("actor_name") == "__anonymous__"
+        if anonymous_selected:
+            filters = request.GET.copy()
+            del filters["actor_name"]
+            request.GET = filters
+            request._audit_anonymous_filter = True
         context = management_context(
             request,
             "Activity log",
@@ -383,19 +392,24 @@ class AuditEventAdmin(SuperAdminOnly, admin.ModelAdmin):
             "events",
             "activity",
         )
-        visible_events = self.get_queryset(request)
+        visible_events = AuditEvent.objects.exclude(
+            action__in=["view", "request"], outcome="success"
+        )
+        actor_filter = filter_context(
+            request,
+            "actor_name",
+            "Employee",
+            [
+                (("__anonymous__" if not name else name), name or "Anonymous")
+                for name in visible_events.values_list("actor_name", flat=True)
+                .distinct()
+                .order_by("actor_name")
+            ],
+        )
+        if anonymous_selected:
+            actor_filter["selected"] = "__anonymous__"
         context["management_filters"] = [
-            filter_context(
-                request,
-                "actor_name",
-                "Employee",
-                [
-                    (name, name or "Anonymous")
-                    for name in visible_events.values_list("actor_name", flat=True)
-                    .distinct()
-                    .order_by("actor_name")
-                ],
-            ),
+            actor_filter,
             filter_context(
                 request,
                 "module",

@@ -464,6 +464,19 @@ class ProductTests(TestCase):
         )
         self.assertContains(self.client.get(url, {"q": "milk-1"}), "Milk carton")
 
+    def test_catalog_handles_malformed_and_unknown_category_filters(self):
+        self.client.force_login(self.owner)
+        url = reverse("catalog-view")
+        malformed = self.client.get(url, {"category": "not-a-number"})
+        self.assertEqual(malformed.status_code, 200)
+        self.assertContains(malformed, "That category filter is not valid")
+        self.assertContains(malformed, "Milk")
+        self.assertEqual(malformed.context["selected_category"], "")
+
+        unknown = self.client.get(url, {"category": "999999"})
+        self.assertEqual(unknown.status_code, 200)
+        self.assertContains(unknown, "No matching products")
+
     def test_staff_catalog_requires_product_permission_and_respects_read_only_access(self):
         url = reverse("catalog-view")
         self.assertRedirects(self.client.get(url), f"{reverse('admin:login')}?next={url}")

@@ -89,6 +89,20 @@ class ManagementScreenTests(TestCase):
         self.assertContains(response, "Updated Category")
         self.assertContains(response, "Dairy")
 
+    def test_anonymous_activity_filter_has_a_distinct_value_and_filters_named_users(self):
+        AuditEvent.objects.create(actor_name="", action="login", module="authentication")
+        AuditEvent.objects.create(
+            actor_name="named-worker", action="update", module="catalog.category", target_id="8"
+        )
+        url = reverse("admin:access_auditevent_changelist")
+        response = self.client.get(url, {"actor_name": "__anonymous__"})
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(response.context["cl"].result_count, 1)
+        self.assertEqual({event.actor_name for event in response.context["cl"].result_list}, {""})
+        self.assertContains(response, 'value="__anonymous__" selected')
+        self.assertContains(response, '<option value="">All employees</option>')
+        self.assertNotContains(response, "named-worker</strong>")
+
     def test_management_forms_and_sidebar_order(self):
         for url in [
             reverse("admin:auth_user_add"),
@@ -99,6 +113,10 @@ class ManagementScreenTests(TestCase):
             self.assertContains(response, "management-form-grid")
         role_page = self.client.get(reverse("admin:access_role_add"))
         self.assertContains(role_page, 'class="permission-grid"')
+        self.assertContains(
+            role_page,
+            "@media(max-width:1024px) {\n .retail-management-form .permission-grid",
+        )
         html = self.client.get(reverse("admin:index")).content.decode()
         parent = html.index('href="/admin/catalog/category/parents/"')
         catalog = html.index('href="/admin/catalog/view/"', parent)

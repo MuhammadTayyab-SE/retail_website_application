@@ -35,6 +35,11 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertContains(
             response, reverse("admin:catalog_category_change", args=[self.child.pk])
         )
+        self.assertContains(
+            response,
+            ".retail-admin.retail-dashboard .retail-table-scroll { width:100%; overflow-x:auto;",
+        )
+        self.assertContains(response, ".retail-admin.retail-dashboard { overflow-x:hidden; }")
 
     def test_shared_shell_renders_across_management_and_account_pages(self):
         urls = [
@@ -123,6 +128,15 @@ class AdminVisualIntegrationTests(TestCase):
         self.assertTemplateUsed(response, "admin/base_site.html")
         self.assertNotContains(response, 'aria-label="Store navigation"')
         self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_mobile_login_heading_preserves_word_separation(self):
+        self.client.logout()
+        response = self.client.get(reverse("admin:login"))
+        self.assertContains(response, "Good things")
+        self.assertContains(response, "start with")
+        self.assertContains(response, '</span> <span class="welcome-line">')
+        self.assertContains(response, ".welcome-line { display:inline; }")
+        self.assertNotContains(response, "h1 br { display: none; }")
 
     def test_parent_creation_is_independent_even_with_submitted_parent(self):
         url = reverse("admin:catalog_category_add") + "?kind=parent"

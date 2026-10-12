@@ -11,6 +11,7 @@
   <div><label class="visually-hidden" for="catalog-category">Filter by category</label><select id="catalog-category" name="category"><option value="">All categories</option>{% for category in categories %}<option value="{{ category.pk }}"{% if selected_category == category.pk|stringformat:'s' %} selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
   <noscript><button class="retail-button" type="submit">Apply filters</button></noscript>
 </form>
+{% if catalog_filter_error %}<p class="catalog-filter-message" role="alert">{{ catalog_filter_error }}</p>{% endif %}
 <p class="catalog-results-summary" role="status">{{ products|length }} product{{ products|length|pluralize }}</p>
 <section class="catalog-product-grid" aria-label="Products">
 {% for product in products %}
