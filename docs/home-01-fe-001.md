@@ -124,3 +124,20 @@ original palette, iconography, hero illustration, promotional copy and structura
 details are **provisional and unverified against Zilly Home 01**. They do not
 constitute visual acceptance or an approved substitute. Reference captures and
 a working browser are required before correcting and accepting visual fidelity.
+
+### Local preview asset setup
+
+For the standard `python manage.py runserver` command, set `DJANGO_DEBUG=true`
+in this checkout's ignored `.env` so Django serves app static assets locally.
+When this feature worktree uses the development database, set its local
+`MEDIA_ROOT` to the development checkout's existing absolute media directory;
+otherwise existing database photo paths refer to files absent from this worktree.
+Do not change independent QA media configuration. Restart runserver after changing
+`.env`. These local settings are not production deployment configuration.
+
+The user's unstyled preview was traced to DEBUG=false and a missing worktree
+media directory. Corrected the ignored local settings and restarted the local
+server. Direct requests returned 200 for `/`, `/static/catalog/storefront.css`,
+`/static/catalog/market-basket.svg`, and three existing category photo endpoints.
+No QA process was started and no visual/reference match is claimed by these
+asset checks. Browser runtime still reports no connected browser.
