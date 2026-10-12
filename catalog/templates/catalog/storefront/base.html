@@ -1,0 +1,142 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+      {% block title %}
+        Your grocery store
+      {% endblock %}
+    </title>
+    <link rel="stylesheet" href="{% static 'catalog/storefront.css' %}">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      Skip to content
+    </a>
+    <div class="topbar">
+      <div class="container">
+        A little inspiration for your everyday basket.
+        <span>
+          Explore your local catalogue
+        </span>
+      </div>
+    </div>
+    <header class="container header">
+      <a class="brand" href="{% url 'home' %}" aria-label="Grocery store home">
+        <span class="brand-mark" aria-hidden="true">
+          ✳
+        </span>
+        Grocery
+        <span class="brand-dot">
+          .
+        </span>
+      </a>
+      <form class="search" action="{% url 'home' %}" method="get" role="search">
+        <label class="sr-only" for="search">
+          Search products by name or SKU
+        </label>
+        <input id="search" name="q" type="search" maxlength="200" placeholder="What’s on your shopping list?" value="{{ query }}">
+        {% if selected %}
+          <input type="hidden" name="category" value="{{ selected }}">
+        {% endif %}
+        <button type="submit">
+          Search
+          <span aria-hidden="true">
+            ↗
+          </span>
+        </button>
+      </form>
+      <a class="header-link" href="{% url 'home' %}#products">
+        Browse products
+        <span aria-hidden="true">
+          →
+        </span>
+      </a>
+    </header>
+    <nav class="navigation" aria-label="Main navigation">
+      <div class="container nav-inner">
+        <details class="category-menu">
+          <summary>
+            ☰ &nbsp; Shop by category
+          </summary>
+          <div class="category-dropdown">
+            <a href="{% url 'home' %}#products">
+              All products
+            </a>
+            {% for entry in categories %}
+              <a href="{% url 'home' %}?category={{ entry.category.pk }}#products">
+                {{ entry.path }}
+              </a>
+            {% empty %}
+              <p>
+                Categories are coming soon.
+              </p>
+            {% endfor %}
+          </div>
+        </details>
+        <a href="{% url 'home' %}" {% if not query and not selected %} aria-current="page" {% endif %} >
+          Home
+        </a>
+        <a href="{% url 'home' %}#products">
+          Our catalogue
+        </a>
+        <a href="{% url 'home' %}#categories">
+          Categories
+        </a>
+        <span class="nav-note">
+          Good food. Everyday possibilities.
+        </span>
+      </div>
+    </nav>
+    <main id="main" class="container">
+      {% block content %}
+      {% endblock %}
+    </main>
+    <footer>
+      <div class="container footer-grid">
+        <div>
+          <a class="brand" href="{% url 'home' %}">
+            <span class="brand-mark" aria-hidden="true">
+              ✳
+            </span>
+            Grocery.
+          </a>
+          <p>
+            Make room for something delicious.
+            <br>
+            Explore the essentials for your next meal.
+          </p>
+        </div>
+        <div>
+          <h2>
+            Explore the store
+          </h2>
+          <a href="{% url 'home' %}#products">
+            All products
+          </a>
+          <a href="{% url 'home' %}#categories">
+            Shop by category
+          </a>
+        </div>
+        <div>
+          <h2>
+            A fresh place to start
+          </h2>
+          <p>
+            Find inspiration for your kitchen,
+            <br>
+            one ingredient at a time.
+          </p>
+        </div>
+      </div>
+      <div class="container footer-bottom">
+        Your grocery catalogue
+        <span>
+          Prices displayed in PKR
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -6,8 +6,10 @@ from catalog.views import (
     catalog_view,
     category_list,
     category_photo,
+    home,
     product_list,
     product_photo,
+    public_category_photo,
     public_product_photo,
 )
 from config.admin import site
@@ -22,6 +24,8 @@ def health(request):
 
 
 urlpatterns = [
+    path("", home, name="home"),
+    path("categories/photos/<int:pk>/", public_category_photo, name="public-category-photo"),
     path("health/", health, name="health"),
     path("admin/category-photo/<int:pk>/", category_photo, name="category-photo"),
     path("admin/product-photo/<int:pk>/", product_photo, name="product-photo"),
