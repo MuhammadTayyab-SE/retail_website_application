@@ -1,0 +1,21 @@
+(() => {
+  const saleToggle = document.getElementById("id_is_on_sale");
+  const discountInput = document.getElementById("id_discount_percentage");
+  const discountRow = document.querySelector(".field-discount_percentage");
+  if (!saleToggle || !discountInput || !discountRow) return;
+
+  const syncSaleFields = () => {
+    const enabled = saleToggle.checked;
+    discountRow.hidden = !enabled;
+    discountInput.disabled = !enabled;
+    discountInput.required = enabled;
+    discountInput.setAttribute("aria-required", enabled ? "true" : "false");
+    if (!enabled) discountInput.value = "";
+  };
+
+  saleToggle.addEventListener("change", () => {
+    syncSaleFields();
+    if (saleToggle.checked) discountInput.focus();
+  });
+  syncSaleFields();
+})();

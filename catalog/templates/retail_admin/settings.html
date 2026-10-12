@@ -1,0 +1,7 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<section class="retail-card retail-settings-card" aria-labelledby="account-settings-title">
+  <div class="retail-card-heading"><div><h2 id="account-settings-title">Account security</h2><p>Manage the password for your administrator account.</p></div></div>
+  <div class="retail-settings-body">{% if user.has_usable_password %}<a class="retail-button" href="{% url 'admin:password_change' %}">Change password</a>{% else %}<p>Password changes are managed by your sign-in provider.</p>{% endif %}</div>
+</section>
+{% endblock %}

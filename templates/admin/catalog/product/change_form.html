@@ -1,0 +1,19 @@
+{% extends "admin/change_form.html" %}
+{% load admin_urls %}
+{% block bodyclass %}{{ block.super }} retail-product-form{% endblock %}
+{% block content_title %}<div class="product-form-heading"><div><h1>{% if add %}Add new product{% else %}Product details{% endif %}</h1><p>{% if has_change_permission or add %}Add the essentials, set your stock and build a product photo gallery.{% else %}View product information and current stock.{% endif %}</p></div><a class="product-form-close" href="{% url opts|admin_urlname:'changelist' %}" aria-label="Back to products">&times;</a></div>{% endblock %}
+{% block content_subtitle %}{% endblock %}
+{% block object-tools %}{% endblock %}
+{% block inline_field_sets %}
+{% if has_change_permission or add %}
+<section class="product-photo-uploader" aria-labelledby="product-photo-title">
+  <div class="product-photo-uploader-copy"><span class="product-photo-icon" aria-hidden="true">+</span><div><h2 id="product-photo-title">Product photos</h2><p>Choose several photos at once. The first photo is used as the showcase image.</p></div></div>
+  <label class="product-photo-picker" for="product-photo-picker">Choose photos</label>
+  <input id="product-photo-picker" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+</section>
+{% else %}<div class="product-photo-readonly-heading"><h2>Product photos</h2><p>The first photo is the showcase image.</p></div>{% endif %}
+<p id="product-photo-empty" class="product-photo-empty">{% if errors %}For your privacy, photos are not retained after a form error. Please choose them again.{% else %}No photos added yet.{% endif %}</p>
+{{ block.super }}
+{% endblock %}
+{% block submit_buttons_bottom %}<div class="product-form-actions{% if change and has_delete_permission %} has-delete{% endif %}">{% if change and has_delete_permission %}<a class="retail-button danger deletelink category-delete-link" href="{% url opts|admin_urlname:'delete' original.pk|admin_urlquote %}">Delete</a>{% endif %}<a class="retail-button secondary" href="{% url opts|admin_urlname:'changelist' %}">{% if has_change_permission or add %}Cancel{% else %}Close{% endif %}</a>{% if has_change_permission or add %}<button type="submit" name="_save" class="retail-button">Save changes</button>{% endif %}</div>{% endblock %}
+{% block admin_change_form_document_ready %}{{ block.super }}<script>{% include "catalog/product_photo_script.html" %}</script><script>{% include "catalog/product_sale_script.html" %}</script>{% endblock %}

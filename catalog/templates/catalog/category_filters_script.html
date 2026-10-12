@@ -1,0 +1,70 @@
+(() => {
+  const filters = document.querySelector('[data-category-filters]');
+  if (!filters) return;
+  const status = document.querySelector('[data-category-filter-status]');
+  let timer, controller, revision = 0;
+  function filterURL() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('p');
+    url.searchParams.delete('all');
+    for (const [name, value] of new FormData(filters)) {
+      if (value) url.searchParams.set(name, value);
+      else url.searchParams.delete(name);
+    }
+    return url;
+  }
+  async function refresh(url, updateHistory = true) {
+    clearTimeout(timer);
+    const current = ++revision;
+    if (controller) controller.abort();
+    controller = new AbortController();
+    document.getElementById('changelist-form').setAttribute('aria-busy', 'true');
+    status.textContent = 'Updating categories…';
+    try {
+      const response = await fetch(url, {signal: controller.signal, credentials: 'same-origin'});
+      if (!response.ok) throw new Error('Request failed');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      if (current !== revision) return;
+      const results = page.getElementById('changelist-form');
+      const summary = page.querySelector('[data-category-summary]');
+      if (!results || !summary) throw new Error('Categories unavailable');
+      document.getElementById('changelist-form').replaceWith(results);
+      document.querySelector('[data-category-summary]').replaceWith(summary);
+      // Keep native save-order submissions on the filtered URL.
+      results.action = response.url;
+      if (updateHistory) window.history.replaceState(null, '', response.url);
+      status.textContent = '';
+    } catch (error) {
+      if (current !== revision || error.name === 'AbortError') return;
+      status.textContent = 'Could not update categories. Press Enter in search to retry.';
+    } finally {
+      if (current === revision) document.getElementById('changelist-form').removeAttribute('aria-busy');
+    }
+  }
+  filters.addEventListener('input', event => {
+    if (event.target.type !== 'search') return;
+    clearTimeout(timer);
+    // Cancel an older response immediately, including during the debounce.
+    revision++;
+    if (controller) controller.abort();
+    timer = setTimeout(() => refresh(filterURL()), 250);
+  });
+  filters.addEventListener('change', event => {
+    if (event.target.tagName === 'SELECT') refresh(filterURL());
+  });
+  filters.addEventListener('submit', event => { event.preventDefault(); refresh(filterURL()); });
+  document.addEventListener('click', event => {
+    const link = event.target.closest('[data-category-clear], #changelist-form .paginator a, #result_list thead a');
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (link.matches('[data-category-clear]')) {
+      for (const field of filters.querySelectorAll('input, select')) field.value = '';
+    }
+    refresh(new URL(link.href));
+  });
+  window.addEventListener('popstate', () => {
+    const url = new URL(window.location.href);
+    for (const field of filters.querySelectorAll('input, select')) field.value = url.searchParams.get(field.name) || '';
+    refresh(url, false);
+  });
+})();

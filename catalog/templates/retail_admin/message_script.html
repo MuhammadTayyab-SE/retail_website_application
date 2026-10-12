@@ -1,0 +1,13 @@
+<script>
+(() => {
+  document.addEventListener('click', event => {
+    const close = event.target.closest('.retail-message-close');
+    if (!close) return;
+    const message = close.closest('.messagelist li');
+    message.classList.add('is-leaving');
+    const remove = () => { if (message.isConnected) message.remove(); };
+    message.addEventListener('animationend', remove, {once: true});
+    window.setTimeout(remove, 250);
+  });
+})();
+</script>

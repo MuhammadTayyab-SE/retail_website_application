@@ -1,0 +1,55 @@
+(() => {
+  const filters = document.querySelector('[data-management-filters]');
+  if (!filters) return;
+  const status = document.querySelector('[data-management-status]');
+  let timer, controller, revision = 0;
+  function filterURL() {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('p'); url.searchParams.delete('all');
+    for (const [name, value] of new FormData(filters)) {
+      if (value) url.searchParams.set(name, value);
+      else url.searchParams.delete(name);
+    }
+    return url;
+  }
+  async function refresh(url) {
+    clearTimeout(timer);
+    const current = ++revision;
+    if (controller) controller.abort();
+    controller = new AbortController();
+    document.getElementById('changelist-form').setAttribute('aria-busy', 'true');
+    status.textContent = 'Updating results…';
+    try {
+      const response = await fetch(url, {signal: controller.signal, credentials: 'same-origin'});
+      if (!response.ok) throw new Error('Request failed');
+      const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+      if (current !== revision) return;
+      const results = page.getElementById('changelist-form');
+      const summary = page.querySelector('[data-management-summary]');
+      if (!results || !summary) throw new Error('Results unavailable');
+      document.getElementById('changelist-form').replaceWith(results);
+      document.querySelector('[data-management-summary]').replaceWith(summary);
+      window.history.replaceState(null, '', response.url);
+      status.textContent = '';
+    } catch (error) {
+      if (current === revision && error.name !== 'AbortError') status.textContent = 'Could not update results. Press Enter to retry.';
+    } finally {
+      if (current === revision) document.getElementById('changelist-form').removeAttribute('aria-busy');
+    }
+  }
+  filters.addEventListener('input', event => {
+    if (event.target.type !== 'search') return;
+    clearTimeout(timer); revision++;
+    if (controller) controller.abort();
+    timer = setTimeout(() => refresh(filterURL()), 250);
+  });
+  filters.addEventListener('change', event => { if (event.target.tagName === 'SELECT' || event.target.type === 'date') refresh(filterURL()); });
+  filters.addEventListener('submit', event => { event.preventDefault(); refresh(filterURL()); });
+  document.addEventListener('click', event => {
+    const link = event.target.closest('[data-management-clear], #changelist-form .paginator a');
+    if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (link.matches('[data-management-clear]')) for (const field of filters.querySelectorAll('input, select')) field.value = '';
+    refresh(new URL(link.href));
+  });
+})();
