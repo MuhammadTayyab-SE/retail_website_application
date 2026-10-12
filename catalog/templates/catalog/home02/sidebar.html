@@ -1,0 +1,20 @@
+{% load static %}
+<aside class="catalog-sidebar" aria-label="Popular products">
+<article class="sidebar-banner" style="--banner:url('{% static 'catalog/home02/ads_12.jpg' %}')">
+<h2>Premium<br>Quality<br>Mixed Bean</h2>
+<a href="#featured" class="pill-button">Shop Now</a>
+</article>
+<section>
+<h2 class="underlined">Best Selling</h2>{% include 'catalog/home02/product_list.html' with items=best_selling %}</section>
+<a class="image-banner" href="#deals">
+<img src="{% static 'catalog/home02/home_01_sl_4-2.jpg' %}" alt="Fresh grocery offers" loading="lazy">
+</a>
+<section>
+<h2 class="underlined">Trending Products</h2>{% include 'catalog/home02/product_list.html' with items=trending %}</section>
+<a class="image-banner" href="#featured">
+<img src="{% static 'catalog/home02/home_01_sl_5s.jpg' %}" alt="Explore more grocery offers" loading="lazy">
+</a>
+<section>
+<h2 class="underlined">Top Rated</h2>{% include 'catalog/home02/product_list.html' with items=sale %}</section>
+</aside>
+

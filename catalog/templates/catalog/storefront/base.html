@@ -24,7 +24,7 @@
       </div>
     </div>
     <header class="container header">
-      <a class="brand" href="{% url 'home' %}" aria-label="Grocery store home">
+      <a class="brand" href="{% url 'storefront-catalogue' %}" aria-label="Grocery store home">
         <span class="brand-mark" aria-hidden="true">
           ✳
         </span>
@@ -33,7 +33,7 @@
           .
         </span>
       </a>
-      <form class="search" action="{% url 'home' %}" method="get" role="search">
+      <form class="search" action="{% url 'storefront-catalogue' %}" method="get" role="search">
         <label class="sr-only" for="search">
           Search products by name or SKU
         </label>
@@ -48,7 +48,7 @@
           </span>
         </button>
       </form>
-      <a class="header-link" href="{% url 'home' %}#products">
+      <a class="header-link" href="{% url 'storefront-catalogue' %}#products">
         Browse products
         <span aria-hidden="true">
           →
@@ -62,11 +62,11 @@
             ☰ &nbsp; Shop by category
           </summary>
           <div class="category-dropdown">
-            <a href="{% url 'home' %}#products">
+            <a href="{% url 'storefront-catalogue' %}#products">
               All products
             </a>
             {% for entry in categories %}
-              <a href="{% url 'home' %}?category={{ entry.category.pk }}#products">
+              <a href="{% url 'storefront-catalogue' %}?category={{ entry.category.pk }}#products">
                 {{ entry.path }}
               </a>
             {% empty %}
@@ -76,13 +76,13 @@
             {% endfor %}
           </div>
         </details>
-        <a href="{% url 'home' %}" {% if not query and not selected %} aria-current="page" {% endif %} >
+        <a href="{% url 'storefront-catalogue' %}" {% if not query and not selected %} aria-current="page" {% endif %} >
           Home
         </a>
-        <a href="{% url 'home' %}#products">
+        <a href="{% url 'storefront-catalogue' %}#products">
           Our catalogue
         </a>
-        <a href="{% url 'home' %}#categories">
+        <a href="{% url 'storefront-catalogue' %}#categories">
           Categories
         </a>
         <span class="nav-note">
@@ -97,7 +97,7 @@
     <footer>
       <div class="container footer-grid">
         <div>
-          <a class="brand" href="{% url 'home' %}">
+          <a class="brand" href="{% url 'storefront-catalogue' %}">
             <span class="brand-mark" aria-hidden="true">
               ✳
             </span>
@@ -113,10 +113,10 @@
           <h2>
             Explore the store
           </h2>
-          <a href="{% url 'home' %}#products">
+          <a href="{% url 'storefront-catalogue' %}#products">
             All products
           </a>
-          <a href="{% url 'home' %}#categories">
+          <a href="{% url 'storefront-catalogue' %}#categories">
             Shop by category
           </a>
         </div>

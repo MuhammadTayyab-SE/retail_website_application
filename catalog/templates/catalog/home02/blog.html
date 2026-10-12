@@ -1,0 +1,16 @@
+{% load static %}
+<section id="blog" class="content-section">
+<div class="section-title">
+<h2>Latest News &amp; Blog</h2>
+<a href="#blog">See More →</a>
+</div>
+<div class="blog-grid">{% for post in posts %}<article>
+<img src="{% static post.image %}" alt="{{ post.title }}" loading="lazy" width="520" height="330">
+<div class="blog-copy">
+<p>Food &amp; Grocery <span>•</span> November 14, 2023</p>
+<h3>{{ post.title }}</h3>
+<button data-preview="{{ post.title }}">Read More →</button>
+</div>
+</article>{% endfor %}</div>
+</section>
+

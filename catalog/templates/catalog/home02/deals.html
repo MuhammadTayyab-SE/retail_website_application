@@ -1,0 +1,25 @@
+{% load static %}
+<section id="deals" class="content-section">
+<div class="section-title">
+<h2>Deal Of The Week</h2>
+<a href="#sale">See More →</a>
+</div>
+<div class="deal-grid">
+<div class="deal-panel">
+<a href="#featured">
+<img class="deal-banner" src="{% static 'catalog/home02/ads_8.jpg' %}" alt="Weekly grocery offer" loading="lazy">
+</a>{% include 'catalog/home02/product_list.html' with items=deals|slice:':4' %}</div>
+<div class="deal-panel">
+<a href="#featured">
+<img class="deal-banner" src="{% static 'catalog/home02/ads_9.jpg' %}" alt="More weekly offers" loading="lazy">
+</a>{% include 'catalog/home02/product_list.html' with items=deals|slice:'4:8' %}</div>
+</div>
+</section>
+<section id="sale" class="content-section">
+<div class="section-title">
+<h2>On Sale Products</h2>
+<a href="#featured">See More →</a>
+</div>
+<div class="sale-grid">{% for product in sale %}{% include 'catalog/home02/product.html' %}{% endfor %}</div>
+</section>
+

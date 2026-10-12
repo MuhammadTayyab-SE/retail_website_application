@@ -1,0 +1,14 @@
+{% load static %}
+<div class="small-product-list">
+{% for product in items %}<article class="small-product" data-product-id="{{ product.id }}">
+<img src="{% static product.image %}" alt="{{ product.name }}" loading="lazy" width="76" height="76">
+<div>
+<strong>{{ product.price }}</strong>
+<p class="rating">★★★★<i>★</i>
+<small>(4.00)</small>
+</p>
+<h3>{{ product.name }}</h3>
+</div>
+</article>{% endfor %}
+</div>
+

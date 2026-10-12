@@ -1,0 +1,25 @@
+{% load static %}
+<article class="product-card" data-product-category="{{ product.category }}" data-product-name="{{ product.name|lower }}" data-product-id="{{ product.id }}">
+<div class="product-meta">
+<span>{{ product.category }}</span>
+<button class="wishlist-button" data-like="{{ product.id }}" aria-label="Save {{ product.name }}" aria-pressed="false">♡</button>
+</div>
+<button class="product-image" data-product-detail aria-label="View {{ product.name }}">
+<img src="{% static product.image %}" alt="{{ product.name }}" loading="lazy" width="180" height="180">
+</button>
+<p class="product-price">{{ product.price }}</p>
+<p class="rating">
+<span aria-label="Rated four out of five">★★★★<i>★</i>
+</span>
+<small>(4.00)</small>
+</p>
+<h3>
+<button data-product-detail>{{ product.name }}</button>
+</h3>
+<div class="product-bottom">
+<span>In Stock</span>
+<button data-add="{{ product.id }}" aria-label="Add {{ product.name }} to preview basket">Add to Cart <span>＋</span>
+</button>
+</div>
+</article>
+

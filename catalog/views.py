@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -7,6 +10,16 @@ from django.views.decorators.http import require_safe
 
 from catalog.models import Category, Product, ProductPhoto
 from config.admin import site
+
+HOME02_CONTENT = json.loads(
+    Path(__file__).with_name("home02_content.json").read_text(encoding="utf8")
+)
+
+
+@require_safe
+def home02(request):
+    """Static design preview; content is separate from the existing live catalogue."""
+    return render(request, "catalog/home02/home.html", HOME02_CONTENT)
 
 
 def storefront_categories():

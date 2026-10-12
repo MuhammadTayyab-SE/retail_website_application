@@ -57,7 +57,7 @@
     </div>
     <div class="category-grid">
       {% for entry in category_cards %}
-        <a class="category-card" href="{% url 'home' %}?category={{ entry.category.pk }}#products">
+        <a class="category-card" href="{% url 'storefront-catalogue' %}?category={{ entry.category.pk }}#products">
           <span class="category-image">
             {% if entry.category.photo %}
               <img src="{% url 'public-category-photo' entry.category.pk %}" alt="" loading="lazy" width="100" height="100" style="object-position:{{ entry.category.photo_x }}% {{ entry.category.photo_y }}%;transform:scale({{ entry.category.photo_zoom }}%)">
@@ -149,7 +149,7 @@
         {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}
       </span>
     </div>
-    <form class="filters" method="get" action="{% url 'home' %}#products">
+    <form class="filters" method="get" action="{% url 'storefront-catalogue' %}#products">
       <input type="hidden" name="q" value="{{ query }}">
       <label for="category">
         Category
@@ -168,7 +168,7 @@
         Apply filter
       </button>
       {% if selected or query %}
-        <a href="{% url 'home' %}#products">
+        <a href="{% url 'storefront-catalogue' %}#products">
           Clear filters
         </a>
       {% endif %}
@@ -203,7 +203,7 @@
             {% endif %}
           </p>
           {% if query or selected %}
-            <a class="button" href="{% url 'home' %}#products">
+            <a class="button" href="{% url 'storefront-catalogue' %}#products">
               Browse all products
             </a>
           {% endif %}
