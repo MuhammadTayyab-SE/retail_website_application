@@ -216,6 +216,7 @@ img {
 }
 
 .category-dropdown a {
+  overflow-wrap:anywhere;
   display:block;
   padding:10px 12px;
   border-radius:4px
@@ -332,6 +333,10 @@ img {
   align-items:end;
   margin-bottom:24px;
   gap:20px
+}
+
+.section-heading > div {
+  min-width:0;
 }
 
 .section-heading .eyebrow {

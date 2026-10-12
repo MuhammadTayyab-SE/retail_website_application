@@ -1,10 +1,13 @@
 import tempfile
 from decimal import Decimal
 
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.test import RequestFactory, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from catalog.models import Category, Product, ProductPhoto, ProductVariant
+from catalog.views import public_category_photo
 from tests.test_products import photo_file
 
 
@@ -73,16 +76,21 @@ class StorefrontTests(TestCase):
         photo = ProductPhoto.objects.create(product=product, image=photo_file())
         self.category.photo = photo_file("category.png")
         self.category.save()
-        response = self.client.get(reverse("public-category-photo", args=[self.category.pk]))
+        url = reverse("public-category-photo", args=[self.category.pk])
+        response = public_category_photo(RequestFactory().get(url), self.category.pk)
         self.assertEqual(response.status_code, 200)
-        # Close only the file: response.close() emits request_finished and closes
-        # the database connection inside this TestCase's transaction.
-        response._resource_closers[0]()
+        # The direct view response preserves FileResponse's public file handle.
+        # Closing the whole response emits request_finished inside the test transaction.
+        response.file_to_stream.close()
         # Bypass save cascade to exercise read-time ancestor protection.
         Category.objects.filter(pk=self.parent.pk).update(is_active=False)
         response = self.client.get(reverse("home"))
         self.assertNotContains(response, "Apples")
-        self.assertNotContains(response, ">Fruit<")
+        self.assertNotIn(
+            self.category.pk, [entry["category"].pk for entry in response.context["categories"]]
+        )
+        self.assertNotContains(response, f"?category={self.category.pk}#products")
+        self.assertNotContains(response, url)
         for route, pk in [
             ("public-category-photo", self.category.pk),
             ("public-product-photo", photo.pk),
@@ -94,12 +102,13 @@ class StorefrontTests(TestCase):
         self.assertEqual(self.client.get(url).status_code, 404)
         self.category.photo = photo_file()
         self.category.save()
-        response = self.client.get(url)
+        response = public_category_photo(RequestFactory().get(url), self.category.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "image/png")
         self.assertEqual(response["X-Content-Type-Options"], "nosniff")
         self.assertEqual(response["Cache-Control"], "private, no-store")
-        response._resource_closers[0]()
+        self.assertEqual(response.file_to_stream.read(), photo_file().read())
+        response.file_to_stream.close()
         self.category.photo.storage.delete(self.category.photo.name)
         self.assertEqual(self.client.get(url).status_code, 404)
         Category.objects.filter(pk=self.category.pk).update(photo="categories/unsafe.svg")
@@ -143,3 +152,44 @@ class StorefrontTests(TestCase):
     def test_existing_public_routes_remain_available(self):
         for route in ["health", "category-list", "product-list"]:
             self.assertEqual(self.client.get(reverse(route)).status_code, 200)
+
+    def test_deep_category_path_and_filter_visibility(self):
+        nested = Category.objects.create(name="Citrus", parent=self.category)
+        product = self.product(category=nested)
+        response = self.client.get(reverse("home"), {"category": self.parent.pk})
+        self.assertEqual(list(response.context["page_obj"]), [product])
+        self.assertIn(
+            "Food / Fruit / Citrus", [entry["path"] for entry in response.context["categories"]]
+        )
+        Category.objects.filter(pk=self.category.pk).update(is_active=False)
+        response = self.client.get(reverse("home"), {"category": nested.pk})
+        self.assertTrue(response.context["invalid_category"])
+        self.assertEqual(response.context["page_obj"].paginator.count, 0)
+
+    def test_search_is_bounded_and_public_photo_rejects_unsafe_methods(self):
+        response = self.client.get(reverse("home"), {"q": "x" * 201})
+        self.assertEqual(response.context["query"], "x" * 200)
+        self.assertEqual(response.context["page_obj"].paginator.count, 0)
+        self.assertEqual(
+            self.client.post(reverse("public-category-photo", args=[self.category.pk])).status_code,
+            405,
+        )
+
+    def test_sale_collection_and_first_page_have_bounded_queries(self):
+        Product.objects.bulk_create(
+            [
+                Product(
+                    name=f"Sale {number:02}",
+                    category=self.category,
+                    unit="each",
+                    is_on_sale=True,
+                    discount_percentage=10,
+                )
+                for number in range(30)
+            ]
+        )
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.get(reverse("home"))
+        self.assertLessEqual(len(queries), 8)
+        self.assertEqual(len(response.context["page_obj"]), 24)
+        self.assertEqual(len(response.context["sale_products"]), 8)

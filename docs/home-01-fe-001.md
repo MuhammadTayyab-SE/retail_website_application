@@ -95,3 +95,32 @@ and `.venv/Scripts/ruff.exe`). No dependency changes were needed.
 No developer migration command was run against existing development data.
 Browser screenshots and responsive visual signoff remain for independent QA;
 these automated tests do not establish exact reference fidelity.
+
+### Standards re-audit (2026-10-13)
+
+Read the user's updated AGENTS.md in full and reviewed the scoped implementation.
+The category hierarchy helper isolates genuine traversal complexity and is used
+by the homepage and public category image endpoint; no extra service layers or
+wrapper chains were added. Existing endpoints and models remain unchanged.
+
+Corrected tests that accessed a private response cleanup list: successful photo
+responses now use RequestFactory and the public FileResponse file handle, verify
+the PNG bytes and close the file. Negative access tests still exercise the client
+route. Replaced a whitespace-sensitive category absence check with category IDs,
+filter links and image URLs. Added deep descendant/hidden-filter, search length,
+unsafe image method and sale/page query-bound coverage. Long category dropdown
+links can wrap, and product headings can shrink within their flex container.
+
+Re-executed checks with the installed worktree environment: all 135 tests passed
+in 15.076s; Django check, migration dry-run, Ruff check, Ruff format check and
+git diff check passed. Only the configured disposable test database was used.
+No unrelated endpoint refactor, dependency or schema changes were made.
+
+The PM retried the same Zilly reference, which remains inaccessible, and the
+browser runtime returned no available browsers. Desktop/tablet/mobile browser
+interactions, screenshots and visual comparison remain blocked. The user
+reaffirmed that the storefront must look like that exact reference. The current
+original palette, iconography, hero illustration, promotional copy and structural
+details are **provisional and unverified against Zilly Home 01**. They do not
+constitute visual acceptance or an approved substitute. Reference captures and
+a working browser are required before correcting and accepting visual fidelity.
