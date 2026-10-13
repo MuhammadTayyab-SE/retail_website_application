@@ -4,3 +4,4 @@
   <ins><span class="woocommerce-Price-amount amount">PKR {{ product.sale_price|floatformat:2 }}</span></ins>
   {% else %}<span class="woocommerce-Price-amount amount">PKR {{ product.price|floatformat:2 }}</span>{% endif %}
 </p>
+{% if product.is_on_sale %}{% include 'catalog/home02/dynamic/discount-ticket.html' %}{% endif %}

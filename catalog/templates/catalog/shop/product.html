@@ -5,7 +5,7 @@
       <div class="rt-thumb"><a href="#product-{{ product.pk }}" data-product-detail>{% with photo=product.photos.all.0 %}{% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" class="rtsb-product-image" width="400" height="332" loading="lazy">{% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}{% endwith %}</a></div>
     </div>
     <div class="rt-content-area">
-      <div class="rt-price-area product-price"><div class="rt-price">{% include 'catalog/home02/dynamic/price.html' %}</div>{% if product.is_on_sale %}<span class="onsale rt-prodcut-badge-1">-{{ product.discount_percentage }}%</span>{% endif %}</div>
+      <div class="rt-price-area product-price"><div class="rt-price">{% include 'catalog/home02/dynamic/price.html' %}</div></div>
       <div class="rt-title-area"><h3 class="rt-title product-title"><a href="#product-{{ product.pk }}" data-product-detail>{{ product.name }}</a></h3></div>
       <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
     </div>

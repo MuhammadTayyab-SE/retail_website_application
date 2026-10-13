@@ -47,7 +47,7 @@ class Home02DatabaseTests(TestCase):
         self.assertEqual(response.context["homepage_sale_products"], [sale])
         self.assertContains(response, "PKR 5.01")
         self.assertContains(response, "PKR 10.01")
-        self.assertContains(response, "50% off")
+        self.assertContains(response, "-50%")
         self.assertNotContains(response, 'aria-label="Add Live sale apple to preview basket"')
 
     def test_trending_uses_newest_products_and_collections_are_bounded(self):

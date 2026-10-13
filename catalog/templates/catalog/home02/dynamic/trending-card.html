@@ -13,7 +13,6 @@
     <div class="product-price rtsb-item-space-between">
       <div class="price-wrapper">
         {% include 'catalog/home02/dynamic/price.html' %}
-        {% if product.is_on_sale %}<div class="rtsb-promotion"><ul class="rtsb-promotion-list"><li class="rtsb-promotion-list-item"><span class="rtsb-tag-fill angle-right">-{{ product.discount_percentage }}%</span></li></ul></div>{% endif %}
       </div>
     </div>
     <h3 class="product-title"><a href="#product-{{ product.pk }}" data-product-detail title="{{ product.name }}">{{ product.name }}</a></h3>

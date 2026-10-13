@@ -19,7 +19,6 @@
           {% endwith %}
         </a>
       </figure>
-      {% if product.is_on_sale %}<span class="homepage-sale-badge">{{ product.discount_percentage }}% off</span>{% endif %}
     </div>
     {% if variant == 'trending' %}{% include 'catalog/home02/dynamic/trending-actions.html' %}{% endif %}
     <div class="rtsb-product-content">
