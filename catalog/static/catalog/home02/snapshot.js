@@ -52,23 +52,6 @@
     element.title = element.textContent.replace(/\s+/g, ' ').trim();
   });
   const bestSelling = document.querySelector('.elementor-element-9f402fa');
-  const topRated = document.querySelector('.elementor-element-5aa9798');
-  const onSale = document.querySelector('.elementor-element-4f77f4f');
-  if (topRated && onSale) {
-    const desktop = window.matchMedia('(min-width: 1025px)');
-    function alignTopRatedBottom() {
-      if (!desktop.matches) {
-        topRated.style.removeProperty('--top-rated-height');
-        return;
-      }
-      const height = onSale.getBoundingClientRect().bottom - topRated.getBoundingClientRect().top;
-      topRated.style.setProperty('--top-rated-height', `${Math.max(0, height)}px`);
-    }
-    new ResizeObserver(alignTopRatedBottom).observe(onSale);
-    desktop.addEventListener('change', alignTopRatedBottom);
-    window.addEventListener('resize', alignTopRatedBottom);
-    alignTopRatedBottom();
-  }
   const bestSellingHeading = document.querySelector('.elementor-element-7fe13bc');
   const trending = document.querySelector('.elementor-element-2744989');
   const trendingHeading = document.querySelector('.elementor-element-0756d00');

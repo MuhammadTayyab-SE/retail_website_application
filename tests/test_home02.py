@@ -63,7 +63,25 @@ class Home02DatabaseTests(TestCase):
             [product.pk for product in reversed(products[-6:])],
         )
         self.assertEqual(response.context["homepage_sale_products"], [])
-        self.assertContains(response, "There are no active sale products.")
+        self.assertEqual(len(response.context["homepage_sale_section_products"]), 7)
+
+    def test_sale_section_fills_seven_unique_slots_with_sales_first(self):
+        sale = Product.objects.create(
+            name="Sale first", category=self.category, unit="each", is_on_sale=True
+        )
+        regular = [
+            Product.objects.create(name=f"Regular {i}", category=self.category, unit="each")
+            for i in range(8)
+        ]
+        response = self.client.get(reverse("home"))
+        collection = response.context["homepage_sale_section_products"]
+        self.assertEqual(len(collection), 7)
+        self.assertEqual(collection[0], sale)
+        self.assertEqual(len({product.pk for product in collection}), 7)
+        self.assertTrue(
+            {product.pk for product in collection[1:]}.issubset({product.pk for product in regular})
+        )
+        self.assertEqual(response.context["homepage_sale_products"], [sale])
 
     def test_category_search_and_old_bookmarks_use_current_home02(self):
         apple = Product.objects.create(
