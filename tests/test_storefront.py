@@ -162,7 +162,7 @@ class StorefrontTests(TestCase):
         response = self.client.get(reverse("home"), {"category": self.parent.pk})
         self.assertEqual(list(response.context["page_obj"]), [product])
         self.assertIn(
-            "Food / Fruit / Citrus",
+            "Food",
             [entry["path"] for entry in response.context["homepage_categories"]],
         )
         Category.objects.filter(pk=self.category.pk).update(is_active=False)

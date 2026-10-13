@@ -15,6 +15,13 @@ def home02(request):
     """Keep the captured layout while supplying the live homepage collections."""
     categories = storefront_categories()
     category_ids = {entry["category"].pk for entry in categories}
+    top_categories = [entry for entry in categories if entry["category"].parent_id is None]
+    root_categories = {}
+    for entry in categories:
+        category = entry["category"]
+        root_categories[category.pk] = (
+            root_categories[category.parent_id] if category.parent_id else category
+        )
     catalog_products = (
         Product.objects.visible()
         .filter(category_id__in=category_ids)
@@ -56,18 +63,22 @@ def home02(request):
             products = products.none()
     page = Paginator(products, 24).get_page(request.GET.get("page"))
     featured = list(page)
+    trending = list(products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6])
+    sale_products = list(products.filter(is_on_sale=True)[:7])
+    for product in [*featured, *trending, *sale_products]:
+        product.homepage_category = root_categories[product.category_id]
     featured_categories = {}
     for product in featured:
         entry = featured_categories.setdefault(
-            product.category_id, {"category": product.category, "count": 0}
+            product.homepage_category.pk, {"category": product.homepage_category, "count": 0}
         )
         entry["count"] += 1
     context = {
-        "homepage_categories": categories,
+        "homepage_categories": top_categories,
         "featured_products": featured,
         "featured_categories": list(featured_categories.values()),
-        "trending_products": products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6],
-        "homepage_sale_products": list(products.filter(is_on_sale=True)[:7]),
+        "trending_products": trending,
+        "homepage_sale_products": sale_products,
         "page_obj": page,
         "query": query,
         "selected": selected,

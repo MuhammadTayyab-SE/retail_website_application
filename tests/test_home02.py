@@ -19,9 +19,9 @@ class Home02DatabaseTests(TestCase):
             entry["category"].pk: entry["product_count"]
             for entry in response.context["homepage_categories"]
         }
-        self.assertEqual(counts, {self.parent.pk: 1, self.category.pk: 1})
+        self.assertEqual(counts, {self.parent.pk: 1})
         self.assertEqual(response.context["featured_products"], [product])
-        self.assertContains(response, f"/?category={self.category.pk}#rtsb-container-138192095")
+        self.assertContains(response, f"/?category={self.parent.pk}#rtsb-container-138192095")
         Category.objects.filter(pk=self.parent.pk).update(is_active=False)
         response = self.client.get(reverse("home"))
         self.assertEqual(response.context["homepage_categories"], [])
@@ -87,3 +87,17 @@ class Home02DatabaseTests(TestCase):
             self.assertTrue(response.context["invalid_category"])
             self.assertEqual(response.context["featured_products"], [])
             self.assertContains(response, "That category is unavailable.")
+
+    def test_homepage_lists_only_top_categories_but_keeps_subcategory_products(self):
+        product = Product.objects.create(name="Nested product", category=self.category, unit="each")
+        response = self.client.get(reverse("home"))
+        self.assertEqual(
+            [entry["category"].pk for entry in response.context["homepage_categories"]],
+            [self.parent.pk],
+        )
+        self.assertEqual(response.context["featured_products"], [product])
+        self.assertEqual(response.context["featured_categories"][0]["category"], self.parent)
+        self.assertEqual(response.context["featured_products"][0].homepage_category, self.parent)
+        self.assertNotContains(response, "Live fruit")
+        filtered = self.client.get(reverse("home"), {"category": self.parent.pk})
+        self.assertEqual(filtered.context["featured_products"], [product])
