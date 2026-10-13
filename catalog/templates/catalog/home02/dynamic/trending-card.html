@@ -10,7 +10,7 @@
       {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
       {% endwith %}
     </a>
-    <div class="product-price"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div>{% if product.is_on_sale %}<span class="homepage-trending-sale">Sale</span>{% endif %}</div>
+    <div class="product-price"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div>{% if product.is_on_sale %}<span class="rtsb-tag-fill angle-right">Sale</span>{% endif %}</div>
     <h3 class="product-title"><a href="#product-{{ product.pk }}" data-product-detail title="{{ product.name }}">{{ product.name }}</a></h3>
   </div>
 </div>
