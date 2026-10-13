@@ -63,25 +63,20 @@ class Home02DatabaseTests(TestCase):
             [product.pk for product in reversed(products[-6:])],
         )
         self.assertEqual(response.context["homepage_sale_products"], [])
-        self.assertEqual(len(response.context["homepage_sale_section_products"]), 7)
+        self.assertContains(response, "There are no active sale products.")
 
-    def test_sale_section_fills_seven_unique_slots_with_sales_first(self):
+    def test_sale_section_never_fills_empty_slots_with_regular_products(self):
         sale = Product.objects.create(
             name="Sale first", category=self.category, unit="each", is_on_sale=True
         )
-        regular = [
+        for i in range(8):
             Product.objects.create(name=f"Regular {i}", category=self.category, unit="each")
-            for i in range(8)
-        ]
         response = self.client.get(reverse("home"))
-        collection = response.context["homepage_sale_section_products"]
-        self.assertEqual(len(collection), 7)
-        self.assertEqual(collection[0], sale)
-        self.assertEqual(len({product.pk for product in collection}), 7)
-        self.assertTrue(
-            {product.pk for product in collection[1:]}.issubset({product.pk for product in regular})
-        )
         self.assertEqual(response.context["homepage_sale_products"], [sale])
+        sale_html = response.content.decode().split('data-id="6acfb28"', 1)[1]
+        sale_html = sale_html.split('data-id="4f77f4f"', 1)[1]
+        for i in range(8):
+            self.assertNotIn(f"Regular {i}", sale_html)
 
     def test_category_search_and_old_bookmarks_use_current_home02(self):
         apple = Product.objects.create(

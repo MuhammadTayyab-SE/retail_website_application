@@ -34,7 +34,7 @@
                 <div class="elementor-element elementor-element-7bd0dfc elementor-widget elementor-widget-rtsb-products-grid" data-id="7bd0dfc" data-element_type="widget" data-e-type="widget" data-widget_type="rtsb-products-grid.default">
                 <div class="elementor-widget-container">
                     <div id="rtsb-container-3086881379" class="rtsb-elementor-container products rtsb-pos-r rtsb-products-container no-clear-btn rtsb-no-pagination badge-top badge-left no-cart-text img-hover-zoom_in gallery-hover-fade excerpt-below show-single-cat no-quick_checkout-icon" style="--rtsb-default-columns: 4; --rtsb-products-per-column: 3" data-layout="zilly-grid-layout5" data-tooltip-position="left"><div class="rtsb-row rtsb-content-loader element-loading rtsb-mobile-flex-row rtsb-zilly-grid-layout5 rtsb-even rtsb-pre-loader">
-{% for product in homepage_sale_section_products|slice:":1" %}{% include 'catalog/home02/dynamic/product.html' with variant='spotlight' %}{% empty %}<p class="homepage-empty">No matching products are available.</p>{% endfor %}<!-- .rtsb-product -->
+{% for product in homepage_sale_products|slice:":1" %}{% include 'catalog/home02/dynamic/product.html' with variant='spotlight' %}{% empty %}<p class="homepage-empty">There are no active sale products.</p>{% endfor %}<!-- .rtsb-product -->
 </div><!-- .rtsb-row --><div class="rtsb-elements-loading rtsb-ball-clip-rotate"><div></div></div></div><!-- .rtsb-elementor-container -->              </div>
                 </div>
                 </div>
@@ -42,7 +42,7 @@
                 <div class="elementor-element elementor-element-06d23e6 elementor-widget elementor-widget-rtsb-products-grid" data-id="06d23e6" data-element_type="widget" data-e-type="widget" data-widget_type="rtsb-products-grid.default">
                 <div class="elementor-widget-container">
                     <div id="rtsb-container-3708976172" class="rtsb-elementor-container products rtsb-pos-r rtsb-products-container no-clear-btn rtsb-no-pagination badge-top badge-left no-cart-text img-hover-zoom_in gallery-hover-fade excerpt-below show-single-cat no-quick-view-icon no-quick_checkout-icon" style="--rtsb-default-columns: 4; --rtsb-products-per-column: 3" data-layout="zilly-grid-layout5" data-tooltip-position="left"><div class="rtsb-row rtsb-content-loader element-loading rtsb-mobile-flex-row rtsb-zilly-grid-layout5 rtsb-even rtsb-pre-loader">
-{% for product in homepage_sale_section_products|slice:"1:" %}{% include 'catalog/home02/dynamic/product.html' with variant='sale' %}{% endfor %}<!-- .rtsb-product -->
+{% for product in homepage_sale_products|slice:"1:" %}{% include 'catalog/home02/dynamic/product.html' with variant='sale' %}{% endfor %}<!-- .rtsb-product -->
 </div><!-- .rtsb-row --><div class="rtsb-elements-loading rtsb-ball-clip-rotate"><div></div></div></div><!-- .rtsb-elementor-container -->              </div>
                 </div>
                 </div>
