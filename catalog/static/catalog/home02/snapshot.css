@@ -15,6 +15,19 @@
   display: none !important;
 }
 [data-snapshot-hidden] { display: none !important; }
+/* The archive's loader class hides fully server-rendered rows with opacity: 0. */
+.rtsb-elementor-container .rtsb-pre-loader {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.rtsb-elements-loading,
+.rtsb-spinner-overlay {
+  display: none !important;
+}
+.homepage-results { margin: 14px 0; font-size: 14px; color: #68716c; }
+.homepage-results a { color: #19815b; text-decoration: underline; margin-left: 12px; }
+.homepage-pagination { display: flex; justify-content: center; gap: 18px; padding: 22px 0; }
+.homepage-pagination a { color: #19815b; text-decoration: underline; }
 #snapshot-dialog {
   width: min(500px, calc(100% - 32px));
   max-height: calc(100vh - 48px);

@@ -4,9 +4,9 @@ from django.views.decorators.http import require_safe
 
 from catalog.views import (
     catalog_view,
+    catalogue_redirect,
     category_list,
     category_photo,
-    home,
     home02,
     product_list,
     product_photo,
@@ -26,7 +26,7 @@ def health(request):
 
 urlpatterns = [
     path("", home02, name="home"),
-    path("catalogue/", home, name="storefront-catalogue"),
+    path("catalogue/", catalogue_redirect, name="storefront-catalogue"),
     path("categories/photos/<int:pk>/", public_category_photo, name="public-category-photo"),
     path("health/", health, name="health"),
     path("admin/category-photo/<int:pk>/", category_photo, name="category-photo"),

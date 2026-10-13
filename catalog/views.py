@@ -2,7 +2,8 @@ from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, F, Q
 from django.http import FileResponse, Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_safe
 
 from catalog.models import Category, Product, ProductPhoto
@@ -14,7 +15,7 @@ def home02(request):
     """Keep the captured layout while supplying the live homepage collections."""
     categories = storefront_categories()
     category_ids = {entry["category"].pk for entry in categories}
-    products = (
+    catalog_products = (
         Product.objects.visible()
         .filter(category_id__in=category_ids)
         .select_related("category")
@@ -22,7 +23,7 @@ def home02(request):
     )
     counts = {
         row["category_id"]: row["total"]
-        for row in products.order_by()
+        for row in catalog_products.order_by()
         .values("category_id")
         .annotate(total=Count("pk", distinct=True))
     }
@@ -32,7 +33,29 @@ def home02(request):
         entry["product_count"] = count
         if category.parent_id:
             counts[category.parent_id] = counts.get(category.parent_id, 0) + count
-    featured = list(products[:12])
+    query = request.GET.get("q", "").strip()[:200]
+    selected = request.GET.get("category", "").strip()
+    selected_id = (
+        int(selected) if selected.isascii() and selected.isdigit() and len(selected) < 19 else None
+    )
+    selected_category = next(
+        (entry["category"] for entry in categories if entry["category"].pk == selected_id), None
+    )
+    products = catalog_products
+    if query:
+        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+    if selected:
+        if selected_category:
+            descendants = {selected_category.pk}
+            for entry in categories:
+                category = entry["category"]
+                if category.parent_id in descendants:
+                    descendants.add(category.pk)
+            products = products.filter(category_id__in=descendants)
+        else:
+            products = products.none()
+    page = Paginator(products, 24).get_page(request.GET.get("page"))
+    featured = list(page)
     featured_categories = {}
     for product in featured:
         entry = featured_categories.setdefault(
@@ -45,8 +68,23 @@ def home02(request):
         "featured_categories": list(featured_categories.values()),
         "trending_products": products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6],
         "homepage_sale_products": list(products.filter(is_on_sale=True)[:7]),
+        "page_obj": page,
+        "query": query,
+        "selected": selected,
+        "selected_category": selected_category,
+        "invalid_category": bool(selected and not selected_category),
     }
     return render(request, "catalog/home02/home.html", context)
+
+
+@require_safe
+def catalogue_redirect(request):
+    """Old saved catalogue links lead to the single current storefront."""
+    parameters = request.GET.urlencode()
+    target = reverse("home")
+    if parameters:
+        target += "?" + parameters
+    return redirect(target + "#rtsb-container-138192095")
 
 
 def storefront_categories():
@@ -65,54 +103,6 @@ def storefront_categories():
         visible.append({"category": category, "path": " / ".join(path)})
         stack.extend((child, path) for child in reversed(children.get(category.pk, [])))
     return visible
-
-
-@require_safe
-def home(request):
-    categories = storefront_categories()
-    category_ids = {entry["category"].pk for entry in categories}
-    query = request.GET.get("q", "").strip()[:200]
-    selected = request.GET.get("category", "").strip()
-    selected_id = (
-        int(selected) if selected.isascii() and selected.isdigit() and len(selected) < 19 else None
-    )
-    selected_category = next(
-        (entry["category"] for entry in categories if entry["category"].pk == selected_id), None
-    )
-    products = (
-        Product.objects.visible()
-        .filter(category_id__in=category_ids)
-        .select_related("category")
-        .prefetch_related("photos")
-    )
-    sale_products = products.filter(is_on_sale=True)[:8]
-    if query:
-        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
-    if selected:
-        if selected_category:
-            descendants = {selected_category.pk}
-            for entry in categories:
-                category = entry["category"]
-                if category.parent_id in descendants:
-                    descendants.add(category.pk)
-            products = products.filter(category_id__in=descendants)
-        else:
-            products = products.none()
-    page = Paginator(products, 24).get_page(request.GET.get("page"))
-    return render(
-        request,
-        "catalog/storefront/home.html",
-        {
-            "categories": categories,
-            "category_cards": categories[:12],
-            "page_obj": page,
-            "sale_products": sale_products if not query and not selected else [],
-            "query": query,
-            "selected_category": selected_category,
-            "selected": selected,
-            "invalid_category": bool(selected and not selected_category),
-        },
-    )
 
 
 @require_safe

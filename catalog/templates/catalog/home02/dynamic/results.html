@@ -1,0 +1,7 @@
+{% if selected or query %}
+<p class="homepage-results" role="status">
+  {% if invalid_category %}That category is unavailable.
+  {% else %}{{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}{% if selected_category %} in {{ selected_category.name }}{% endif %}{% if query %} for “{{ query }}”{% endif %}.{% endif %}
+  <a href="{% url 'home' %}#rtsb-container-138192095" data-live-catalogue>Show all products</a>
+</p>
+{% endif %}

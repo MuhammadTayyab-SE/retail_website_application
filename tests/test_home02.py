@@ -21,7 +21,7 @@ class Home02DatabaseTests(TestCase):
         }
         self.assertEqual(counts, {self.parent.pk: 1, self.category.pk: 1})
         self.assertEqual(response.context["featured_products"], [product])
-        self.assertContains(response, f"/catalogue/?category={self.category.pk}#products")
+        self.assertContains(response, f"/?category={self.category.pk}#rtsb-container-138192095")
         Category.objects.filter(pk=self.parent.pk).update(is_active=False)
         response = self.client.get(reverse("home"))
         self.assertEqual(response.context["homepage_categories"], [])
@@ -53,10 +53,37 @@ class Home02DatabaseTests(TestCase):
         ]
         Product.objects.filter(pk=products[0].pk).update(created_at=None)
         response = self.client.get(reverse("home"))
-        self.assertEqual(len(response.context["featured_products"]), 12)
+        self.assertEqual(len(response.context["featured_products"]), 15)
         self.assertEqual(
             [product.pk for product in response.context["trending_products"]],
             [product.pk for product in reversed(products[-6:])],
         )
         self.assertEqual(response.context["homepage_sale_products"], [])
         self.assertContains(response, "There are no active sale products.")
+
+    def test_category_search_and_old_bookmarks_use_current_home02(self):
+        apple = Product.objects.create(
+            name="Live apple", category=self.category, unit="each", sku="APPLE-1"
+        )
+        other = Category.objects.create(name="Other live category")
+        Product.objects.create(name="Live rice", category=other, unit="each")
+        response = self.client.get(reverse("home"), {"category": self.parent.pk, "q": "apple-1"})
+        self.assertEqual(response.context["featured_products"], [apple])
+        self.assertContains(response, "Soft <br>")
+        self.assertNotContains(response, "Good things")
+        self.assertNotContains(response, 'href="/catalogue/')
+        self.assertNotContains(response, "Live rice")
+        bookmark = self.client.get(reverse("storefront-catalogue"), {"category": self.category.pk})
+        self.assertRedirects(
+            bookmark,
+            f"/?category={self.category.pk}#rtsb-container-138192095",
+            fetch_redirect_response=False,
+        )
+
+    def test_invalid_or_hidden_category_has_empty_results(self):
+        Product.objects.create(name="Live apple", category=self.category, unit="each")
+        for value in ["invalid", "9" * 100, "999999"]:
+            response = self.client.get(reverse("home"), {"category": value})
+            self.assertTrue(response.context["invalid_category"])
+            self.assertEqual(response.context["featured_products"], [])
+            self.assertContains(response, "That category is unavailable.")

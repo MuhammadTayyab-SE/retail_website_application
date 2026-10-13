@@ -50,11 +50,11 @@ filtering/search, basket/wishlist dialogs, safe navigation and form interception
 `snapshot.css` makes animation-gated elements visible without the original plugin
 runtime and styles the preview dialog; it does not replace reference layout rules.
 
-The homepage is static reference content, including reference prices, ratings and
-policies. No database records are created/changed. Forms do not submit personal
+Unconnected banners and editorial areas retain static reference content.
+Categories and Featured/Trending/On Sale products use live database data. No database records are created/changed. Forms do not submit personal
 information. Deferred destinations explain their integration dependency. Existing
-admin and database catalog remain unchanged; `/catalogue/` retains the live
-catalogue and existing visibility/discount logic.
+admin and database models remain unchanged. Home 02 is the sole current
+storefront; old `/catalogue/` bookmarks forward their filters to `/`.
 
 ## Reimporting the supplied capture
 
@@ -93,9 +93,10 @@ The earlier static-only description applies to those remaining reference areas.
 and prefetched ordered photos. The category sidebar and all three header dropdowns
 render database categories; counts include visible products in descendant categories.
 All categories remain accessible in a scrolling panel. Search and category links
-use the live `/catalogue/` route, with native GET form actions as a fallback.
+use the current `/` homepage, with native GET form actions as a fallback.
 
-Featured displays the first 12 visible products in existing catalog order. Trending
+Featured displays visible products in existing catalog order, paginated at 24
+per page within Home 02. Trending
 displays the latest six visible products by creation date, with legacy unknown dates
 last. These are fallback selections because there are no featured/popularity flags;
 no new merchandising models or invented popularity metrics were added. Featured
@@ -122,3 +123,32 @@ unavailable. Do not treat historical test passes as validation of this change.
 Do not rerun the snapshot importer over these manually integrated partials: doing
 so would restore static content. The user's separate importer and AGENTS.md edits
 were preserved and are not part of this implementation commit.
+
+
+## Category visibility and single-page browsing fix (2026-10-13)
+
+The captured `.rtsb-pre-loader` rule set opacity to zero while awaiting a WordPress
+plugin callback. This hid fully rendered Django categories and product cards while
+leaving their links clickable. The local adapter now overrides that loader state
+and hides stale spinner overlays; versioned CSS/JS URLs prevent stale cached assets.
+
+Sidebar/category-card links, header search forms and Featured tabs all use the
+current Home 02 route (`/`). The server applies validated category IDs, descendants,
+name/SKU search and pagination, then renders that same Home 02 template. Trending
+and On Sale also respect the selected category/search. Search input and selected
+category remain visible; empty/invalid categories show explicit messages with a
+Show all products link. There is no navigation into the previous design.
+
+The old `/catalogue/` route is now a compatibility redirect to `/`, preserving
+query parameters and the product-section anchor. Its old rendering view was removed.
+No database products, prices, inventory or permissions were modified.
+
+Developer checks: current homepage, empty category, invalid category, populated
+category, product-name search and old bookmark forwarding all returned the current
+Home 02 UI. The unfiltered page rendered 14 live card instances from existing data;
+a populated category rendered 4 and a matching name search rendered 2 (the same
+product may appear in multiple sections). No response linked to `/catalogue/` or
+contained the previous hero. Django system, Python lint/format, JavaScript syntax
+and staged whitespace checks pass. Regression coverage was updated and extended
+but remains unrun under the user's QA hold. Browser runtime still has no connected
+browser, so rendered visual comparison is not claimed. No QA process was started.

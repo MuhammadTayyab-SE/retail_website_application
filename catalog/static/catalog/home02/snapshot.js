@@ -76,7 +76,7 @@
     status(shown ? `${shown} matching products` : 'No matching preview products. Select All to reset.');
   }
 
-  document.querySelectorAll('.rtsb-filter-button-item').forEach(button => {
+  document.querySelectorAll('.rtsb-filter-button-item:not(a)').forEach(button => {
     button.setAttribute('role', 'button');
     button.tabIndex = 0;
     button.addEventListener('keydown', event => {
@@ -138,6 +138,7 @@
     }
     const filter = event.target.closest('.rtsb-filter-button-item');
     if (filter) {
+      if (filter.hasAttribute('data-live-catalogue')) return;
       event.preventDefault();
       const group = filter.closest('.rtsb-filter-item-wrap');
       group.querySelectorAll('.selected').forEach(item => item.classList.remove('selected'));

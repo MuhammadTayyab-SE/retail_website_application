@@ -3,14 +3,14 @@
   <div class="category-wrapper rtsb-category-item">
     <div class="rtsb-product-img">
       <figure>
-        <a href="{% url 'storefront-catalogue' %}?category={{ entry.category.pk }}#products" class="rtsb-img-link" data-live-catalogue>
+        <a href="{% url 'home' %}?category={{ entry.category.pk }}#rtsb-container-138192095" class="rtsb-img-link" data-live-catalogue>
           {% if entry.category.photo %}
           <img src="{% url 'public-category-photo' entry.category.pk %}" alt="" width="22" height="22" class="homepage-category-photo">
           {% else %}<span class="homepage-category-initial" aria-hidden="true">{{ entry.category.name|first }}</span>{% endif %}
         </a>
       </figure>
       <h2 class="category-title rtsb-text-limit limit-default">
-        <a href="{% url 'storefront-catalogue' %}?category={{ entry.category.pk }}#products" data-live-catalogue>{{ entry.category.name }}</a>
+        <a href="{% url 'home' %}?category={{ entry.category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ entry.category.name }}</a>
       </h2>
     </div>
     <div class="product-count">({{ entry.product_count }})</div>
