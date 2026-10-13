@@ -1,0 +1,35 @@
+<div class="rtsb-archive-filters has-mobile-toggle">
+  <div class="rtsb-filter-mobile-toggle"><button type="button" class="product-filter-toggle" aria-expanded="false" aria-controls="shop-filters"><i class="rtsb-icon rtsb-icon-filter" aria-hidden="true"></i> Click to Filter</button></div>
+  <form id="shop-filters" class="rtsb-archive-filters-wrapper vertical-layout no-collapse count-align-right shop-filter-form" method="get" action="{% url 'shop' %}" data-shop-filters>
+    <input type="hidden" name="view" value="{% if list_view %}list{% else %}grid{% endif %}">
+    <section class="rtsb-product-filters">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Search Products</h3></div>
+      <label class="screen-reader-text" for="shop-query">Product name or SKU</label>
+      <input id="shop-query" type="search" name="q" value="{{ query }}" placeholder="Search products..." maxlength="200">
+    </section>
+    <section class="rtsb-product-filters rtsb-categories">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Categories</h3></div>
+      <div class="shop-filter-options">{% for entry in homepage_categories %}
+        <label><input type="checkbox" name="category" value="{{ entry.category.pk }}" {% if entry.category.pk|stringformat:'s' in selected_categories %}checked{% endif %}><span>{{ entry.category.name }}</span><small>({{ entry.product_count }})</small></label>
+      {% empty %}<p>No categories available.</p>{% endfor %}</div>
+    </section>
+    <section class="rtsb-product-filters">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Price</h3></div>
+      <p class="shop-filter-help">Current price in PKR, including discounts</p>
+      <div class="shop-price-fields"><label>Min<input type="number" name="min_price" min="0" step="0.01" placeholder="0" value="{{ filter_form.min_price.value|default_if_none:'' }}"></label><span>—</span><label>Max<input type="number" name="max_price" min="0" step="0.01" placeholder="Any" value="{{ filter_form.max_price.value|default_if_none:'' }}"></label></div>
+    </section>
+    <section class="rtsb-product-filters">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Selling Unit</h3></div>
+      <div class="shop-filter-options">{% for value,label in unit_choices %}<label><input type="checkbox" name="unit" value="{{ value }}" {% if value in selected_units %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+    </section>
+    <section class="rtsb-product-filters">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Sale</h3></div>
+      <div class="shop-filter-options">{% for value,label in filter_form.fields.sale.choices %}<label><input type="radio" name="sale" value="{{ value }}" {% if filter_form.sale.value|default:'' == value %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+    </section>
+    <section class="rtsb-product-filters">
+      <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Availability</h3></div>
+      <div class="shop-filter-options">{% for value,label in filter_form.fields.stock.choices %}<label><input type="radio" name="stock" value="{{ value }}" {% if filter_form.stock.value|default:'' == value %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div>
+    </section>
+    <div class="shop-filter-actions"><button class="shop-apply" type="submit">Apply Filters</button><a href="{% url 'shop' %}" data-live-shop>Clear all</a></div>
+  </form>
+</div>

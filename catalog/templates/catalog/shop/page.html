@@ -1,0 +1,24 @@
+{% load static %}
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop — Zilly</title>
+  {% include 'catalog/shop/styles.html' %}
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'catalog/shop/shop.css' %}">
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=3"></script>
+  <script defer src="{% static 'catalog/shop/shop.js' %}"></script>
+</head>
+{% include 'catalog/shop/header.html' %}
+{% include 'catalog/shop/content.html' %}
+{% include 'catalog/shop/footer.html' %}
+<dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title">
+  <button class="snapshot-dialog-close" aria-label="Close">&times;</button>
+  <h2 id="snapshot-dialog-title"></h2><p id="snapshot-dialog-message"></p>
+  <p class="snapshot-preview-note">Basket and wishlist preview. Checkout will be connected later.</p>
+</dialog>
+<div id="snapshot-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<li class="shop-product product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}">
+  <div class="rt-product-block rt-product-grid">
+    <div class="rt-thumb-wrapper">
+      <div class="rt-cat-meta-wrap"><div class="product-cat"><a href="{% url 'shop' %}?category={{ product.homepage_category.pk }}" data-live-shop>{{ product.homepage_category.name }}</a></div><div class="rt-shop-meta rtsb-action-buttons"><a class="rtsb-wishlist-btn" href="#" aria-label="Save {{ product.name }}"><span class="icon"><i class="icon-zilly-wishlist" aria-hidden="true"></i></span></a><a class="rtsb-quick-view-btn" href="#" aria-label="View {{ product.name }}" data-product-detail><i class="icon-zilly-search" aria-hidden="true"></i></a></div></div>
+      <div class="rt-thumb"><a href="#product-{{ product.pk }}" data-product-detail>{% with photo=product.photos.all.0 %}{% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" class="rtsb-product-image" width="400" height="332" loading="lazy">{% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}{% endwith %}</a></div>
+    </div>
+    <div class="rt-content-area">
+      <div class="rt-price-area product-price"><div class="rt-price">{% include 'catalog/home02/dynamic/price.html' %}</div>{% if product.is_on_sale %}<span class="onsale rt-prodcut-badge-1">-{{ product.discount_percentage }}%</span>{% endif %}</div>
+      <div class="rt-title-area"><h3 class="rt-title product-title"><a href="#product-{{ product.pk }}" data-product-detail>{{ product.name }}</a></h3></div>
+      <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
+    </div>
+    <div class="rt-buttons-area"><div class="rt-buttons"><div class="btn-icons">{% if product.quantity %}<a href="#" class="action-cart add_to_cart_button" aria-label="Add {{ product.name }} to preview basket"><i class="icon-zilly-cart" aria-hidden="true"></i><span>Add to Cart</span></a>{% else %}<span class="shop-out-of-stock" aria-disabled="true">Out of stock</span>{% endif %}</div></div></div>
+  </div>
+</li>

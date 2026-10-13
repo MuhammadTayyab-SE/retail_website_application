@@ -4,7 +4,7 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import connection, models, transaction
-from django.db.models.functions import Lower, Trim
+from django.db.models.functions import Cast, Lower, Round, Trim
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
@@ -150,7 +150,34 @@ def product_photo_path(instance, filename):
     return f"products/{uuid4().hex}.{extension}"
 
 
+def discount_multiplier(percentage):
+    """Shared arithmetic for Python prices and PostgreSQL price expressions."""
+    return (Decimal(100) - percentage) / Decimal(100)
+
+
 class ProductQuerySet(models.QuerySet):
+    def with_selling_price(self):
+        price_field = models.DecimalField(max_digits=12, decimal_places=2)
+        return self.annotate(
+            selling_price=models.Case(
+                models.When(
+                    is_on_sale=True,
+                    discount_percentage__isnull=False,
+                    then=Round(
+                        models.F("price")
+                        # Numeric division preserves fractional discount multipliers in PostgreSQL.
+                        * discount_multiplier(
+                            Cast("discount_percentage", output_field=price_field)
+                        ),
+                        precision=2,
+                        output_field=price_field,
+                    ),
+                ),
+                default=models.F("price"),
+                output_field=price_field,
+            )
+        )
+
     def visible(self):
         # Evaluate the category hierarchy without a fixed depth limit.
         parents = dict(Category.objects.values_list("pk", "parent_id"))
@@ -238,7 +265,7 @@ class Product(AttributedModel):
     def sale_price(self):
         if not self.is_on_sale or self.discount_percentage is None:
             return self.price
-        multiplier = Decimal(100 - self.discount_percentage) / Decimal(100)
+        multiplier = discount_multiplier(self.discount_percentage)
         return (self.price * multiplier).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     @property

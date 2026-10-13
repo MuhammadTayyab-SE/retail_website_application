@@ -96,6 +96,7 @@
   });
 
   document.addEventListener('submit', event => {
+    if (event.target.hasAttribute('data-shop-filters')) return;
     event.preventDefault();
     const search = event.target.querySelector('input[name="s"], input[name="q"]');
     if (search) {
@@ -149,10 +150,10 @@
     }
     const control = event.target.closest('a, button');
     if (!control || control.closest('#snapshot-dialog')) return;
-    if (control.hasAttribute('data-live-catalogue')) return;
+    if (control.hasAttribute('data-live-catalogue') || control.hasAttribute('data-live-shop')) return;
     const href = control.getAttribute('href') || '';
     const classes = control.className || '';
-    const product = control.closest('.rtsb-product');
+    const product = control.closest('.rtsb-product, .shop-product');
     const productTitle = product?.querySelector('.product-title')?.textContent.trim() || 'Product';
     const id = product?.dataset.id || productTitle;
 
@@ -218,7 +219,7 @@
       if (/home-02\/index.html$/.test(href) || href === '../index.html') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (/\/shop\//.test(href)) {
-        document.querySelector('[data-layout="zilly-slider-layout1"]')?.scrollIntoView({ behavior: 'smooth' });
+        window.location.href = '/shop/';
       } else {
         showDialog(control.textContent.trim() || 'Store page', 'This destination will be connected when the static storefront becomes dynamic.');
       }
