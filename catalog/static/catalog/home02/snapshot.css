@@ -106,3 +106,17 @@
 @media (prefers-reduced-motion: reduce) {
   .rt-marquee, .rt-marquee-item { animation: none !important; }
 }
+@media (min-width: 1025px) {
+  .elementor-178 .elementor-element.elementor-element-9f402fa {
+    height: var(--best-selling-height, auto);
+    flex-grow: 0;
+  }
+  .elementor-element-9f402fa > .elementor-widget-container,
+  #rtsb-container-882578271,
+  #rtsb-container-882578271 > .rtsb-row {
+    height: 100%;
+  }
+  #rtsb-container-882578271 > .rtsb-row {
+    grid-auto-rows: minmax(0, 1fr);
+  }
+}

@@ -42,6 +42,27 @@
     element.classList.remove('elementor-invisible');
   });
   document.body.classList.replace('woocommerce-no-js', 'woocommerce-js');
+  const bestSelling = document.querySelector('.elementor-element-9f402fa');
+  const bestSellingHeading = document.querySelector('.elementor-element-7fe13bc');
+  const trending = document.querySelector('.elementor-element-2744989');
+  const trendingHeading = document.querySelector('.elementor-element-0756d00');
+  if (bestSelling && bestSellingHeading && trending && trendingHeading) {
+    const desktop = window.matchMedia('(min-width: 1025px)');
+    function matchProductSectionHeights() {
+      if (!desktop.matches) {
+        bestSelling.style.removeProperty('--best-selling-height');
+        return;
+      }
+      const height = trending.getBoundingClientRect().bottom
+        - trendingHeading.getBoundingClientRect().top
+        - bestSellingHeading.getBoundingClientRect().height;
+      bestSelling.style.setProperty('--best-selling-height', `${Math.max(0, height)}px`);
+    }
+    const sectionObserver = new ResizeObserver(matchProductSectionHeights);
+    [trending, trendingHeading, bestSellingHeading].forEach(element => sectionObserver.observe(element));
+    desktop.addEventListener('change', matchProductSectionHeights);
+    matchProductSectionHeights();
+  }
   document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
     counter.textContent = '0';
   });
