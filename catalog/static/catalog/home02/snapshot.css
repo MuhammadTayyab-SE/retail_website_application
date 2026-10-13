@@ -72,7 +72,29 @@
 .snapshot-product-image { width: 180px; height: 180px; object-fit: contain; }
 .homepage-category-photo { width: 22px; height: 22px; object-fit: cover; border-radius: 50%; }
 .homepage-category-initial { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 1px solid #d8d8d8; border-radius: 50%; color: #6a7280; font-size: 12px; }
-#rtsb-container-1727078840 .rtsb-row { max-height: 420px; overflow-y: auto; }
+#rtsb-container-1727078840 .rtsb-row { max-height: none; overflow: visible; }
+@media (min-width: 1025px) {
+  .elementor-178 .elementor-element.elementor-element-878cc90 {
+    --homepage-hero-height: 522px;
+  }
+  .elementor-178 .elementor-element.elementor-element-a5dccb9 {
+    height: var(--homepage-hero-height);
+    min-height: 0;
+  }
+  .elementor-178 .elementor-element.elementor-element-b2478bc {
+    flex: 1;
+    min-height: 0;
+  }
+  .elementor-178 .elementor-element.elementor-element-b2478bc > .elementor-widget-container {
+    height: 100%;
+    overflow: hidden;
+  }
+  .elementor-178 .elementor-element.elementor-element-f5a5b05 .rt-hero-banner .image-scale img {
+    height: var(--homepage-hero-height);
+    min-height: var(--homepage-hero-height);
+    object-fit: cover;
+  }
+}
 .homepage-photo-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; color: #91969b; background: #fafafa; gap: 8px; }
 .homepage-photo-placeholder i { font-size: 38px; }
 .homepage-photo-placeholder span { font-size: 12px; }
