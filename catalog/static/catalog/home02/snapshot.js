@@ -42,6 +42,15 @@
     element.classList.remove('elementor-invisible');
   });
   document.body.classList.replace('woocommerce-no-js', 'woocommerce-js');
+  document.querySelectorAll(
+    '#rtsb-container-973080080 .product-title a, '
+    + '#rtsb-container-973080080 .rtsb-single-cat a, '
+    + '#rtsb-container-973080080 .price-wrapper, '
+    + '#rtsb-container-973080080 .homepage-stock, '
+    + '#rtsb-container-882578271 .product-title a'
+  ).forEach(element => {
+    element.title = element.textContent.replace(/\s+/g, ' ').trim();
+  });
   const bestSelling = document.querySelector('.elementor-element-9f402fa');
   const bestSellingHeading = document.querySelector('.elementor-element-7fe13bc');
   const trending = document.querySelector('.elementor-element-2744989');
