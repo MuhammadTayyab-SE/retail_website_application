@@ -69,8 +69,15 @@ def home02(request):
     featured = list(page)
     trending = list(products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6])
     sale_products = list(products.filter(is_on_sale=True)[:7])
+    weekly_deal_products = list(products.filter(is_on_sale=True)[:8])
     top_rated_products = list(products.order_by("?")[:5])
-    for product in [*featured, *trending, *sale_products, *top_rated_products]:
+    for product in [
+        *featured,
+        *trending,
+        *sale_products,
+        *weekly_deal_products,
+        *top_rated_products,
+    ]:
         product.homepage_category = root_categories[product.category_id]
     featured_categories = {}
     for product in featured:
@@ -85,6 +92,7 @@ def home02(request):
         "featured_categories": list(featured_categories.values()),
         "trending_products": trending,
         "homepage_sale_products": sale_products,
+        "weekly_deal_products": weekly_deal_products,
         "homepage_top_rated_products": top_rated_products,
         "page_obj": page,
         "query": query,
