@@ -147,10 +147,37 @@
     }
   }, true);
 
+  function closeCategoryMenus(except = null) {
+    document.querySelectorAll('.category-search-dropdown-js .dropdown').forEach(dropdown => {
+      if (dropdown === except) return;
+      dropdown.querySelector('.rt-drop-menu')?.classList.remove('show');
+      dropdown.querySelector('.cat-toggle')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+  document.addEventListener('keydown', event => {
+    const dropdown = event.target.closest('.category-search-dropdown-js .dropdown');
+    if (!dropdown) return;
+    if (event.key === 'Escape') {
+      closeCategoryMenus();
+      dropdown.querySelector('.cat-toggle').focus();
+    } else if (event.key === 'ArrowDown' && event.target.closest('.cat-toggle')) {
+      event.preventDefault();
+      if (event.target.closest('.cat-toggle').getAttribute('aria-expanded') !== 'true') {
+        event.target.closest('.cat-toggle').click();
+      }
+      dropdown.querySelector('[role="option"]')?.focus();
+    } else if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[role="option"]')) {
+      event.preventDefault();
+      event.target.click();
+    }
+  });
   document.addEventListener('click', event => {
+    if (!event.target.closest('.category-search-dropdown-js .dropdown')) closeCategoryMenus();
     const categoryToggle = event.target.closest('.cat-toggle');
     if (categoryToggle) {
-      const menu = categoryToggle.closest('.dropdown').querySelector('.rt-drop-menu');
+      const dropdown = categoryToggle.closest('.dropdown');
+      closeCategoryMenus(dropdown);
+      const menu = dropdown.querySelector('.rt-drop-menu');
       const open = menu.classList.toggle('show');
       categoryToggle.setAttribute('aria-expanded', String(open));
       return;
@@ -159,9 +186,12 @@
     if (categoryOption) {
       const dropdown = categoryOption.closest('.dropdown');
       dropdown.querySelector('[name="category"], [name="product_cat"]').value = categoryOption.dataset.slug;
-      dropdown.querySelector('.cat-label').textContent = categoryOption.textContent;
+      const label = categoryOption.textContent.trim();
+      dropdown.querySelector('.cat-label').textContent = label;
+      dropdown.querySelector('.cat-label').title = label;
       dropdown.querySelector('.rt-drop-menu').classList.remove('show');
       dropdown.querySelector('.cat-toggle').setAttribute('aria-expanded', 'false');
+      dropdown.querySelector('.cat-toggle').focus();
       return;
     }
     if (event.target.closest('.snapshot-dialog-close')) { dialog.close(); return; }
