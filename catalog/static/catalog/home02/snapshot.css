@@ -479,10 +479,11 @@
   min-width: 0;
 }
 #rtsb-container-973080080 .rtsb-item-default.rtsb-grid-item {
+  position: relative;
   display: grid;
   grid-template-columns: 100px minmax(0, 1fr);
   gap: 16px;
-  padding: 20px !important;
+  padding: 20px 52px 20px 20px !important;
   height: 100%;
   box-sizing: border-box;
 }
@@ -498,7 +499,8 @@
 }
 #rtsb-container-973080080 .rtsb-product-content {
   display: grid;
-  grid-template-rows: 18px 24px 42px 18px 40px;
+  grid-template-rows: 18px 24px 42px 18px;
+  align-content: center;
   gap: 6px;
   min-width: 0;
 }
@@ -529,6 +531,56 @@
 #rtsb-container-973080080 .rtsb-action-btn {
   white-space: nowrap;
 }
+#rtsb-container-973080080 .homepage-trending-actions {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  opacity: 0;
+  visibility: visible;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+  z-index: 2;
+}
+#rtsb-container-973080080 .rtsb-item-default:hover .homepage-trending-actions,
+#rtsb-container-973080080 .rtsb-item-default:focus-within .homepage-trending-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+#rtsb-container-973080080 .homepage-trending-actions ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#rtsb-container-973080080 .homepage-trending-actions li {
+  margin: 0;
+  opacity: 1;
+  transform: none;
+}
+#rtsb-container-973080080 .homepage-trending-actions .rtsb-action-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #e0e5e2;
+  border-radius: 50%;
+  background: white;
+  color: #19815b;
+}
+#rtsb-container-973080080 .homepage-trending-actions a:hover,
+#rtsb-container-973080080 .homepage-trending-actions a:focus-visible {
+  background: #19815b;
+  color: white;
+  outline: 2px solid #19815b;
+  outline-offset: 2px;
+}
+@media (hover: none) {
+  #rtsb-container-973080080 .homepage-trending-actions { opacity: 1; pointer-events: auto; }
+}
 @media (min-width: 1025px) and (max-width: 1199px) {
   .elementor-178 .elementor-element.elementor-element-2744989 #rtsb-container-973080080 > .rtsb-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -540,7 +592,7 @@
   #rtsb-container-973080080 .rtsb-item-default.rtsb-grid-item {
     grid-template-columns: 80px minmax(0, 1fr);
     gap: 12px;
-    padding: 16px !important;
+    padding: 16px 48px 16px 16px !important;
   }
   #rtsb-container-973080080 .rtsb-product-img,
   #rtsb-container-973080080 .rtsb-product-image {

@@ -6,6 +6,7 @@
   const message = document.querySelector('#snapshot-dialog-message');
   const basket = new Map();
   const favourites = new Map();
+  const comparisons = new Map();
   let statusTimer;
 
   function showDialog(heading, description) {
@@ -238,6 +239,12 @@
       control.setAttribute('aria-pressed', String(favourites.has(id)));
       document.querySelectorAll('.rtsb-wishlist-counter').forEach(counter => { counter.textContent = favourites.size; });
       status(favourites.has(id) ? 'Added to wishlist' : 'Removed from wishlist');
+      return;
+    }
+    if (product && control.classList.contains('rtsb-compare-btn')) {
+      event.preventDefault();
+      comparisons.set(id, `${productTitle}\n${product.querySelector('.product-price')?.textContent.trim() || ''}`);
+      showDialog('Compare products', [...comparisons.values()].join('\n\n'));
       return;
     }
     if (/cart-icon|cart-float/.test(classes) || /\/cart\//.test(href)) {

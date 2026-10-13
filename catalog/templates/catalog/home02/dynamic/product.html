@@ -21,18 +21,19 @@
       </figure>
       {% if product.is_on_sale %}<span class="homepage-sale-badge">{{ product.discount_percentage }}% off</span>{% endif %}
     </div>
+    {% if variant == 'trending' %}{% include 'catalog/home02/dynamic/trending-actions.html' %}{% endif %}
     <div class="rtsb-product-content">
       {% if variant == 'trending' %}<div class="rtsb-single-cat"><a href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ product.homepage_category.name }}</a></div>{% endif %}
       <div class="product-price rtsb-item-space-between"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div></div>
       <div class="rtsb-product-title-wrapper"><h3 class="product-title rtsb-text-limit limit-2-line"><a href="#product-{{ product.pk }}" class="woocommerce-LoopProduct-link" data-product-detail title="{{ product.name }}">{{ product.name }}</a></h3></div>
       <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
-      <ul class="rtsb-shop-meta rtsb-action-button-list">
+      {% if variant != 'trending' %}<ul class="rtsb-shop-meta rtsb-action-button-list">
         <li class="rtsb-cart">
           {% if product.quantity %}
           <a href="#" class="rtsb-action-btn simple-product icon-left has-text rtsb-add-to-cart-btn" aria-label="Add {{ product.name }} to preview basket"><span class="icon"><i class="icon-zilly-cart"></i></span><span class="button-text">Add to Cart</span></a>
           {% else %}<span class="rtsb-action-btn homepage-unavailable" aria-disabled="true">Out of stock</span>{% endif %}
         </li>
-      </ul>
+      </ul>{% endif %}
     </div>
   </div>
 </div>

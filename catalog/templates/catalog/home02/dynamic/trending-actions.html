@@ -1,0 +1,8 @@
+<div class="rtsb-action-buttons rtsb-action-buttons-vertical preset5 above homepage-trending-actions">
+  <ul class="rtsb-action-button-list">
+    <li class="rtsb-action-button-item rtsb-wishlist"><a href="#" class="rtsb-wishlist-btn rtsb-action-btn" title="Add to Wishlist" aria-label="Save {{ product.name }}"><span class="icon"><i class="icon-zilly-wishlist" aria-hidden="true"></i></span></a></li>
+    <li class="rtsb-action-button-item rtsb-cart">{% if product.quantity %}<a href="#" class="rtsb-add-to-cart-btn rtsb-action-btn no-text" title="Add to Cart" aria-label="Add {{ product.name }} to preview basket"><span class="icon"><i class="icon-zilly-cart" aria-hidden="true"></i></span></a>{% else %}<span class="rtsb-action-btn homepage-unavailable" title="Out of stock" aria-label="{{ product.name }} is out of stock" aria-disabled="true"><span class="icon"><i class="icon-zilly-cart" aria-hidden="true"></i></span></span>{% endif %}</li>
+    <li class="rtsb-action-button-item rtsb-compare"><a href="#" class="rtsb-compare-btn rtsb-action-btn" title="Compare" aria-label="Compare {{ product.name }}"><span class="icon"><i class="icon-zilly-compare" aria-hidden="true"></i></span></a></li>
+    <li class="rtsb-action-button-item rtsb-quick-view"><a href="#product-{{ product.pk }}" class="rtsb-quick-view-btn rtsb-action-btn" data-product-detail title="Quick View" aria-label="View {{ product.name }}"><span class="icon"><i class="icon-zilly-search" aria-hidden="true"></i></span></a></li>
+  </ul>
+</div>
