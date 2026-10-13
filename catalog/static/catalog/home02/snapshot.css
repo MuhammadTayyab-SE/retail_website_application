@@ -110,6 +110,7 @@
   .elementor-178 .elementor-element.elementor-element-9f402fa {
     height: var(--best-selling-height, auto);
     flex-grow: 0;
+    flex-shrink: 0;
   }
   .elementor-element-9f402fa > .elementor-widget-container,
   #rtsb-container-882578271,
@@ -118,5 +119,22 @@
   }
   #rtsb-container-882578271 > .rtsb-row {
     grid-auto-rows: minmax(0, 1fr);
+  }
+  #rtsb-container-973080080 > .rtsb-row {
+    height: 480px;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    row-gap: 16px;
+  }
+  .elementor-178 .elementor-element.elementor-element-2744989 .rtsb-product {
+    min-height: 0;
+    margin-bottom: 0;
+  }
+  #rtsb-container-973080080 .rtsb-item-default {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  #rtsb-container-973080080 .homepage-photo-placeholder {
+    min-height: 100px;
   }
 }

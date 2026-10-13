@@ -54,13 +54,17 @@
         return;
       }
       const height = trending.getBoundingClientRect().bottom
-        - trendingHeading.getBoundingClientRect().top
+        - bestSellingHeading.getBoundingClientRect().top
         - bestSellingHeading.getBoundingClientRect().height;
       bestSelling.style.setProperty('--best-selling-height', `${Math.max(0, height)}px`);
     }
     const sectionObserver = new ResizeObserver(matchProductSectionHeights);
-    [trending, trendingHeading, bestSellingHeading].forEach(element => sectionObserver.observe(element));
+    [trending, trendingHeading, bestSellingHeading,
+      document.querySelector('.elementor-element-bf7cf88'),
+      document.querySelector('.elementor-element-dd67aff')
+    ].filter(Boolean).forEach(element => sectionObserver.observe(element));
     desktop.addEventListener('change', matchProductSectionHeights);
+    window.addEventListener('resize', matchProductSectionHeights);
     matchProductSectionHeights();
   }
   document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {

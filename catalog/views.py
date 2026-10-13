@@ -16,6 +16,10 @@ def home02(request):
     categories = storefront_categories()
     category_ids = {entry["category"].pk for entry in categories}
     top_categories = [entry for entry in categories if entry["category"].parent_id is None]
+    parent_category_ids = set(Category.objects.parents().values_list("pk", flat=True))
+    product_categories = [
+        entry for entry in categories if entry["category"].pk not in parent_category_ids
+    ]
     root_categories = {}
     for entry in categories:
         category = entry["category"]
@@ -75,6 +79,7 @@ def home02(request):
         entry["count"] += 1
     context = {
         "homepage_categories": top_categories,
+        "homepage_top_categories": product_categories,
         "featured_products": featured,
         "featured_categories": list(featured_categories.values()),
         "trending_products": trending,
