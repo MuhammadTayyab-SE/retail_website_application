@@ -1,5 +1,21 @@
 /* Captured styles own the design. Only runtime visibility and local dialogs
    are adapted here; layout, fonts, colors and dimensions remain captured. */
+.page-id-178 #page {
+  overflow: clip;
+}
+.page-id-178 #masthead {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  box-shadow: 0 2px 12px #0001;
+}
+.page-id-178 .rtsb-products-container {
+  scroll-margin-top: 180px;
+}
+@media (max-width: 1024px) {
+  .page-id-178 .rtsb-products-container { scroll-margin-top: 100px; }
+}
 .elementor-invisible,
 .hide.fadeInUp,
 .hide.fadeInDown,
