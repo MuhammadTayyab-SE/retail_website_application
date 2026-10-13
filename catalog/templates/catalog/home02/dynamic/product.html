@@ -1,0 +1,38 @@
+<div class="rtsb-col-grid {% if variant == 'featured' %}rtsb-col-full rtsb-slide-item swiper-slide{% else %}even-grid-item{% endif %} rtsb-product product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}"
+     data-id="live-{{ product.pk }}" data-category-id="{{ product.category_id }}">
+  <div class="rtsb-item-default rtsb-grid-item box-hover-shadow">
+    {% if variant != 'trending' %}
+    <div class="rtsb-cat-meta-wrap rtsb-action-buttons">
+      <div class="rtsb-single-cat"><a href="{% url 'storefront-catalogue' %}?category={{ product.category_id }}#products" data-live-catalogue>{{ product.category.name }}</a></div>
+      <ul class="rtsb-shop-meta rtsb-action-button-list">
+        <li class="rtsb-wishlist"><a href="#" class="rtsb-wishlist-btn rtsb-action-btn" aria-label="Save {{ product.name }}"><span class="icon"><i class="icon-zilly-wishlist"></i></span></a></li>
+      </ul>
+    </div>
+    {% endif %}
+    <div class="rtsb-product-img">
+      <figure>
+        <a href="#product-{{ product.pk }}" class="woocommerce-LoopProduct-link rtsb-img-link" data-product-detail aria-label="View {{ product.name }}">
+          {% with photo=product.photos.all.0 %}
+          {% if photo %}
+          <img src="{% url 'public-product-photo' photo.pk %}" class="img-responsive rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="{% if variant == 'spotlight' %}498{% elif variant == 'trending' %}100{% else %}150{% endif %}" height="{% if variant == 'spotlight' %}498{% elif variant == 'trending' %}100{% else %}150{% endif %}" loading="lazy">
+          {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
+          {% endwith %}
+        </a>
+      </figure>
+      {% if product.is_on_sale %}<span class="homepage-sale-badge">{{ product.discount_percentage }}% off</span>{% endif %}
+    </div>
+    <div class="rtsb-product-content">
+      {% if variant == 'trending' %}<div class="rtsb-single-cat"><a href="{% url 'storefront-catalogue' %}?category={{ product.category_id }}#products" data-live-catalogue>{{ product.category.name }}</a></div>{% endif %}
+      <div class="product-price rtsb-item-space-between"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div></div>
+      <div class="rtsb-product-title-wrapper"><h3 class="product-title rtsb-text-limit limit-2-line"><a href="#product-{{ product.pk }}" class="woocommerce-LoopProduct-link" data-product-detail>{{ product.name }}</a></h3></div>
+      <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
+      <ul class="rtsb-shop-meta rtsb-action-button-list">
+        <li class="rtsb-cart">
+          {% if product.quantity %}
+          <a href="#" class="rtsb-action-btn simple-product icon-left has-text rtsb-add-to-cart-btn" aria-label="Add {{ product.name }} to preview basket"><span class="icon"><i class="icon-zilly-cart"></i></span><span class="button-text">Add to Cart</span></a>
+          {% else %}<span class="rtsb-action-btn homepage-unavailable" aria-disabled="true">Out of stock</span>{% endif %}
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>

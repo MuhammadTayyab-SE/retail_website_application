@@ -1,0 +1,6 @@
+<p class="price">
+  {% if product.is_on_sale %}
+  <del><span class="woocommerce-Price-amount amount">PKR {{ product.price|floatformat:2 }}</span></del>
+  <ins><span class="woocommerce-Price-amount amount">PKR {{ product.sale_price|floatformat:2 }}</span></ins>
+  {% else %}<span class="woocommerce-Price-amount amount">PKR {{ product.price|floatformat:2 }}</span>{% endif %}
+</p>

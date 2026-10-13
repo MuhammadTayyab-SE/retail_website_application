@@ -1,6 +1,6 @@
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, F, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
@@ -11,8 +11,42 @@ from config.admin import site
 
 @require_safe
 def home02(request):
-    """Render the user-provided Home 02 capture without WordPress services."""
-    return render(request, "catalog/home02/home.html")
+    """Keep the captured layout while supplying the live homepage collections."""
+    categories = storefront_categories()
+    category_ids = {entry["category"].pk for entry in categories}
+    products = (
+        Product.objects.visible()
+        .filter(category_id__in=category_ids)
+        .select_related("category")
+        .prefetch_related("photos")
+    )
+    counts = {
+        row["category_id"]: row["total"]
+        for row in products.order_by()
+        .values("category_id")
+        .annotate(total=Count("pk", distinct=True))
+    }
+    for entry in reversed(categories):
+        category = entry["category"]
+        count = counts.get(category.pk, 0)
+        entry["product_count"] = count
+        if category.parent_id:
+            counts[category.parent_id] = counts.get(category.parent_id, 0) + count
+    featured = list(products[:12])
+    featured_categories = {}
+    for product in featured:
+        entry = featured_categories.setdefault(
+            product.category_id, {"category": product.category, "count": 0}
+        )
+        entry["count"] += 1
+    context = {
+        "homepage_categories": categories,
+        "featured_products": featured,
+        "featured_categories": list(featured_categories.values()),
+        "trending_products": products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6],
+        "homepage_sale_products": list(products.filter(is_on_sale=True)[:7]),
+    }
+    return render(request, "catalog/home02/home.html", context)
 
 
 def storefront_categories():

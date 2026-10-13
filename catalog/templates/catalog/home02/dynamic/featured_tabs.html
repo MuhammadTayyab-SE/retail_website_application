@@ -1,0 +1,4 @@
+<div class="rtsb-tab-filters"><div class="rtsb-filter-item-wrap rtsb-tax-filter top-slider-nav type-button" data-taxonomy="product_cat">
+  <span class="rtsb-filter-button-item selected" data-term="all">All <span class="rtsb-count">({{ featured_products|length }})</span></span>
+  {% for entry in featured_categories %}<span class="rtsb-filter-button-item" data-term="{{ entry.category.pk }}">{{ entry.category.name }} <span class="rtsb-count">({{ entry.count }})</span></span>{% endfor %}
+</div></div>

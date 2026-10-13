@@ -64,7 +64,7 @@
     let shown = 0;
     widget.querySelectorAll('.rtsb-product').forEach(product => {
       const name = product.querySelector('.product-title')?.textContent.toLowerCase() || '';
-      const matches = (!category || product.classList.contains(`product_cat-${category}`))
+      const matches = (!category || product.dataset.categoryId === String(category))
         && name.includes(query.toLowerCase());
       product.toggleAttribute('data-snapshot-hidden', !matches);
       if (matches) shown++;
@@ -86,12 +86,26 @@
       }
     });
   });
+  document.querySelectorAll('.rt-drop-menu [role="option"]').forEach(option => {
+    option.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        option.click();
+      }
+    });
+  });
 
   document.addEventListener('submit', event => {
     event.preventDefault();
-    const search = event.target.querySelector('input[name="s"]');
+    const search = event.target.querySelector('input[name="s"], input[name="q"]');
     if (search) {
-      const category = event.target.querySelector('select[name="product_cat"]')?.value || '';
+      const category = event.target.querySelector('[name="category"], [name="product_cat"]')?.value || '';
+      if (event.target.dataset.liveCatalogue) {
+        const parameters = new URLSearchParams({ q: search.value.trim() });
+        if (category) parameters.set('category', category);
+        window.location.href = `${event.target.dataset.liveCatalogue}?${parameters}#products`;
+        return;
+      }
       filterProducts(category, search.value.trim());
     } else {
       showDialog('Store integration pending', 'This preview does not submit information. The form will be connected during dynamic integration.');
@@ -99,6 +113,22 @@
   }, true);
 
   document.addEventListener('click', event => {
+    const categoryToggle = event.target.closest('.cat-toggle');
+    if (categoryToggle) {
+      const menu = categoryToggle.closest('.dropdown').querySelector('.rt-drop-menu');
+      const open = menu.classList.toggle('show');
+      categoryToggle.setAttribute('aria-expanded', String(open));
+      return;
+    }
+    const categoryOption = event.target.closest('.rt-drop-menu [data-slug]');
+    if (categoryOption) {
+      const dropdown = categoryOption.closest('.dropdown');
+      dropdown.querySelector('[name="category"], [name="product_cat"]').value = categoryOption.dataset.slug;
+      dropdown.querySelector('.cat-label').textContent = categoryOption.textContent;
+      dropdown.querySelector('.rt-drop-menu').classList.remove('show');
+      dropdown.querySelector('.cat-toggle').setAttribute('aria-expanded', 'false');
+      return;
+    }
     if (event.target.closest('.snapshot-dialog-close')) { dialog.close(); return; }
     const mobileToggle = event.target.closest('.sidebarBtn');
     if (mobileToggle) {
@@ -113,11 +143,12 @@
       group.querySelectorAll('.selected').forEach(item => item.classList.remove('selected'));
       filter.classList.add('selected');
       const term = filter.dataset.term;
-      filterProducts(term === 'all' ? '' : term === '17' ? 'desserts' : 'beverage');
+      filterProducts(term === 'all' ? '' : term);
       return;
     }
     const control = event.target.closest('a, button');
     if (!control || control.closest('#snapshot-dialog')) return;
+    if (control.hasAttribute('data-live-catalogue')) return;
     const href = control.getAttribute('href') || '';
     const classes = control.className || '';
     const product = control.closest('.rtsb-product');
@@ -165,7 +196,7 @@
       filterProducts(href.split('/product-category/')[1].split('/')[0]);
       return;
     }
-    if (product && (href.includes('/product/') || /quick-view|quickview/.test(classes))) {
+    if (product && (control.hasAttribute('data-product-detail') || href.includes('/product/') || /quick-view|quickview/.test(classes))) {
       event.preventDefault();
       showDialog(productTitle, product.querySelector('.product-price')?.textContent.trim() || 'Product preview');
       const image = product.querySelector('.rtsb-product-image');

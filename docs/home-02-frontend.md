@@ -79,3 +79,46 @@ The browser runtime still lists no connected browsers. Rendered screenshot
 comparison and browser interaction verification cannot be claimed. Keeping the
 source DOM/styles directly removes the earlier approximation, but does not itself
 constitute a pixel comparison result. PR stays draft; no merge is authorized.
+
+
+## Live categories and product collections (2026-10-13)
+
+The user authorized connecting existing categories and the Featured, Trending and
+On Sale sections to the database. Other reference banners, best-selling/top-rated
+lists, sellers, deals and blog content remain static until separately connected.
+The earlier static-only description applies to those remaining reference areas.
+
+`catalog.views.home02` reuses `storefront_categories()` and
+`Product.objects.visible()`, with active ancestor protection, selected categories
+and prefetched ordered photos. The category sidebar and all three header dropdowns
+render database categories; counts include visible products in descendant categories.
+All categories remain accessible in a scrolling panel. Search and category links
+use the live `/catalogue/` route, with native GET form actions as a fallback.
+
+Featured displays the first 12 visible products in existing catalog order. Trending
+displays the latest six visible products by creation date, with legacy unknown dates
+last. These are fallback selections because there are no featured/popularity flags;
+no new merchandising models or invented popularity metrics were added. Featured
+category tabs/counts reflect its actual product collection. On Sale displays up to
+seven visible `is_on_sale=True` products, split across the existing reference columns.
+No demo products were inserted and no existing data or stock was changed.
+
+Reusable templates in `catalog/templates/catalog/home02/dynamic/` render the original
+style classes with real category names, ordered photos, PKR prices, existing
+`Product.sale_price`, discount percentages, units and stock availability. Zero-stock
+products remain visible with unavailable controls. Missing photos use a neutral
+placeholder. No invented review score is displayed on these dynamic cards.
+Basket/wishlist behavior remains the existing browser preview, not order placement.
+
+Developer checks: Django system check, affected Python lint/format and JavaScript
+syntax pass. A read-only local database inspection found 7 visible products and
+1 active sale product. The homepage returned200 with14 live product-card instances:
+7 featured,6 trending,1 on sale. Read-only serving checks use existing local data;
+no migrations, data writes or QA process occurred. Three meaningful database
+regression tests were added in `tests/test_home02.py`, but not executed because
+QA/test execution remains on the user's hold. Browser visual comparison remains
+unavailable. Do not treat historical test passes as validation of this change.
+
+Do not rerun the snapshot importer over these manually integrated partials: doing
+so would restore static content. The user's separate importer and AGENTS.md edits
+were preserved and are not part of this implementation commit.

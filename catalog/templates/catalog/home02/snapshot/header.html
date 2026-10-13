@@ -25,26 +25,24 @@
 
 
 <div class="search-box-wrap-2 flex-grow-1 product-search">
-    <form method="get" action="https://www.radiustheme.com/demo/wordpress/themes/zilly/">
+    <form method="get" action="{% url 'storefront-catalogue' %}" data-live-catalogue="{% url 'storefront-catalogue' %}">
         <div class="category-search-dropdown-js">
             <ul class="rt-action-list-2 d-flex align-items-center">
                 <li class="item rt-cat-drop cat-drop">
                     <div class="dropdown">
-                        <input type="hidden" name="product_cat" value="">
+                        <input type="hidden" name="category" value="">
                         <div class="cat-btn-wrap">
                             <button class="rt-btn cat-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="cat-label">All Categories</span>
                                 <span class="icon"><i class="down-arrow icon-zilly-down-arrow"></i></span>
                             </button>
-                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton1">
-                            <li data-slug="">All Categories</li>
-                            <li data-slug="beverage"><span>Beverage</span></li><li data-slug="desserts"><span>Desserts</span></li><li data-slug="drinks-juice"><span>Drinks &amp; Juice</span></li><li data-slug="fish-meats"><span>Fish &amp; Meats</span></li><li data-slug="fresh-fruits"><span>Fresh Fruits</span></li><li data-slug="pets-animals"><span>Pets &amp; Animals</span></li><li data-slug="toys"><span>Toys</span></li><li data-slug="vegetables"><span>Vegetables</span></li>                      </ul>
+                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton1">{% include 'catalog/home02/dynamic/category_options.html' %}</ul>
                         </div>
                     </div>
                 </li>
                 <li class="item rt-advanced-search-2 flex-grow-1">
                     <div class="rt-input-group">
-                        <input type="text" autocomplete="off" name="s" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
+                        <input type="text" autocomplete="off" name="q" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
                         <div class="input-group-append">
                             <input type="hidden" name="post_type" value="product">
                             <button class="search-btn">Search<i class="icon-zilly-search"></i></button>
@@ -134,26 +132,24 @@
 
 
 <div class="search-box-wrap-2 flex-grow-1 product-search">
-    <form method="get" action="https://www.radiustheme.com/demo/wordpress/themes/zilly/">
+    <form method="get" action="{% url 'storefront-catalogue' %}" data-live-catalogue="{% url 'storefront-catalogue' %}">
         <div class="category-search-dropdown-js">
             <ul class="rt-action-list-2 d-flex align-items-center">
                 <li class="item rt-cat-drop cat-drop">
                     <div class="dropdown">
-                        <input type="hidden" name="product_cat" value="">
+                        <input type="hidden" name="category" value="">
                         <div class="cat-btn-wrap">
                             <button class="rt-btn cat-toggle" type="button" id="dropdownMenuButton2" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="cat-label">All Categories</span>
                                 <span class="icon"><i class="down-arrow icon-zilly-down-arrow"></i></span>
                             </button>
-                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton2">
-                            <li data-slug="">All Categories</li>
-                            <li data-slug="beverage"><span>Beverage</span></li><li data-slug="desserts"><span>Desserts</span></li><li data-slug="drinks-juice"><span>Drinks &amp; Juice</span></li><li data-slug="fish-meats"><span>Fish &amp; Meats</span></li><li data-slug="fresh-fruits"><span>Fresh Fruits</span></li><li data-slug="pets-animals"><span>Pets &amp; Animals</span></li><li data-slug="toys"><span>Toys</span></li><li data-slug="vegetables"><span>Vegetables</span></li>                      </ul>
+                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton2">{% include 'catalog/home02/dynamic/category_options.html' %}</ul>
                         </div>
                     </div>
                 </li>
                 <li class="item rt-advanced-search-2 flex-grow-1">
                     <div class="rt-input-group">
-                        <input type="text" autocomplete="off" name="s" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
+                        <input type="text" autocomplete="off" name="q" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
                         <div class="input-group-append">
                             <input type="hidden" name="post_type" value="product">
                             <button class="search-btn">Search<i class="icon-zilly-search"></i></button>
@@ -490,26 +486,24 @@
 
 
 <div class="search-box-wrap-2 flex-grow-1 product-search">
-    <form method="get" action="https://www.radiustheme.com/demo/wordpress/themes/zilly/">
+    <form method="get" action="{% url 'storefront-catalogue' %}" data-live-catalogue="{% url 'storefront-catalogue' %}">
         <div class="category-search-dropdown-js">
             <ul class="rt-action-list-2 d-flex align-items-center">
                 <li class="item rt-cat-drop cat-drop">
                     <div class="dropdown">
-                        <input type="hidden" name="product_cat" value="">
+                        <input type="hidden" name="category" value="">
                         <div class="cat-btn-wrap">
                             <button class="rt-btn cat-toggle" type="button" id="dropdownMenuButton3" data-bs-toggle="dropdown" aria-expanded="false">
                                 <span class="cat-label">All Categories</span>
                                 <span class="icon"><i class="down-arrow icon-zilly-down-arrow"></i></span>
                             </button>
-                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton3">
-                            <li data-slug="">All Categories</li>
-                            <li data-slug="beverage"><span>Beverage</span></li><li data-slug="desserts"><span>Desserts</span></li><li data-slug="drinks-juice"><span>Drinks &amp; Juice</span></li><li data-slug="fish-meats"><span>Fish &amp; Meats</span></li><li data-slug="fresh-fruits"><span>Fresh Fruits</span></li><li data-slug="pets-animals"><span>Pets &amp; Animals</span></li><li data-slug="toys"><span>Toys</span></li><li data-slug="vegetables"><span>Vegetables</span></li>                      </ul>
+                            <ul class="dropdown-menu rt-drop-menu" aria-labelledby="dropdownMenuButton3">{% include 'catalog/home02/dynamic/category_options.html' %}</ul>
                         </div>
                     </div>
                 </li>
                 <li class="item rt-advanced-search-2 flex-grow-1">
                     <div class="rt-input-group">
-                        <input type="text" autocomplete="off" name="s" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
+                        <input type="text" autocomplete="off" name="q" class="form-control product-search-form product-autocomplete-js" placeholder="Type Your Products ..." value="">
                         <div class="input-group-append">
                             <input type="hidden" name="post_type" value="product">
                             <button class="search-btn">Search<i class="icon-zilly-search"></i></button>
@@ -671,8 +665,8 @@
             <div id="header-search" class="header-search">
                 <div class="header-search-wrap">
                 <button type="button" aria-label="close button" class="close"><i class="fas fa-times"></i></button>
-                <form method="get" class="header-search-form" action="https://www.radiustheme.com/demo/wordpress/themes/zilly/">
-                    <input type="search" value="" name="s" placeholder="Type your search........">
+                <form method="get" class="header-search-form" action="{% url 'storefront-catalogue' %}" data-live-catalogue="{% url 'storefront-catalogue' %}">
+                    <input type="search" value="" name="q" placeholder="Type your search........">
                     <button type="submit" aria-label="submit button" class="search-btn"><i class="icon-zilly-search"></i></button>
                 </form>
                 </div>
