@@ -80,6 +80,12 @@ def shop(request):
         "query": request.GET.get("q", "")[:200],
         "selected": request.GET.get("category", ""),
         "filters_query": parameters.urlencode(),
+        "search_parameters": [
+            (name, value)
+            for name, entries in parameters.lists()
+            if name != "q"
+            for value in entries
+        ],
         "list_view": values.get("view") == "list",
     }
     return render(request, "catalog/shop/page.html", context)

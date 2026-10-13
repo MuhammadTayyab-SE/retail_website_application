@@ -50,7 +50,7 @@
 #shop-results.product-catalog-grid-view > ul.products::after { display: none; }
 #shop-results.product-catalog-grid-view .shop-empty { grid-column: 1 / -1; }
 #shop-results.product-catalog-grid-view > ul.products > li.product {
-  width: 100%;
+  width: 100% !important;
   min-width: 0;
   margin: 0;
   float: none;
@@ -59,6 +59,8 @@
 #shop-results.product-catalog-grid-view .rt-content-area { flex: 1; }
 #shop-results.product-catalog-grid-view .rt-buttons-area { margin-top: auto; }
 .shop-pagination .page-numbers { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.shop-mobile-controls,
+.shop-mobile-filter-host { display: none; }
 @media (min-width: 1025px) {
   .elementor-557 .elementor-element.elementor-element-048991c {
     position: sticky;
@@ -73,6 +75,27 @@
 }
 @media (max-width: 1199px) {
   #shop-results.product-catalog-grid-view > ul.products { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+}
+@media (max-width: 1024px) {
+  .elementor-557 .elementor-element.elementor-element-cf94edb > .e-con-inner { flex-direction: column; }
+  .elementor-557 .elementor-element.elementor-element-eda8704 { width: 100%; min-width: 0; }
+  .shop-responsive-filters .elementor-557 .elementor-element.elementor-element-048991c { display: none; }
+  .shop-mobile-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .shop-mobile-search { display: flex; flex: 1 1 240px; gap: 8px; margin: 0; }
+  .shop-mobile-search input { flex: 1; min-width: 0; border: 1px solid #ddd; border-radius: 4px; padding: 10px 12px; }
+  .shop-mobile-search button { border: 0; border-radius: 4px; background: #1b8057; color: white; padding: 10px 16px; }
+  .shop-mobile-filter-host.shop-filters-open { display: block; margin-bottom: 24px; }
+  #shop-mobile-filters #shop-filters {
+    display: block !important;
+    position: static;
+    top: auto;
+    width: 100%;
+    max-height: none;
+    padding: 0;
+    box-shadow: none;
+    transform: none;
+  }
+  #shop-mobile-filters .rtsb-product-filters { border: 1px solid #e5e5e5; border-radius: 8px; background: white; }
 }
 @media (max-width: 767px) {
   #shop-results.product-catalog-grid-view > ul.products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

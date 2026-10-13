@@ -1,4 +1,14 @@
 <div id="shop-results" class="rtsb-product-catalog has-cart-button rtsb-has-pagination {% if list_view %}product-catalog-list-view shop-list{% else %}product-catalog-grid-view{% endif %}">
+  <div class="shop-mobile-controls">
+    <button type="button" class="product-filter-toggle" aria-expanded="false" aria-controls="shop-mobile-filters">Filters</button>
+    <form class="shop-mobile-search" method="get" action="{% url 'shop' %}" data-shop-filters>
+      {% for name,value in search_parameters %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <label class="screen-reader-text" for="shop-mobile-query">Search products</label>
+      <input id="shop-mobile-query" type="search" name="q" value="{{ query }}" placeholder="Search products..." maxlength="200">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+  <div id="shop-mobile-filters" class="shop-mobile-filter-host"></div>
   <div class="woo-shop-top">
     <div class="view-mode"><ul class="view-mode-icons"><li class="grid-view-nav {% if not list_view %}active{% endif %}"><button type="submit" form="shop-filters" name="view" value="grid" aria-label="Grid view"><i class="icon-zilly-grid" aria-hidden="true"></i></button></li><li class="list-view-nav {% if list_view %}active{% endif %}"><button type="submit" form="shop-filters" name="view" value="list" aria-label="List view"><i class="icon-zilly-list" aria-hidden="true"></i></button></li></ul></div>
     <div class="limit-sort-wrap">

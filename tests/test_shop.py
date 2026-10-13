@@ -105,6 +105,12 @@ class ShopTests(TestCase):
         self.assertEqual(len(response.context["page_obj"]), 25)
         self.assertContains(response, f"category={self.other.pk}")
         self.assertContains(response, "page=2")
+        self.assertContains(response, 'aria-controls="shop-mobile-filters"')
+        self.assertContains(response, 'id="shop-mobile-query"')
+        self.assertEqual(
+            response.context["search_parameters"],
+            [("category", str(self.other.pk)), ("unit", "each")],
+        )
         second_page = self.client.get(
             reverse("shop"),
             {"category": self.other.pk, "unit": "each", "q": "Item", "page": "2"},
