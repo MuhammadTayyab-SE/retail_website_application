@@ -8,12 +8,13 @@
       <button type="submit">Search</button>
     </form>
   </div>
-  <div id="shop-mobile-filters" class="shop-mobile-filter-host"></div>
+  <dialog id="shop-mobile-filters" class="shop-mobile-filter-host" aria-labelledby="shop-filter-heading">
+    <div class="shop-drawer-heading"><h2 id="shop-filter-heading">Filter products</h2><button type="button" class="shop-drawer-close" aria-label="Close filters">&times;</button></div>
+  </dialog>
   <div class="woo-shop-top">
-    <div class="view-mode"><ul class="view-mode-icons"><li class="grid-view-nav {% if not list_view %}active{% endif %}"><button type="submit" form="shop-filters" name="view" value="grid" aria-label="Grid view"><i class="icon-zilly-grid" aria-hidden="true"></i></button></li><li class="list-view-nav {% if list_view %}active{% endif %}"><button type="submit" form="shop-filters" name="view" value="list" aria-label="List view"><i class="icon-zilly-list" aria-hidden="true"></i></button></li></ul></div>
     <div class="limit-sort-wrap">
       <div class="limit-show rtsb-archive-result-count"><p class="woocommerce-result-count" role="status">{% if page_obj.paginator.count %}Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} results{% else %}0 results{% endif %}</p></div>
-      <div class="sort-list rtsb-archive-catalog-ordering"><label class="screen-reader-text" for="shop-sort">Sort products</label><select id="shop-sort" name="sort" form="shop-filters" data-shop-submit>{% for value,label in filter_form.fields.sort.choices %}<option value="{{ value }}" {% if filter_form.sort.value|default:'' == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="sort-list rtsb-archive-catalog-ordering"><label for="shop-sort">Sort by</label><select id="shop-sort" name="sort" form="shop-filters" data-shop-submit>{% for value,label in filter_form.fields.sort.choices %}<option value="{{ value }}" {% if filter_form.sort.value|default:'' == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
       <span class="shop-page-size">25 products per page</span>
     </div>
   </div>

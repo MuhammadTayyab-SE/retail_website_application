@@ -13,8 +13,7 @@
     if (!panel || !originalParent || !mobileHost) return;
     (smallScreen.matches ? mobileHost : originalParent).append(panel);
     if (!smallScreen.matches) {
-      mobileHost.classList.remove('shop-filters-open');
-      toggle?.setAttribute('aria-expanded', 'false');
+      if (mobileHost.open) mobileHost.close();
     }
   }
   document.body.classList.add('shop-responsive-filters');
@@ -24,7 +23,20 @@
     form.querySelector('[name="q"]').value = event.target.value;
   });
   toggle?.addEventListener('click', () => {
-    const open = mobileHost.classList.toggle('shop-filters-open');
-    toggle.setAttribute('aria-expanded', String(open));
+    mobileHost.showModal();
+    document.body.classList.add('shop-drawer-open');
+    toggle.setAttribute('aria-expanded', 'true');
   });
+  mobileHost?.querySelector('.shop-drawer-close').addEventListener('click', () => mobileHost.close());
+  mobileHost?.addEventListener('click', event => {
+    if (event.target !== mobileHost) return;
+    const bounds = mobileHost.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right
+      || event.clientY < bounds.top || event.clientY > bounds.bottom) mobileHost.close();
+  });
+  mobileHost?.addEventListener('close', () => {
+    document.body.classList.remove('shop-drawer-open');
+    toggle?.setAttribute('aria-expanded', 'false');
+  });
+  form?.addEventListener('submit', () => { if (mobileHost?.open) mobileHost.close(); });
 })();
