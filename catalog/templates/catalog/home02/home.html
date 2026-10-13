@@ -1,32 +1,25 @@
-{% extends 'catalog/home02/base.html' %}
 {% load static %}
-{% block content %}
-  {% include 'catalog/home02/hero.html' %}
-  <div class="catalog-layout">
-    {% include 'catalog/home02/sidebar.html' %}
-    <div class="catalog-content">
-<section id="featured" class="featured-section">
-<div class="section-title">
-<h2>Featured Products</h2>
-<div class="product-tabs" aria-label="Product categories">
-<button class="selected" data-filter="">All (12)</button>
-<button data-filter="Desserts">Desserts (10)</button>
-<button data-filter="Beverage">Beverage (9)</button>
-</div>
-<div class="slider-buttons">
-<button data-slide="-1" aria-label="Previous products">‹</button>
-<button data-slide="1" aria-label="Next products">›</button>
-</div>
-</div>
-<p id="search-feedback" role="status" hidden>
-</p>
-<div class="featured-grid">{% for product in featured %}{% include 'catalog/home02/product.html' %}{% endfor %}</div>
-</section>
-      {% include 'catalog/home02/sellers.html' %}
-      {% include 'catalog/home02/promotions.html' %}
-      {% include 'catalog/home02/deals.html' %}
-      {% include 'catalog/home02/blog.html' %}
-    </div>
-</div>
-{% endblock %}
-
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home 02 - Zilly</title>
+  {% include 'catalog/home02/snapshot/styles.html' %}
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}">
+  {% include 'catalog/home02/snapshot/vendor.html' %}
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}"></script>
+</head>
+{% include 'catalog/home02/snapshot/header.html' %}
+{% include 'catalog/home02/snapshot/content.html' %}
+{% include 'catalog/home02/snapshot/footer.html' %}
+{% include 'catalog/home02/snapshot/overlays.html' %}
+<dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title">
+  <button class="snapshot-dialog-close" aria-label="Close">&times;</button>
+  <h2 id="snapshot-dialog-title"></h2>
+  <p id="snapshot-dialog-message"></p>
+  <p class="snapshot-preview-note">Static storefront preview. Store integrations will be connected later.</p>
+</dialog>
+<div id="snapshot-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
