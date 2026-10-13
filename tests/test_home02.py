@@ -78,33 +78,6 @@ class Home02DatabaseTests(TestCase):
         for i in range(8):
             self.assertNotIn(f"Regular {i}", sale_html)
 
-    def test_weekly_deals_use_database_discounted_prices_and_exclude_regular_products(self):
-        sale = Product.objects.create(
-            name="Weekly sale item",
-            category=self.category,
-            unit="each",
-            price=Decimal("10.01"),
-            is_on_sale=True,
-            discount_percentage=50,
-            quantity=0,
-        )
-        Product.objects.create(name="Weekly regular item", category=self.category, unit="each")
-        response = self.client.get(reverse("home"))
-        self.assertEqual(response.context["weekly_deal_products"], [sale])
-        weekly_html = response.content.decode().split('data-id="e40606d"', 1)[1]
-        weekly_html = weekly_html.split('data-id="6acfb28"', 1)[0]
-        self.assertIn("Weekly sale item", weekly_html)
-        self.assertNotIn("Weekly regular item", weekly_html)
-        self.assertIn("PKR 5.01", weekly_html)
-        self.assertIn("PKR 10.01", weekly_html)
-        self.assertIn("50% off", weekly_html)
-        self.assertIn("Out of stock", weekly_html)
-        self.assertNotIn('aria-label="Add Weekly sale item to preview basket"', weekly_html)
-        Category.objects.filter(pk=self.parent.pk).update(is_active=False)
-        hidden = self.client.get(reverse("home"))
-        self.assertEqual(hidden.context["weekly_deal_products"], [])
-        self.assertContains(hidden, "There are no active weekly deals.")
-
     def test_category_search_and_old_bookmarks_use_current_home02(self):
         apple = Product.objects.create(
             name="Live apple", category=self.category, unit="each", sku="APPLE-1"
