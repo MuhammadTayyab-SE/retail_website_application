@@ -1,9 +1,23 @@
 from decimal import Decimal
 
-from django.test import TestCase, override_settings
+from django.template.loader import render_to_string
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from catalog.models import Category, Product
+
+
+class DiscountTicketTemplateTests(SimpleTestCase):
+    def test_explicit_discount_renders_without_a_product(self):
+        html = render_to_string("catalog/home02/dynamic/discount-ticket.html", {"discount": 43})
+        self.assertIn("-43%", html)
+
+    def test_database_discount_renders_without_an_explicit_discount(self):
+        html = render_to_string(
+            "catalog/home02/dynamic/discount-ticket.html",
+            {"product": {"discount_percentage": 50}},
+        )
+        self.assertIn("-50%", html)
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
