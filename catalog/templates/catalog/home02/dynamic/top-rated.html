@@ -1,0 +1,18 @@
+{% for product in homepage_top_rated_products %}
+<div class="rtsb-col-grid rtsb-product rtsb-product-list" data-id="live-{{ product.pk }}">
+  <div class="rtsb-item-default rtsb-list-item">
+    <div class="rtsb-product-img">
+      <a href="#product-{{ product.pk }}" data-product-detail aria-label="View {{ product.name }}">
+        {% with photo=product.photos.all.0 %}
+        {% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" class="rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="80" height="80" loading="lazy">
+        {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
+        {% endwith %}
+      </a>
+    </div>
+    <div class="rtsb-product-content">
+      <div class="product-price"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div></div>
+      <div class="rtsb-product-title-wrapper"><h3 class="product-title"><a href="#product-{{ product.pk }}" data-product-detail title="{{ product.name }}">{{ product.name }}</a></h3></div>
+    </div>
+  </div>
+</div>
+{% empty %}<p class="homepage-empty">No matching products are available.</p>{% endfor %}

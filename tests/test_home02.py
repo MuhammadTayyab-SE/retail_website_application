@@ -92,6 +92,24 @@ class Home02DatabaseTests(TestCase):
             self.assertEqual(response.context["featured_products"], [])
             self.assertContains(response, "That category is unavailable.")
 
+    def test_top_rated_uses_bounded_unique_visible_database_products(self):
+        products = [
+            Product.objects.create(
+                name=f"Random candidate {i}", category=self.category, unit="each"
+            )
+            for i in range(8)
+        ]
+        hidden_category = Category.objects.create(name="Hidden random category", is_active=False)
+        Product.objects.create(name="Hidden random product", category=hidden_category, unit="each")
+        response = self.client.get(reverse("home"))
+        selected = response.context["homepage_top_rated_products"]
+        selected_ids = {product.pk for product in selected}
+        self.assertEqual(len(selected), 5)
+        self.assertEqual(len(selected_ids), 5)
+        self.assertTrue(selected_ids.issubset({product.pk for product in products}))
+        filtered = self.client.get(reverse("home"), {"q": "Random candidate 0"})
+        self.assertEqual(filtered.context["homepage_top_rated_products"], [products[0]])
+
     def test_homepage_top_categories_exclude_parent_groups(self):
         product = Product.objects.create(name="Nested product", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
