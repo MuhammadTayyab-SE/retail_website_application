@@ -31,7 +31,6 @@ class ShopFilterForm(forms.Form):
             ("name", "Product name: A to Z"),
         ],
     )
-    per_page = forms.ChoiceField(required=False, choices=[("16", "16"), ("32", "32"), ("48", "48")])
     view = forms.ChoiceField(required=False, choices=[("grid", "Grid"), ("list", "List")])
 
     def __init__(self, *args, categories, **kwargs):

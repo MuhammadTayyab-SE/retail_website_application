@@ -61,14 +61,18 @@ def shop(request):
         "name": ["name", "pk"],
     }
     products = products.order_by(*ordering.get(values.get("sort"), ["name", "pk"]))
-    page = Paginator(products, int(values.get("per_page") or 16)).get_page(request.GET.get("page"))
+    page = Paginator(products, 25).get_page(request.GET.get("page"))
     for product in page:
         product.homepage_category = roots[product.category_id]
     parameters = request.GET.copy()
     parameters.pop("page", None)
+    parameters.pop("per_page", None)
     context = {
         "homepage_categories": top_categories,
         "page_obj": page,
+        "page_numbers": page.paginator.get_elided_page_range(
+            page.number, on_each_side=2, on_ends=1
+        ),
         "filter_form": form,
         "selected_categories": request.GET.getlist("category"),
         "selected_units": request.GET.getlist("unit"),

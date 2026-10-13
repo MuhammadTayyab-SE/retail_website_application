@@ -75,7 +75,7 @@ class ShopTests(TestCase):
             {"min_price": "NaN"},
             {"min_price": "8", "max_price": "2"},
             {"stock": "bogus"},
-            {"per_page": "999999"},
+            {"sort": "invalid"},
         ]:
             with self.subTest(values=values):
                 response = self.client.get(reverse("shop"), values)
@@ -90,7 +90,7 @@ class ShopTests(TestCase):
         Product.objects.bulk_create(
             [
                 Product(name=f"Item {i:02}", category=self.other, unit="each", price="1.00")
-                for i in range(20)
+                for i in range(30)
             ]
         )
         response = self.client.get(
@@ -102,9 +102,18 @@ class ShopTests(TestCase):
                 "page": "bad",
             },
         )
-        self.assertEqual(len(response.context["page_obj"]), 16)
+        self.assertEqual(len(response.context["page_obj"]), 25)
         self.assertContains(response, f"category={self.other.pk}")
         self.assertContains(response, "page=2")
+        second_page = self.client.get(
+            reverse("shop"),
+            {"category": self.other.pk, "unit": "each", "q": "Item", "page": "2"},
+        )
+        self.assertEqual(len(second_page.context["page_obj"]), 5)
+        self.assertFalse(
+            {product.pk for product in response.context["page_obj"]}
+            & {product.pk for product in second_page.context["page_obj"]}
+        )
         response = self.client.get(reverse("shop"), {"q": "missing"})
         self.assertEqual(response.context["page_obj"].paginator.count, 0)
         self.assertContains(response, "No matching products")
