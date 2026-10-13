@@ -43,6 +43,33 @@
     element.classList.remove('elementor-invisible');
   });
   document.body.classList.replace('woocommerce-no-js', 'woocommerce-js');
+  document.querySelectorAll('.rtsb-products-container .price-wrapper').forEach(host => {
+    if (host.querySelector('.retail-price-line') || !host.querySelector('.rtsb-promotion')) return;
+    const line = document.createElement('div');
+    line.className = 'retail-price-line';
+    line.append(...host.childNodes);
+    host.append(line);
+  });
+  const priceLines = [...document.querySelectorAll('.retail-price-line')];
+  function fitPriceLine(line) {
+    const available = line.parentElement.clientWidth;
+    const natural = line.offsetWidth;
+    if (available > 0 && natural > 0) {
+      line.style.setProperty('--retail-price-scale', Math.min(1, available / natural));
+    }
+  }
+  const priceObserver = new ResizeObserver(entries => {
+    entries.forEach(entry => {
+      const line = entry.target.querySelector('.retail-price-line');
+      if (line) fitPriceLine(line);
+    });
+  });
+  priceLines.forEach(line => {
+    line.parentElement.classList.add('retail-price-host');
+    priceObserver.observe(line.parentElement);
+    fitPriceLine(line);
+  });
+  document.fonts.ready.then(() => priceLines.forEach(fitPriceLine));
   document.querySelectorAll(
     '#rtsb-container-973080080 .product-title a, '
     + '#rtsb-container-973080080 .rtsb-single-cat a, '
