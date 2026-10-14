@@ -9,6 +9,18 @@
   const comparisons = new Map();
   let statusTimer;
 
+  document.addEventListener('snapshot:add-items', event => {
+    event.detail.forEach(item => {
+      const entry = basket.get(item.id) || { name: item.name, quantity: 0 };
+      entry.quantity += item.quantity;
+      basket.set(item.id, entry);
+    });
+    document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
+      counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
+    });
+    status('Selected options added to preview basket');
+  });
+
   function showDialog(heading, description) {
     title.textContent = heading;
     message.textContent = description;
@@ -242,6 +254,8 @@
     }
     const control = event.target.closest('a, button');
     if (!control || control.closest('#snapshot-dialog')) return;
+    if (control.closest('.product-page, #product-lightbox')) return;
+    if (control.hasAttribute('data-product-page')) return;
     if (control.hasAttribute('data-live-catalogue') || control.hasAttribute('data-live-shop')) return;
     const href = control.getAttribute('href') || '';
     const classes = control.className || '';
@@ -315,7 +329,7 @@
     if (href && !href.startsWith('#')) {
       event.preventDefault();
       if (/home-02\/index.html$/.test(href) || href === '../index.html') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.location.href = '/';
       } else if (/\/shop\//.test(href)) {
         window.location.href = '/shop/';
       } else {

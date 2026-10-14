@@ -330,6 +330,18 @@ class Product(AttributedModel):
 class ProductVariant(AttributedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
     sku = models.CharField(max_length=100, unique=True)
+    price = models.DecimalField(
+        "Price (PKR)",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Leave blank to use the product price.",
+    )
+    description = models.TextField(
+        blank=True, help_text="Leave blank to use the product description."
+    )
     attributes = models.JSONField(
         default=dict,
         blank=True,
@@ -340,6 +352,10 @@ class ProductVariant(AttributedModel):
     class Meta:
         ordering = ["sku", "pk"]
         constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price__isnull=True) | models.Q(price__gte=0),
+                name="variant_price_nonnegative",
+            ),
             models.UniqueConstraint(
                 Lower(Trim("sku")), name="product_variant_sku_normalized_unique"
             ),
@@ -351,6 +367,15 @@ class ProductVariant(AttributedModel):
 
     def __str__(self):
         return f"{self.product}: {self.sku}"
+
+    @property
+    def sale_price(self):
+        price = self.product.price if self.price is None else self.price
+        if not self.product.is_on_sale or self.product.discount_percentage is None:
+            return price
+        return (price * discount_multiplier(self.product.discount_percentage)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
     def clean(self):
         super().clean()
@@ -389,6 +414,14 @@ class ProductVariant(AttributedModel):
 
 class ProductPhoto(AttributedModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
+    variant = models.ForeignKey(
+        ProductVariant,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="photos",
+        help_text="Optional. Unassigned photos are shared by all variants.",
+    )
     image = models.ImageField(upload_to=product_photo_path)
     alt_text = models.CharField(max_length=200, blank=True)
     position = models.PositiveIntegerField(default=0)
@@ -398,6 +431,11 @@ class ProductPhoto(AttributedModel):
 
     def __str__(self):
         return self.alt_text or f"Photo for {self.product}"
+
+    def clean(self):
+        super().clean()
+        if self.variant_id and self.variant.product_id != self.product_id:
+            raise ValidationError({"variant": "Choose a variant of this product."})
 
 
 @receiver(post_delete, sender=ProductPhoto)

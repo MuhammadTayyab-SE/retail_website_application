@@ -4,7 +4,7 @@
       <a class="rtsb-single-cat" href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue title="{{ product.homepage_category.name }}">{{ product.homepage_category.name }}</a>
       <a href="#" class="rtsb-wishlist-btn" title="Add to Wishlist" aria-label="Save {{ product.name }}"><i class="icon-zilly-wishlist" aria-hidden="true"></i></a>
     </div>
-    <a href="#product-{{ product.pk }}" class="homepage-trending-card-image" data-product-detail aria-label="View {{ product.name }}">
+    <a href="{% url 'product-detail' product.pk %}" class="homepage-trending-card-image" data-product-page aria-label="View {{ product.name }}">
       {% with photo=product.photos.all.0 %}
       {% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" class="rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="100" height="100" loading="lazy">
       {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
@@ -15,6 +15,6 @@
         {% include 'catalog/home02/dynamic/price.html' %}
       </div>
     </div>
-    <h3 class="product-title"><a href="#product-{{ product.pk }}" data-product-detail title="{{ product.name }}">{{ product.name }}</a></h3>
+    <h3 class="product-title"><a href="{% url 'product-detail' product.pk %}" data-product-page title="{{ product.name }}">{{ product.name }}</a></h3>
   </div>
 </div>
