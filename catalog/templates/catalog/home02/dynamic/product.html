@@ -1,0 +1,38 @@
+<div class="rtsb-col-grid {% if variant == 'featured' %}rtsb-col-full rtsb-slide-item swiper-slide{% else %}even-grid-item{% endif %} rtsb-product product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}"
+     data-id="live-{{ product.pk }}" data-category-id="{{ product.homepage_category.pk }}">
+  <div class="rtsb-item-default rtsb-grid-item box-hover-shadow">
+    {% if variant != 'trending' %}
+    <div class="rtsb-cat-meta-wrap rtsb-action-buttons">
+      <div class="rtsb-single-cat"><a href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ product.homepage_category.name }}</a></div>
+      <ul class="rtsb-shop-meta rtsb-action-button-list">
+        <li class="rtsb-wishlist"><a href="#" class="rtsb-wishlist-btn rtsb-action-btn" aria-label="Save {{ product.name }}"><span class="icon"><i class="icon-zilly-wishlist"></i></span></a></li>
+      </ul>
+    </div>
+    {% endif %}
+    <div class="rtsb-product-img">
+      <figure>
+        <a href="{% url 'product-detail' product.pk %}" class="woocommerce-LoopProduct-link rtsb-img-link" data-product-page aria-label="View {{ product.name }}">
+          {% with photo=product.photos.all.0 %}
+          {% if photo %}
+          <img src="{% url 'public-product-photo' photo.pk %}" class="img-responsive rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="{% if variant == 'spotlight' %}498{% elif variant == 'trending' %}100{% else %}150{% endif %}" height="{% if variant == 'spotlight' %}498{% elif variant == 'trending' %}100{% else %}150{% endif %}" loading="lazy">
+          {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
+          {% endwith %}
+        </a>
+      </figure>
+    </div>
+    {% if variant == 'trending' %}{% include 'catalog/home02/dynamic/trending-actions.html' %}{% endif %}
+    <div class="rtsb-product-content">
+      {% if variant == 'trending' %}<div class="rtsb-single-cat"><a href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ product.homepage_category.name }}</a></div>{% endif %}
+      <div class="product-price rtsb-item-space-between"><div class="price-wrapper">{% include 'catalog/home02/dynamic/price.html' %}</div></div>
+      <div class="rtsb-product-title-wrapper"><h3 class="product-title rtsb-text-limit limit-2-line"><a href="{% url 'product-detail' product.pk %}" class="woocommerce-LoopProduct-link" data-product-page title="{{ product.name }}">{{ product.name }}</a></h3></div>
+      <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
+      {% if variant != 'trending' %}<ul class="rtsb-shop-meta rtsb-action-button-list">
+        <li class="rtsb-cart">
+          {% if product.quantity %}
+          <a href="#" class="rtsb-action-btn simple-product icon-left has-text rtsb-add-to-cart-btn" aria-label="Add {{ product.name }} to preview basket"><span class="icon"><i class="icon-zilly-cart"></i></span><span class="button-text">Add to Cart</span></a>
+          {% else %}<span class="rtsb-action-btn homepage-unavailable" aria-disabled="true">Out of stock</span>{% endif %}
+        </li>
+      </ul>{% endif %}
+    </div>
+  </div>
+</div>

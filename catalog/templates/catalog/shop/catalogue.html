@@ -1,0 +1,24 @@
+<div id="shop-results" class="rtsb-product-catalog has-cart-button rtsb-has-pagination {% if list_view %}product-catalog-list-view shop-list{% else %}product-catalog-grid-view{% endif %}">
+  <div class="shop-mobile-controls">
+    <button type="button" class="product-filter-toggle" aria-expanded="false" aria-controls="shop-mobile-filters">Filters</button>
+    <form class="shop-mobile-search" method="get" action="{% url 'shop' %}" data-shop-filters>
+      {% for name,value in search_parameters %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <label class="screen-reader-text" for="shop-mobile-query">Search products</label>
+      <input id="shop-mobile-query" type="search" name="q" value="{{ query }}" placeholder="Search products..." maxlength="200">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+  <dialog id="shop-mobile-filters" class="shop-mobile-filter-host" aria-labelledby="shop-filter-heading">
+    <div class="shop-drawer-heading"><h2 id="shop-filter-heading">Filter products</h2><button type="button" class="shop-drawer-close" aria-label="Close filters">&times;</button></div>
+  </dialog>
+  <div class="woo-shop-top">
+    <div class="limit-sort-wrap">
+      <div class="limit-show rtsb-archive-result-count"><p class="woocommerce-result-count" role="status">{% if page_obj.paginator.count %}Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} results{% else %}0 results{% endif %}</p></div>
+      <div class="sort-list rtsb-archive-catalog-ordering"><label for="shop-sort">Sort by</label><select id="shop-sort" name="sort" form="shop-filters" data-shop-submit>{% for value,label in filter_form.fields.sort.choices %}<option value="{{ value }}" {% if filter_form.sort.value|default:'' == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <span class="shop-page-size">25 products per page</span>
+    </div>
+  </div>
+  {% if filter_form.errors %}<div class="shop-filter-errors" role="alert"><strong>Check your filters</strong>{{ filter_form.non_field_errors }}{% for field in filter_form %}{% if field.errors %}<p>{{ field.label }}: {{ field.errors|striptags }}</p>{% endif %}{% endfor %}</div>{% endif %}
+  <ul class="products columns-4">{% for product in page_obj %}{% include 'catalog/shop/product.html' %}{% empty %}<li class="shop-empty"><h2>No matching products</h2><p>Try a wider price range or remove a filter.</p><a href="{% url 'shop' %}" class="shop-apply" data-live-shop>Show all products</a></li>{% endfor %}</ul>
+  {% if page_obj.has_other_pages %}<nav class="woocommerce-pagination shop-pagination" aria-label="Shop pages"><ul class="page-numbers">{% if page_obj.has_previous %}<li><a href="?{{ filters_query }}&amp;page={{ page_obj.previous_page_number }}#shop-results" data-live-shop>Previous</a></li>{% endif %}{% for number in page_numbers %}<li>{% if number == page_obj.paginator.ELLIPSIS %}<span class="page-numbers">{{ number }}</span>{% elif number == page_obj.number %}<span class="page-numbers current" aria-current="page">{{ number }}</span>{% else %}<a class="page-numbers" href="?{{ filters_query }}&amp;page={{ number }}#shop-results" data-live-shop>{{ number }}</a>{% endif %}</li>{% endfor %}{% if page_obj.has_next %}<li><a href="?{{ filters_query }}&amp;page={{ page_obj.next_page_number }}#shop-results" data-live-shop>Next</a></li>{% endif %}</ul></nav>{% endif %}
+</div>
