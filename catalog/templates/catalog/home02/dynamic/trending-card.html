@@ -1,20 +1,25 @@
 <div class="rtsb-col-grid rtsb-product product type-product {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}">
-  <div class="homepage-trending-card">
-    <div class="homepage-trending-card-header">
-      <a class="rtsb-single-cat" href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue title="{{ product.homepage_category.name }}">{{ product.homepage_category.name }}</a>
-      <a href="#" class="rtsb-wishlist-btn" title="Add to Wishlist" aria-label="Save {{ product.name }}"><i class="icon-zilly-wishlist" aria-hidden="true"></i></a>
-    </div>
-    <a href="{% url 'product-detail' product.pk %}" class="homepage-trending-card-image" data-product-page aria-label="View {{ product.name }}">
+  <div class="rtsb-item-default rtsb-grid-item box-hover-shadow homepage-trending-card">
+    <div class="rtsb-product-img"><figure>
+    <a href="{% url 'product-detail' product.pk %}" class="rtsb-img-link homepage-trending-card-image" data-product-page aria-label="View {{ product.name }}">
       {% with photo=product.photos.all.0 %}
       {% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" class="rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="100" height="100" loading="lazy">
       {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
       {% endwith %}
     </a>
+    </figure></div>
+    <div class="rtsb-product-content">
+    <div class="rtsb-cat-meta-wrap homepage-trending-card-header">
+      <a class="rtsb-single-cat" href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue title="{{ product.homepage_category.name }}">{{ product.homepage_category.name }}</a>
+      {% include 'catalog/home02/dynamic/trending-actions.html' %}
+    </div>
     <div class="product-price rtsb-item-space-between">
       <div class="price-wrapper">
         {% include 'catalog/home02/dynamic/price.html' %}
       </div>
     </div>
     <h3 class="product-title"><a href="{% url 'product-detail' product.pk %}" data-product-page title="{{ product.name }}">{{ product.name }}</a></h3>
+    <p class="homepage-stock">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · {{ product.get_unit_display }}{% endif %}</p>
+    </div>
   </div>
 </div>

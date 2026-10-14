@@ -64,11 +64,18 @@
   });
   const priceLines = [...document.querySelectorAll('.retail-price-line')];
   function fitPriceLine(line) {
+    // Measure the unwrapped group before choosing the two-line sale layout.
+    line.classList.remove('retail-price-wrap');
     const available = line.parentElement.clientWidth;
     const natural = line.offsetWidth;
-    if (available > 0 && natural > 0) {
-      line.style.setProperty('--retail-price-scale', Math.min(1, available / natural));
+    if (!document.body.classList.contains('page-id-178')) {
+      if (available > 0 && natural > 0) {
+        line.style.setProperty('--retail-price-scale', Math.min(1, available / natural));
+      }
+      return;
     }
+    line.classList.toggle('retail-price-wrap', available > 0 && natural > available
+      && !!line.querySelector('.rtsb-promotion'));
   }
   const priceObserver = new ResizeObserver(entries => {
     entries.forEach(entry => {
