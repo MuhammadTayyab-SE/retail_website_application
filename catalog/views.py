@@ -44,6 +44,10 @@ def home02(request):
         entry["product_count"] = count
         if category.parent_id:
             counts[category.parent_id] = counts.get(category.parent_id, 0) + count
+    # Give the taller category cards room, putting populated categories first.
+    top_category_cards = sorted(product_categories, key=lambda entry: not entry["product_count"])[
+        :6
+    ]
     query = request.GET.get("q", "").strip()[:200]
     selected = request.GET.get("category", "").strip()
     selected_id = (
@@ -69,8 +73,27 @@ def home02(request):
     featured = list(page)
     trending = list(products.order_by(F("created_at").desc(nulls_last=True), "-pk")[:6])
     sale_products = list(products.filter(is_on_sale=True)[:7])
+    # Sales history is not recorded yet; use a stable live-catalog fallback.
+    best_selling_products = list(products.order_by("name", "pk")[:5])
+    banner_products = list(
+        catalog_products.filter(photos__isnull=False).order_by(
+            "-is_on_sale", F("created_at").desc(nulls_last=True), "-pk"
+        )[:2]
+    )
+    hero_products = list(
+        catalog_products.filter(photos__isnull=False).order_by(
+            F("created_at").desc(nulls_last=True), "-pk"
+        )[:3]
+    )
     top_rated_products = list(products.order_by("?")[:5])
-    for product in [*featured, *trending, *sale_products, *top_rated_products]:
+    for product in [
+        *featured,
+        *trending,
+        *sale_products,
+        *top_rated_products,
+        *banner_products,
+        *hero_products,
+    ]:
         product.homepage_category = root_categories[product.category_id]
     featured_categories = {}
     for product in featured:
@@ -80,11 +103,17 @@ def home02(request):
         entry["count"] += 1
     context = {
         "homepage_categories": top_categories,
-        "homepage_top_categories": product_categories,
+        "homepage_top_categories": top_category_cards,
+        "homepage_departments": [
+            entry for entry in top_categories if entry["category"].pk in parent_category_ids
+        ],
         "featured_products": featured,
         "featured_categories": list(featured_categories.values()),
         "trending_products": trending,
         "homepage_sale_products": sale_products,
+        "best_selling_products": best_selling_products,
+        "homepage_banner_products": banner_products,
+        "homepage_hero_products": hero_products,
         "homepage_top_rated_products": top_rated_products,
         "page_obj": page,
         "query": query,

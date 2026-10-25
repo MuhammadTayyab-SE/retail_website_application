@@ -8,6 +8,17 @@ from catalog.models import Category, Product
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ShopTests(TestCase):
+    def test_category_name_filters_matching_products_and_subcategories(self):
+        response = self.client.get(reverse("shop"), {"category": "fresh"})
+        self.assertEqual(list(response.context["page_obj"]), [self.sale])
+        self.assertEqual(response.context["selected_categories"], [str(self.parent.pk)])
+        child = self.client.get(reverse("shop"), {"category": "Fruit"})
+        self.assertEqual(list(child.context["page_obj"]), [self.sale])
+        self.assertContains(child, 'name="category" value="Fruit" checked')
+        missing = self.client.get(reverse("shop"), {"category": "Missing department"})
+        self.assertEqual(list(missing.context["page_obj"]), [])
+        self.assertTrue(missing.context["filter_form"].errors)
+
     def setUp(self):
         self.parent = Category.objects.create(name="Fresh", is_parent_category=True)
         self.child = Category.objects.create(name="Fruit", parent=self.parent)

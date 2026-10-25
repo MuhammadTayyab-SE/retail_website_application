@@ -1,19 +1,19 @@
-{% for entry in homepage_top_categories %}
-<div class="rtsb-col-grid even-grid-item rtsb-category-grid">
-  <div class="category-wrapper rtsb-category-item">
+{% for entry in category_entries %}
+<div class="rtsb-col-grid even-grid-item rtsb-category-grid homepage-category-{{ category_group }}{% if forloop.last %} homepage-category-last{% endif %}">
+  <a class="category-wrapper rtsb-category-item" {% if category_group == 'department' %}href="{% url 'shop' %}?category={{ entry.category.name|urlencode:'' }}" data-live-shop{% else %}href="{% url 'home' %}?category={{ entry.category.pk }}#rtsb-container-138192095" data-live-catalogue{% endif %}>
     <div class="rtsb-product-img">
       <figure>
-        <a href="{% url 'home' %}?category={{ entry.category.pk }}#rtsb-container-138192095" class="rtsb-img-link" data-live-catalogue>
+        <span class="rtsb-img-link">
           {% if entry.category.photo %}
           <img src="{% url 'public-category-photo' entry.category.pk %}" alt="" width="22" height="22" class="homepage-category-photo">
           {% else %}<span class="homepage-category-initial" aria-hidden="true">{{ entry.category.name|first }}</span>{% endif %}
-        </a>
+        </span>
       </figure>
       <h2 class="category-title rtsb-text-limit limit-default">
-        <a href="{% url 'home' %}?category={{ entry.category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ entry.category.name }}</a>
+        {{ entry.category.name }}
       </h2>
     </div>
-    <div class="product-count">({{ entry.product_count }})</div>
-  </div>
+    <span class="product-count"><span class="homepage-category-count-desktop">({{ entry.product_count }})</span><span class="homepage-category-count-mobile">{{ entry.product_count }} Product{{ entry.product_count|pluralize }}</span></span>
+  </a>
 </div>
-{% empty %}<p class="homepage-empty">No categories are available yet.</p>{% endfor %}
+{% empty %}<p class="homepage-empty homepage-category-{{ category_group }}">No {% if category_group == 'department' %}departments{% else %}categories{% endif %} are available yet.</p>{% endfor %}

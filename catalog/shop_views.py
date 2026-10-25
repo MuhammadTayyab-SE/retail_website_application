@@ -29,7 +29,7 @@ def shop(request):
         counts[root_id] = counts.get(root_id, 0) + row["total"]
     for entry in top_categories:
         entry["product_count"] = counts.get(entry["category"].pk, 0)
-    form = ShopFilterForm(request.GET, categories=top_categories)
+    form = ShopFilterForm(request.GET, categories=categories)
     values = form.cleaned_data if form.is_valid() else {}
     if form.errors:
         products = products.none()
@@ -40,7 +40,11 @@ def shop(request):
             )
         if values["category"]:
             selected = set(values["category"])
-            category_ids = [pk for pk, root in roots.items() if str(root.pk) in selected]
+            category_ids = set()
+            for entry in categories:
+                category = entry["category"]
+                if str(category.pk) in selected or category.parent_id in category_ids:
+                    category_ids.add(category.pk)
             products = products.filter(category_id__in=category_ids)
         if values["unit"]:
             products = products.filter(unit__in=values["unit"])
@@ -74,11 +78,17 @@ def shop(request):
             page.number, on_each_side=2, on_ends=1
         ),
         "filter_form": form,
-        "selected_categories": request.GET.getlist("category"),
+        "selected_categories": values.get("category", []),
+        "selected_child_categories": [
+            entry["category"]
+            for entry in categories
+            if entry["category"].parent_id is not None
+            and str(entry["category"].pk) in values.get("category", [])
+        ],
         "selected_units": request.GET.getlist("unit"),
         "unit_choices": Product.Unit.choices,
         "query": request.GET.get("q", "")[:200],
-        "selected": request.GET.get("category", ""),
+        "selected": next(iter(values.get("category", [])), ""),
         "filters_query": parameters.urlencode(),
         "search_parameters": [
             (name, value)

@@ -9,8 +9,9 @@
     <section class="rtsb-product-filters rtsb-categories">
       <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Categories</h3></div>
       <div class="shop-filter-options">{% for entry in homepage_categories %}
-        <label><input type="checkbox" name="category" value="{{ entry.category.pk }}" {% if entry.category.pk|stringformat:'s' in selected_categories %}checked{% endif %}><span>{{ entry.category.name }}</span><small>({{ entry.product_count }})</small></label>
-      {% empty %}<p>No categories available.</p>{% endfor %}</div>
+        <label><input type="checkbox" name="category" value="{{ entry.category.name }}" {% if entry.category.pk|stringformat:'s' in selected_categories %}checked{% endif %}><span>{{ entry.category.name }}</span><small>({{ entry.product_count }})</small></label>
+      {% empty %}<p>No categories available.</p>{% endfor %}
+      {% for category in selected_child_categories %}<label><input type="checkbox" name="category" value="{{ category.name }}" checked><span>{{ category.name }}</span></label>{% endfor %}</div>
     </section>
     <section class="rtsb-product-filters">
       <div class="filter-title-wrapper"><h3 class="widget-title">Filter by Price</h3></div>

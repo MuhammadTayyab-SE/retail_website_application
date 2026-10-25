@@ -35,6 +35,25 @@ class ShopFilterForm(forms.Form):
 
     def __init__(self, *args, categories, **kwargs):
         super().__init__(*args, **kwargs)
+        # Resolve readable category links before validating against the live choices.
+        if self.is_bound:
+            category_names = {
+                entry["category"].name.casefold(): str(entry["category"].pk) for entry in categories
+            }
+            data = self.data.copy()
+            supplied = (
+                data.getlist("category") if hasattr(data, "getlist") else data.get("category", [])
+            )
+            if isinstance(supplied, str):
+                supplied = [supplied]
+            resolved = [
+                category_names.get(str(value).strip().casefold(), str(value)) for value in supplied
+            ]
+            if hasattr(data, "setlist"):
+                data.setlist("category", resolved)
+            else:
+                data["category"] = resolved
+            self.data = data
         self.fields["category"].choices = [
             (str(entry["category"].pk), entry["category"].name) for entry in categories
         ]

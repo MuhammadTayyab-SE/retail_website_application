@@ -100,7 +100,7 @@ class Home02DatabaseTests(TestCase):
         Product.objects.create(name="Live rice", category=other, unit="each")
         response = self.client.get(reverse("home"), {"category": self.parent.pk, "q": "apple-1"})
         self.assertEqual(response.context["featured_products"], [apple])
-        self.assertContains(response, "Soft <br>")
+        self.assertContains(response, 'id="homepage-hero-slider"')
         self.assertNotContains(response, "Good things")
         self.assertNotContains(response, 'href="/catalogue/')
         self.assertNotContains(response, "Live rice")
@@ -155,3 +155,38 @@ class Home02DatabaseTests(TestCase):
         )
         filtered = self.client.get(reverse("home"), {"category": self.parent.pk})
         self.assertEqual(filtered.context["featured_products"], [product])
+
+    def test_best_selling_uses_five_visible_live_products_and_respects_search(self):
+        products = [
+            Product.objects.create(
+                name=f"Best candidate {i}", category=self.category, unit="each", price=100 + i
+            )
+            for i in range(7)
+        ]
+        Product.objects.create(
+            name="Hidden candidate", category=self.category, unit="each", is_active=False
+        )
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.context["best_selling_products"], products[:5])
+        self.assertContains(response, 'data-id="live-')
+        best_selling_html = render_to_string(
+            "catalog/home02/dynamic/best-selling.html",
+            {"best_selling_products": response.context["best_selling_products"]},
+        )
+        self.assertNotIn("delicious-lays-potato-chips-classic-8-oz-bag", best_selling_html)
+        self.assertEqual(best_selling_html.count('data-id="live-'), 5)
+        filtered = self.client.get(reverse("home"), {"q": "Best candidate 6"})
+        self.assertEqual(filtered.context["best_selling_products"], [products[6]])
+        empty = self.client.get(reverse("home"), {"category": "999999"})
+        self.assertEqual(empty.context["best_selling_products"], [])
+
+    def test_top_category_cards_are_bounded_and_prioritize_populated_categories(self):
+        for i in range(8):
+            Category.objects.create(name=f"Empty category {i}")
+        Product.objects.create(name="Visible fruit", category=self.category, unit="each")
+        response = self.client.get(reverse("home"))
+        cards = response.context["homepage_top_categories"]
+        self.assertEqual(len(cards), 6)
+        self.assertEqual(cards[0]["category"], self.category)
+        self.assertEqual(cards[0]["product_count"], 1)
+        self.assertNotIn(self.parent, [entry["category"] for entry in cards])
