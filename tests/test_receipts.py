@@ -102,7 +102,7 @@ class ReceiptTests(TestCase):
             reverse("checkout-confirmation", args=[regular_order.public_id])
         ).content.decode()
         self.assertInHTML('<td class="receipt-original-price">PKR 100.00</td>', html)
-        self.assertInHTML("<td>-</td>", html)
+        self.assertInHTML('<td class="receipt-no-deal">-</td>', html)
         self.assertInHTML("<td><strong>PKR 200.00</strong></td>", html)
         text = "\n".join(
             page.extract_text() for page in PdfReader(receipt_pdf(regular_order)).pages

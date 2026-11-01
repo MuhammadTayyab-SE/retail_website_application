@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from django.utils import timezone
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
@@ -76,6 +76,7 @@ def receipt_pdf(order):
     white = ParagraphStyle("ReceiptWhite", parent=small, textColor=colors.white)
     label = ParagraphStyle("ReceiptLabel", parent=small, textColor=colors.HexColor("#68766d"))
     right = ParagraphStyle("ReceiptRight", parent=small, alignment=TA_RIGHT)
+    centered = ParagraphStyle("ReceiptCentered", parent=small, alignment=TA_CENTER)
     green = colors.HexColor("#126344")
     pale = colors.HexColor("#f1f7f3")
     border = colors.HexColor("#e0e7e2")
@@ -196,9 +197,9 @@ def receipt_pdf(order):
                 [paragraph(item.name), paragraph(f"SKU: {item.sku or '-'}", label)],
                 paragraph(item.quantity, right),
                 paragraph(money(item.regular_price), right),
-                paragraph(
-                    money(item.unit_price) if item.regular_price > item.unit_price else "-", right
-                ),
+                paragraph(money(item.unit_price), right)
+                if item.regular_price > item.unit_price
+                else paragraph("-", centered),
                 paragraph(money(item.line_total), right),
             ]
         )

@@ -31,6 +31,7 @@
 .receipt-table small { display: block; margin-top: 6px; color: #7b867f; font-size: 10px; }
 .receipt-table thead small { color: #d7e2e0; font-size: 9px; font-weight: 400; }
 .receipt-discount-price { color: #126344; font-weight: 600; }
+.receipt-table td.receipt-no-deal { text-align: center; }
 .receipt-bottom-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 30px; margin-top: 26px; }
 .receipt-savings { padding: 22px; border: 1px solid #d8e8db; border-radius: 12px; background: #eff8f1; }
 .receipt-savings h2, .receipt-notes h2 { margin: 0 0 10px; color: #45674d; font-size: 13px; }
