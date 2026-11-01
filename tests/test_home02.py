@@ -9,6 +9,18 @@ from catalog.models import Category, Product
 
 
 class Home02QARegressionTests(SimpleTestCase):
+    def test_floating_basket_has_accessible_empty_cart_drawer(self):
+        html = render_to_string("catalog/home02/snapshot/overlays.html")
+        self.assertIn('aria-controls="homepage-cart-drawer"', html)
+        self.assertIn('role="button" tabindex="0"', html)
+        self.assertIn('<dialog id="homepage-cart-drawer"', html)
+        self.assertIn('aria-label="Close basket"', html)
+        self.assertIn("No products in the cart.", html)
+        self.assertIn('href="/shop/"', html)
+        self.assertIn("Go Shopping", html)
+        self.assertIn('class="homepage-cart-checkout" disabled', html)
+        self.assertNotIn("loading-cart", html)
+
     def test_preview_basket_keeps_count_without_an_unsupported_total(self):
         html = render_to_string("catalog/home02/snapshot/overlays.html")
         self.assertIn('class="rtsb-cart-icon-num"', html)
