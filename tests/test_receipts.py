@@ -87,7 +87,8 @@ class ReceiptTests(TestCase):
     def test_item_columns_distinguish_original_discounted_and_line_prices(self):
         url = reverse("checkout-confirmation", args=[self.order.public_id])
         html = self.client.get(url).content.decode()
-        self.assertInHTML('<td class="receipt-original-price"><del>PKR 100.00</del></td>', html)
+        self.assertInHTML('<td class="receipt-original-price">PKR 100.00</td>', html)
+        self.assertNotIn("<del>", html)
         self.assertInHTML('<td class="receipt-discount-price">PKR 75.00</td>', html)
         self.assertInHTML("<td><strong>PKR 150.00</strong></td>", html)
         Product.objects.filter(pk=self.product.pk).update(
@@ -101,8 +102,12 @@ class ReceiptTests(TestCase):
             reverse("checkout-confirmation", args=[regular_order.public_id])
         ).content.decode()
         self.assertInHTML('<td class="receipt-original-price">PKR 100.00</td>', html)
-        self.assertInHTML("<td>PKR 100.00</td>", html)
+        self.assertInHTML("<td>-</td>", html)
         self.assertInHTML("<td><strong>PKR 200.00</strong></td>", html)
+        text = "\n".join(
+            page.extract_text() for page in PdfReader(receipt_pdf(regular_order)).pages
+        )
+        self.assertRegex(text, r"PKR 100\.00\s+-\s+PKR 200\.00")
 
     def test_pdf_is_private_to_guest_browser_or_account_owner(self):
         self.assertEqual(Client().get(self.url()).status_code, 404)

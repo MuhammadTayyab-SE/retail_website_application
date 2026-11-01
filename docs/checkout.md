@@ -100,10 +100,11 @@ prices, special characters, pagination, manual/pickup status and ownership.
 PDF text/structure was checked programmatically. Browser/PDF visual rendering
 and screenshots were not performed, following the user's visual-QA hold.
 
-Receipt pricing columns distinguish the original saved price (crossed out only
-for discounted products), the final payable price after the deal, and the saved
+Receipt pricing columns distinguish the original saved price (plain text without
+strikethrough), the discounted payable price when there is a deal, and the saved
 line total (payable price multiplied by quantity). Non-discounted products show
-the same price in both price columns. The PDF uses the same distinction. A seventh
+a dash in Price after deal and use the original price for the line total. The PDF
+uses the same distinction. A seventh
 receipt test checks discounted and regular product columns explicitly.
 
 ## Local setup
