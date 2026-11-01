@@ -13,9 +13,11 @@ provider is selected. The working payment method is cash on delivery.
 
 Approved initial local rules:
 - Lahore only, case-insensitive city matching.
-- Minimum discounted product subtotal: PKR 1,500.
+- Minimum discounted product subtotal for Standard delivery: PKR 1,500.
 - Delivery fee: PKR 200; free delivery at subtotal >= PKR 5,000.
 - Added tax: 0 percent.
+- Store Pickup is enabled, free, with no minimum or delivery-address requirement.
+- Instant is visible but unavailable until its fee/timing are approved.
 - Delivery limit: 10 km driving distance from the user-provided store coordinates.
 - Routing provider deferred. User explicitly approved accepting Lahore orders
   for manual distance verification. These orders have status `delivery_review`,
@@ -32,7 +34,14 @@ in `docs/tickets/CHECKOUT-FOLLOWUPS.md`. No admin screens were changed.
 The floating drawer links to `/checkout/`. The two-column layout becomes a single
 column on tablet/mobile. Contact and address fields, delivery, cash-on-delivery
 choice, server-quoted order summary, free-delivery progress and confirmation are
-implemented. Quote errors prevent submission and provide a recovery message.
+implemented. Below-minimum and out-of-area quotes retain the server-priced summary
+with an eligibility message while blocking submission. A browser cart preview is
+rendered before the quote so a network failure cannot leave a blank summary;
+unverified charges are labelled Pending.
+
+Credit/debit card and JazzCash/Easypaisa/Raast panels expand to show the reference
+fields. Fields are disabled and have no submitted names: no card numbers, CVVs or
+wallet identifiers are collected. Only cash can place an order.
 
 The browser sends catalog IDs and quantities; client names, prices, discounts and
 totals cannot set order amounts. The server validates product/variant visibility,
@@ -73,6 +82,9 @@ delivery_radius_km and distance_verification. The supported interim mode is
 `manual`. Configuration is validated before being saved. No production defaults
 or enabled rules are seeded by the migration. Missing/disabled policy closes
 checkout. The user-approved local policy has been applied to `pg_retail_dev`.
+The JSON also requires pickup_enabled, pickup_fee and pickup_minimum_order.
+Migration `checkout.0002_deliverypolicy_pickup_enabled_and_more` adds the dynamic
+pickup fields and order fulfillment method. It has been applied locally.
 
 ## Validation
 
@@ -80,12 +92,12 @@ Tests use synthetic data in disposable PostgreSQL database
 `test_checkout_20261101`; the test runner creates and destroys it. No test orders
 were placed in the development catalog.
 
-- 22 Django tests: authoritative prices, fees/thresholds, minimum/city checks,
+- 26 Django tests: authoritative prices, fees/thresholds, minimum/city checks,
   manual review, contact validation, CSRF, account/guest isolation, immutable
   snapshots, changed-price rejection, idempotency and rollback, and two concurrent
   order scenarios (last-item competition and duplicate submission).
-- 13 Node handler checks: cart behavior and bypass of demo-form interception for
-  the real checkout form.
+- 17 Node checks: cart behavior, checkout submit routing, summary preservation on
+  eligibility/network errors, empty-cart recovery and pickup field handling.
 - JavaScript syntax, migration drift, Django system and scoped whitespace checks.
 - Browser interaction, visual QA and screenshot comparisons were not run, per the
   user's explicit visual-QA instruction. No full application regression signoff.

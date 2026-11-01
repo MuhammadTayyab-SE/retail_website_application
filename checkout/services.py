@@ -91,28 +91,44 @@ def priced_items(items, *, lock=False):
     return lines
 
 
-def policy_totals(lines, policy, city=""):
+def policy_totals(lines, policy, city="", delivery_method="delivery", *, enforce_rules=True):
     if not policy or not policy.enabled:
         raise CheckoutError("Checkout is not available until delivery rules are configured.")
-    if policy.delivery_radius_km is not None and (
-        policy.distance_verification != "manual"
-        or policy.origin_latitude is None
-        or policy.origin_longitude is None
+    if delivery_method not in ("delivery", "pickup"):
+        raise CheckoutError("This delivery option is not available.")
+    pickup = delivery_method == "pickup"
+    if pickup and not policy.pickup_enabled:
+        raise CheckoutError("Store pickup is not currently available.")
+    if (
+        not pickup
+        and policy.delivery_radius_km is not None
+        and (
+            policy.distance_verification != "manual"
+            or policy.origin_latitude is None
+            or policy.origin_longitude is None
+        )
     ):
         raise CheckoutError("Delivery distance cannot be verified with the current configuration.")
     if (
-        city
+        enforce_rules
+        and not pickup
+        and city
         and policy.allowed_cities
         and city.strip().casefold()
         not in {str(value).strip().casefold() for value in policy.allowed_cities}
     ):
         raise CheckoutError("Delivery is not available in this city.")
     subtotal = sum((line["line_total"] for line in lines), Decimal("0.00"))
-    if subtotal < policy.minimum_order:
-        raise CheckoutError(f"The minimum order is PKR {policy.minimum_order:.2f}.")
-    threshold = policy.free_delivery_threshold
+    minimum = policy.pickup_minimum_order if pickup else policy.minimum_order
+    if enforce_rules and subtotal < minimum:
+        raise CheckoutError(f"The minimum order is PKR {minimum:.2f}.")
+    threshold = None if pickup else policy.free_delivery_threshold
     delivery = (
-        Decimal("0.00") if threshold is not None and subtotal >= threshold else policy.delivery_fee
+        policy.pickup_fee
+        if pickup
+        else Decimal("0.00")
+        if threshold is not None and subtotal >= threshold
+        else policy.delivery_fee
     )
     tax = (subtotal * policy.tax_rate / 100).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if subtotal + delivery + tax >= Decimal("100000000000000"):
@@ -123,6 +139,7 @@ def policy_totals(lines, policy, city=""):
         "tax": tax,
         "total": subtotal + delivery + tax,
         "policy_revision": policy.updated_at.isoformat(),
+        "delivery_method": delivery_method,
         "free_delivery_remaining": max(Decimal("0"), threshold - subtotal)
         if threshold is not None
         else None,
@@ -152,6 +169,7 @@ def quote_snapshot(lines, totals):
         ),
         "totals": {key: str(totals[key]) for key in ("subtotal", "delivery_fee", "tax", "total")},
         "policy_revision": totals["policy_revision"],
+        "delivery_method": totals["delivery_method"],
     }
 
 
@@ -181,6 +199,7 @@ def place_order(items, details, user, browser_owner, accepted_quote):
                 key: details[key] for key in ("address", "landmark", "city", "postal_code", "notes")
             },
             "payment_method": details["payment_method"],
+            "delivery_method": details["delivery_method"],
             "request_fingerprint": fingerprint,
         },
     )
@@ -196,14 +215,18 @@ def place_order(items, details, user, browser_owner, accepted_quote):
     if details["payment_method"] != "cod" or not policy or not policy.cash_on_delivery:
         raise CheckoutError("The selected payment method is not available.")
     lines = priced_items(items, lock=True)
-    totals = policy_totals(lines, policy, details["city"])
+    totals = policy_totals(lines, policy, details["city"], details["delivery_method"])
     if quote_snapshot(lines, totals) != accepted_quote:
         raise CheckoutError(
             "Prices or delivery charges changed. Review the refreshed total before placing your order again."
         )
     order.subtotal, order.delivery_fee = totals["subtotal"], totals["delivery_fee"]
     order.tax, order.total = totals["tax"], totals["total"]
-    if policy.delivery_radius_km is not None and policy.distance_verification == "manual":
+    if (
+        details["delivery_method"] == "delivery"
+        and policy.delivery_radius_km is not None
+        and policy.distance_verification == "manual"
+    ):
         order.status = "delivery_review"
     order.policy_snapshot = {
         "tax_rate": str(policy.tax_rate),
@@ -213,6 +236,8 @@ def place_order(items, details, user, browser_owner, accepted_quote):
         if policy.free_delivery_threshold is not None
         else None,
         "allowed_cities": policy.allowed_cities,
+        "pickup_fee": str(policy.pickup_fee),
+        "pickup_minimum_order": str(policy.pickup_minimum_order),
         "origin_latitude": str(policy.origin_latitude)
         if policy.origin_latitude is not None
         else None,

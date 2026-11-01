@@ -13,6 +13,9 @@ Tracker: https://github.com/MuhammadTayyab-SE/retail_website_application/issues/
 - Permission-controlled admin management for the retailer-local DeliveryPolicy.
 - Configure enable/disable, delivery fee, nullable free-delivery threshold,
   minimum order, allowed cities, tax rate and cash-on-delivery availability.
+- Configure Store Pickup availability, fee and minimum. Current approved values:
+  enabled, free, no minimum. Add Instant availability, fee and timing controls
+  before enabling that slot; its fee and delivery timing are not approved yet.
 - Validate nonnegative monetary rules, 0–100 percent tax, valid city lists and
   blank threshold as no free-delivery promotion. No invented defaults.
 - Preview checkout effects before saving; audit changes and validate permissions.

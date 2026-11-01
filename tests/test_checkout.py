@@ -70,10 +70,16 @@ class CheckoutTests(TestCase):
         self.product, self.policy = fixture()
         self.items = [{"id": f"live-{self.product.pk}", "quantity": 2}]
 
-    def quote(self, items=None, client=None):
+    def quote(self, items=None, client=None, method="delivery"):
         return (client or self.client).post(
             reverse("checkout-quote"),
-            data=json.dumps({"items": self.items if items is None else items, "city": "Lahore"}),
+            data=json.dumps(
+                {
+                    "items": self.items if items is None else items,
+                    "city": "Lahore",
+                    "delivery_method": method,
+                }
+            ),
             content_type="application/json",
         )
 
@@ -258,9 +264,10 @@ class CheckoutTests(TestCase):
         Product.objects.filter(pk=self.product.pk).update(
             price=1000, is_on_sale=False, discount_percentage=None, quantity=10
         )
-        self.assertEqual(
-            self.quote([{"id": f"live-{self.product.pk}", "quantity": 1}]).status_code, 400
-        )
+        below = self.quote([{"id": f"live-{self.product.pk}", "quantity": 1}])
+        self.assertEqual(below.status_code, 200)
+        self.assertFalse(below.json()["can_place_order"])
+        self.assertEqual(len(below.json()["items"]), 1)
         self.assertEqual(self.quote().json()["total"], "2200.00")
         free = self.quote([{"id": f"live-{self.product.pk}", "quantity": 5}]).json()
         self.assertEqual(free["delivery_fee"], "0.00")
@@ -300,6 +307,9 @@ class CheckoutTests(TestCase):
 
     def test_configuration_command_validates_rules_without_partial_updates(self):
         rules = {
+            "pickup_enabled": True,
+            "pickup_fee": "0.00",
+            "pickup_minimum_order": "0.00",
             "enabled": True,
             "cash_on_delivery": True,
             "delivery_fee": "200.00",
@@ -324,6 +334,74 @@ class CheckoutTests(TestCase):
                 call_command("configure_checkout", str(path))
             self.policy.refresh_from_db()
             self.assertEqual(self.policy.delivery_fee, Decimal("200.00"))
+
+    def test_below_minimum_still_returns_summary_and_blocks_order(self):
+        self.policy.minimum_order = 1500
+        self.policy.save()
+        quote = self.quote()
+        self.assertEqual(quote.status_code, 200)
+        data = quote.json()
+        self.assertEqual(data["items"][0]["name"], self.product.name)
+        self.assertEqual(data["subtotal"], "150.00")
+        self.assertFalse(data["can_place_order"])
+        self.assertIn("minimum order", data["error"])
+        self.assertEqual(self.place(self.payload()).status_code, 409)
+
+    def test_pickup_is_free_without_minimum_or_delivery_address(self):
+        self.policy.pickup_enabled = True
+        self.policy.minimum_order = 1500
+        self.policy.save()
+        self.client.get(reverse("checkout"))
+        quote = self.quote(method="pickup").json()
+        self.assertTrue(quote["can_place_order"])
+        self.assertEqual(quote["delivery_fee"], "0.00")
+        self.assertIsNone(quote["free_delivery_remaining"])
+        values = details(self.client.session["checkout_attempt"])
+        values.update(delivery_method="pickup")
+        values.pop("address")
+        values.pop("city")
+        response = self.place(
+            {"items": self.items, "details": values, "quote_token": quote["quote_token"]}
+        )
+        self.assertEqual(response.status_code, 200)
+        order = Order.objects.get()
+        self.assertEqual(order.delivery_method, "pickup")
+        self.assertEqual(order.address["address"], "")
+        self.assertEqual(order.delivery_fee, Decimal("0.00"))
+        self.assertEqual(order.status, "placed")
+        self.assertContains(
+            self.client.get(response.json()["confirmation_url"]), "Payment is due at pickup"
+        )
+
+    def test_online_methods_and_unavailable_instant_cannot_place_order(self):
+        payload = self.payload()
+        for name in ("card", "wallet", "jazzcash", "easypaisa"):
+            payload["details"]["payment_method"] = name
+            self.assertEqual(self.place(payload).status_code, 400)
+        payload["details"].update(payment_method="cod", delivery_method="instant")
+        self.assertEqual(self.place(payload).status_code, 400)
+        self.assertFalse(Order.objects.exists())
+
+    def test_template_shows_slots_and_noncollecting_online_payment_previews(self):
+        self.policy.pickup_enabled = True
+        self.policy.save()
+        response = self.client.get(reverse("checkout"))
+        for text in (
+            "Your order summary",
+            "Standard",
+            "Instant",
+            "Store Pickup",
+            "Credit / Debit Card",
+            "JazzCash / Easypaisa / Raast",
+            "Card number",
+            "Expiry date",
+            "CVV / CVC",
+            "Mobile wallet account number",
+        ):
+            self.assertContains(response, text)
+        self.assertContains(response, '<fieldset disabled class="checkout-fields">')
+        self.assertNotContains(response, 'name="card_number"')
+        self.assertNotContains(response, 'name="cvv"')
 
 
 class CheckoutConcurrencyTests(TransactionTestCase):

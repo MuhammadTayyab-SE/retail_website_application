@@ -7,9 +7,9 @@
   <title>Checkout — Zilly</title>
   {% include 'catalog/home02/snapshot/styles.html' %}
   <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=58">
-  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}">
+  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}?v=2">
   <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=48"></script>
-  <script defer src="{% static 'catalog/checkout/checkout.js' %}"></script>
+  <script defer src="{% static 'catalog/checkout/checkout.js' %}?v=2"></script>
 </head>
 {% include 'catalog/home02/snapshot/header.html' %}
 <main class="checkout-page">
@@ -36,15 +36,30 @@
           <div class="checkout-fields">
             <div><label for="{{ form.first_name.id_for_label }}">First name <span aria-hidden="true">*</span></label>{{ form.first_name }}{{ form.first_name.errors }}</div>
             <div><label for="{{ form.last_name.id_for_label }}">Last name <span aria-hidden="true">*</span></label>{{ form.last_name }}{{ form.last_name.errors }}</div>
-            <div class="checkout-field-wide"><label for="{{ form.address.id_for_label }}">Street address / house number <span aria-hidden="true">*</span></label>{{ form.address }}{{ form.address.errors }}</div>
-            <div class="checkout-field-wide"><label for="{{ form.landmark.id_for_label }}">Apartment or landmark <small>(optional)</small></label>{{ form.landmark }}{{ form.landmark.errors }}</div>
-            <div><label for="{{ form.city.id_for_label }}">City <span aria-hidden="true">*</span></label>{{ form.city }}{{ form.city.errors }}</div>
-            <div><label for="{{ form.postal_code.id_for_label }}">Postal code <small>(optional)</small></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div>
+            <div class="checkout-field-wide checkout-delivery-only"><label for="{{ form.address.id_for_label }}">Street address / house number <span aria-hidden="true">*</span></label>{{ form.address }}{{ form.address.errors }}</div>
+            <div class="checkout-field-wide checkout-delivery-only"><label for="{{ form.landmark.id_for_label }}">Apartment or landmark <small>(optional)</small></label>{{ form.landmark }}{{ form.landmark.errors }}</div>
+            <div class="checkout-delivery-only"><label for="{{ form.city.id_for_label }}">City <span aria-hidden="true">*</span></label>{{ form.city }}{{ form.city.errors }}</div>
+            <div class="checkout-delivery-only"><label for="{{ form.postal_code.id_for_label }}">Postal code <small>(optional)</small></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div>
             <div class="checkout-field-wide"><label for="{{ form.notes.id_for_label }}">Delivery instructions <small>(optional)</small></label>{{ form.notes }}{{ form.notes.errors }}</div>
           </div>
         </section>
-        <section class="checkout-section" aria-labelledby="checkout-delivery-title"><h2 id="checkout-delivery-title"><span>3</span> Delivery</h2><div id="checkout-delivery-options">{{ form.delivery_method }}{{ form.delivery_method.errors }}</div>{% if delivery_radius_km %}<p class="checkout-total-note">Delivery is limited to {{ delivery_radius_km|floatformat:0 }} km driving distance from the store. The store will verify your address and confirm delivery after receiving your order.</p>{% endif %}</section>
-        <section class="checkout-section" aria-labelledby="checkout-payment-title"><h2 id="checkout-payment-title"><span>4</span> Payment method</h2><div id="checkout-payment-options">{{ form.payment_method }}{{ form.payment_method.errors }}</div></section>
+        <section class="checkout-section" aria-labelledby="checkout-delivery-title">
+          <h2 id="checkout-delivery-title"><span>3</span> Preferred delivery slot</h2>
+          <div id="checkout-delivery-options" class="checkout-slot-grid">
+            {% for option in form.delivery_method %}{% if option.data.value == 'delivery' %}<label class="checkout-slot">{{ option.tag }}<span><strong>Standard</strong><small>Home delivery</small><b>{% if standard_fee != None %}PKR {{ standard_fee|floatformat:2 }}{% else %}Fee to be confirmed{% endif %}</b></span></label>{% endif %}{% endfor %}
+            <label class="checkout-slot checkout-option-unavailable"><input type="radio" disabled aria-label="Instant delivery unavailable"><span><strong>Instant</strong><small>Currently unavailable</small><b>Timing and fee to be confirmed</b></span></label>
+            {% for option in form.delivery_method %}{% if option.data.value == 'pickup' %}<label class="checkout-slot">{{ option.tag }}<span><strong>Store Pickup</strong><small>Collect from the store</small><b>{% if pickup_fee == 0 %}FREE{% else %}PKR {{ pickup_fee|floatformat:2 }}{% endif %}</b></span></label>{% endif %}{% endfor %}
+          </div>{{ form.delivery_method.errors }}
+          {% if delivery_radius_km %}<p class="checkout-total-note checkout-delivery-only">Delivery is limited to {{ delivery_radius_km|floatformat:0 }} km driving distance from the store. The store will verify your address and confirm delivery after receiving your order.</p>{% endif %}
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-payment-title">
+          <h2 id="checkout-payment-title"><span>4</span> Payment method</h2>
+          <div id="checkout-payment-options" class="checkout-payments">
+            {% for option in form.payment_method %}<label class="checkout-payment-option checkout-cash-option">{{ option.tag }}<span><strong>Cash on Delivery (COD) / Pickup</strong><small>Pay in cash when your groceries arrive or when you collect them.</small></span><i class="fas fa-money-bill-wave" aria-hidden="true"></i></label>{% endfor %}
+            <details class="checkout-payment-option checkout-online-preview"><summary><i class="far fa-credit-card" aria-hidden="true"></i><span><strong>Credit / Debit Card</strong><small>Visa, Mastercard and UnionPay · Coming soon</small></span><i class="fas fa-chevron-down checkout-payment-chevron" aria-hidden="true"></i></summary><p>Online card payments are not available yet. Choose cash to place your order.</p><fieldset disabled class="checkout-fields"><legend>Card details preview</legend><div class="checkout-field-wide"><label>Card number<input type="text" placeholder="Card number" autocomplete="off"></label></div><div><label>Expiry date<input type="text" placeholder="MM / YY" autocomplete="off"></label></div><div><label>CVV / CVC<input type="password" placeholder="CVV" autocomplete="off"></label></div></fieldset></details>
+            <details class="checkout-payment-option checkout-online-preview"><summary><i class="fas fa-mobile-alt" aria-hidden="true"></i><span><strong>JazzCash / Easypaisa / Raast</strong><small>Mobile wallet payments · Coming soon</small></span><i class="fas fa-chevron-down checkout-payment-chevron" aria-hidden="true"></i></summary><p>Pay through a supported wallet once online payments are connected. This option is not currently available.</p><div class="checkout-wallet-brands"><span>JazzCash</span><span>Easypaisa</span><span>Raast</span></div><fieldset disabled class="checkout-fields"><legend>Wallet details preview</legend><div class="checkout-field-wide"><label>Mobile wallet account number<input type="tel" placeholder="03XX XXXXXXX" autocomplete="off"></label></div></fieldset></details>
+          </div>{{ form.payment_method.errors }}
+        </section>
       </div>
       <aside class="checkout-summary" aria-labelledby="checkout-summary-title">
         <div class="checkout-summary-heading"><h2 id="checkout-summary-title">Your order summary</h2><span id="checkout-item-count"></span></div>

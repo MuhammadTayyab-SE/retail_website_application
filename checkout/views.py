@@ -60,6 +60,8 @@ def checkout_page(request):
             "form": form,
             "checkout_enabled": bool(policy and policy.enabled and policy.cash_on_delivery),
             "delivery_radius_km": policy.delivery_radius_km if policy else None,
+            "standard_fee": policy.delivery_fee if policy else None,
+            "pickup_fee": policy.pickup_fee if policy else None,
             "homepage_categories": [
                 entry for entry in storefront_categories() if entry["category"].parent_id is None
             ],
@@ -74,7 +76,15 @@ def checkout_quote(request):
         data = request_json(request)
         lines = priced_items(data.get("items"))
         policy = DeliveryPolicy.objects.filter(pk=1).first()
-        totals = policy_totals(lines, policy, str(data.get("city", "")))
+        method = str(data.get("delivery_method", "delivery"))
+        totals = policy_totals(
+            lines, policy, str(data.get("city", "")), method, enforce_rules=False
+        )
+        eligibility_error = ""
+        try:
+            policy_totals(lines, policy, str(data.get("city", "")), method)
+        except CheckoutError as error:
+            eligibility_error = str(error)
     except CheckoutError as error:
         return JsonResponse({"error": str(error)}, status=400)
     return JsonResponse(
@@ -95,6 +105,8 @@ def checkout_quote(request):
             ],
             **totals,
             "tax_rate": policy.tax_rate,
+            "can_place_order": not bool(eligibility_error),
+            "error": eligibility_error,
             "quote_token": signing.dumps(quote_snapshot(lines, totals), salt="checkout-quote"),
         }
     )

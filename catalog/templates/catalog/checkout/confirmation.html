@@ -5,8 +5,8 @@
 <body>
 <main class="checkout-page"><div class="container checkout-confirmation">
   <p class="checkout-eyebrow">ORDER RECEIVED</p><h1>Thank you for your order.</h1>
-  <p>{% if order.status == 'delivery_review' %}Your order is pending delivery-distance review. The store will verify your address and confirm delivery.{% else %}Your order has been received.{% endif %} Payment is due on delivery.</p>
-  <section class="checkout-section"><h2>{{ order.number }}</h2><p>{{ order.contact.first_name }} {{ order.contact.last_name }}</p><p>{{ order.address.address }}{% if order.address.landmark %}, {{ order.address.landmark }}{% endif %}, {{ order.address.city }}</p><p>Cash on delivery · Payment status: unpaid</p>
+  <p>{% if order.delivery_method == 'pickup' %}Your pickup order has been received. The store will confirm when it is ready for collection. Payment is due at pickup.{% elif order.status == 'delivery_review' %}Your order is pending delivery-distance review. The store will verify your address and confirm delivery. Payment is due on delivery.{% else %}Your order has been received. Payment is due on delivery.{% endif %}</p>
+  <section class="checkout-section"><h2>{{ order.number }}</h2><p>{{ order.contact.first_name }} {{ order.contact.last_name }}</p>{% if order.delivery_method == 'pickup' %}<p>Store Pickup · Cash on collection</p>{% else %}<p>{{ order.address.address }}{% if order.address.landmark %}, {{ order.address.landmark }}{% endif %}, {{ order.address.city }}</p><p>Standard delivery · Cash on delivery</p>{% endif %}<p>Payment status: unpaid</p>
     <div class="checkout-receipt-items">{% for item in order.items.all %}<div><span>{{ item.name }} × {{ item.quantity }}</span><strong>PKR {{ item.line_total|floatformat:2 }}</strong></div>{% endfor %}</div>
     <dl class="checkout-totals"><div><dt>Subtotal</dt><dd>PKR {{ order.subtotal|floatformat:2 }}</dd></div><div><dt>Delivery</dt><dd>PKR {{ order.delivery_fee|floatformat:2 }}</dd></div><div><dt>Tax</dt><dd>PKR {{ order.tax|floatformat:2 }}</dd></div><div class="checkout-grand-total"><dt>Amount payable</dt><dd>PKR {{ order.total|floatformat:2 }}</dd></div></dl>
   </section>

@@ -17,6 +17,13 @@ class DeliveryPolicy(models.Model):
         max_digits=12, decimal_places=2, null=True, blank=True
     )
     minimum_order = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    pickup_enabled = models.BooleanField(default=False)
+    pickup_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)]
+    )
+    pickup_minimum_order = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)]
+    )
     tax_rate = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -107,6 +114,11 @@ class Order(models.Model):
     contact = models.JSONField()
     address = models.JSONField()
     payment_method = models.CharField(max_length=24)
+    delivery_method = models.CharField(
+        max_length=16,
+        default="delivery",
+        choices=[("delivery", "Standard"), ("pickup", "Store Pickup")],
+    )
     payment_status = models.CharField(max_length=24, default="unpaid")
     status = models.CharField(max_length=24, default="placed")
     subtotal = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))

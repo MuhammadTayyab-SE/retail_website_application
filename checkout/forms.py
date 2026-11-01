@@ -34,18 +34,33 @@ class CheckoutForm(forms.Form):
         required=False, max_length=2000, widget=forms.Textarea(attrs={"rows": 3})
     )
     delivery_method = forms.ChoiceField(
-        choices=[("delivery", "Home delivery")], widget=forms.RadioSelect
+        choices=[("delivery", "Standard")], widget=forms.RadioSelect
     )
     payment_method = forms.ChoiceField(choices=(), widget=forms.RadioSelect)
     idempotency_key = forms.UUIDField(widget=forms.HiddenInput)
 
     def __init__(self, *args, policy=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if policy and policy.pickup_enabled:
+            self.fields["delivery_method"].choices = [
+                ("delivery", "Standard"),
+                ("pickup", "Store Pickup"),
+            ]
+        pickup = self.is_bound and self.data.get("delivery_method") == "pickup"
+        for name in ("address", "city"):
+            self.fields[name].required = not pickup
         self.fields["payment_method"].choices = (
-            [("cod", "Cash on delivery — pay when your order arrives")]
+            [("cod", "Cash on delivery / pickup")]
             if policy is None or policy.cash_on_delivery
             else []
         )
+
+    def clean(self):
+        values = super().clean()
+        if values.get("delivery_method") == "pickup":
+            for name in ("address", "landmark", "city", "postal_code"):
+                values[name] = ""
+        return values
 
     def clean_phone(self):
         value = self.cleaned_data["phone"].strip()
