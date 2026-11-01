@@ -4,10 +4,6 @@
   {% else %}
   <span class="homepage-card-cart homepage-card-cart-unavailable" aria-disabled="true">
   {% endif %}
-    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 4-4 6m12-6 4 6M3 10h18l-2 10H5L3 10Z"/><path d="M9 13v4m6-4v4"/></svg>
-    <span>{% if product.quantity %}Add to Cart{% else %}Out of stock{% endif %}</span>
+    <span>{% if product.quantity %}Add to cart{% else %}Out of stock{% endif %}</span>
   {% if product.quantity %}</a>{% else %}</span>{% endif %}
-  <a href="#" class="homepage-card-wishlist rtsb-wishlist-btn" aria-label="Save {{ product.name }} to wishlist" aria-pressed="false" title="Add to Wishlist">
-    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/></svg>
-  </a>
 </div>
