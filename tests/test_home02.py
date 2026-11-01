@@ -1,10 +1,34 @@
 from decimal import Decimal
 
+from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from catalog.models import Category, Product
+
+
+class Home02QARegressionTests(SimpleTestCase):
+    def test_preview_basket_keeps_count_without_an_unsupported_total(self):
+        html = render_to_string("catalog/home02/snapshot/overlays.html")
+        self.assertIn('class="rtsb-cart-icon-num"', html)
+        self.assertNotIn('class="rtsb-cart-icon-total"', html)
+        self.assertNotIn("woocommerce-Price-amount", html)
+
+    def test_search_anchor_contains_results_even_when_search_is_empty(self):
+        for query in ("", "zzzz-no-product-qa"):
+            with self.subTest(query=query):
+                html = render_to_string(
+                    "catalog/home02/snapshot/featured-and-sidebar.html",
+                    {"query": query, "page_obj": Paginator([], 12).get_page(1)},
+                )
+                self.assertEqual(html.count('id="products"'), 1)
+                results = html.split('id="products"', 1)[1]
+                self.assertIn('id="rtsb-container-138192095"', results)
+                if query:
+                    self.assertIn('class="homepage-results"', results)
+                    self.assertIn("No matching products. Choose another category or search.", results)
+                    self.assertIn("Show all products", results)
 
 
 class DiscountTicketTemplateTests(SimpleTestCase):

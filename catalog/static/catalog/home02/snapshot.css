@@ -10,10 +10,12 @@
   background: #fff;
   box-shadow: 0 2px 12px #0001;
 }
+.page-id-178 #products,
 .page-id-178 .rtsb-products-container {
   scroll-margin-top: 180px;
 }
 @media (max-width: 1024px) {
+  .page-id-178 #products,
   .page-id-178 .rtsb-products-container { scroll-margin-top: 100px; }
 }
 .elementor-invisible,
