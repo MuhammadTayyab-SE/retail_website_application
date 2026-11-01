@@ -1,0 +1,272 @@
+{% extends 'catalog/storefront/base.html' %}
+{% load static %}
+{% block content %}
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow">
+        YOUR EVERYDAY GROCERY EDIT
+      </p>
+      <h1 id="hero-title">
+        Good things
+        <br>
+        start in the
+        <em>
+          kitchen.
+        </em>
+      </h1>
+      <p>
+        Discover ingredients, find your favourites,
+        <br>
+        and give your next meal a fresh beginning.
+      </p>
+      <a class="button" href="#products">
+        Explore the catalogue
+        <span aria-hidden="true">
+          →
+        </span>
+      </a>
+      <span class="hero-footnote">
+        A world of possibilities, one basket at a time.
+      </span>
+    </div>
+    <img class="hero-art" src="{% static 'catalog/market-basket.svg' %}" alt="Illustration of a basket filled with vegetables" width="620" height="500">
+    <span class="hero-label" aria-hidden="true">
+      A little
+      <br>
+      <strong>
+        everyday inspiration
+      </strong>
+    </span>
+  </section>
+  <section id="categories" class="section" aria-labelledby="categories-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">
+          FIND YOUR FAVOURITES
+        </p>
+        <h2 id="categories-title">
+          Shop by category
+        </h2>
+      </div>
+      <a href="#products">
+        Browse all products
+        <span aria-hidden="true">
+          →
+        </span>
+      </a>
+    </div>
+    <div class="category-grid">
+      {% for entry in category_cards %}
+        <a class="category-card" href="{% url 'storefront-catalogue' %}?category={{ entry.category.pk }}#products">
+          <span class="category-image">
+            {% if entry.category.photo %}
+              <img src="{% url 'public-category-photo' entry.category.pk %}" alt="" loading="lazy" width="100" height="100" style="object-position:{{ entry.category.photo_x }}% {{ entry.category.photo_y }}%;transform:scale({{ entry.category.photo_zoom }}%)">
+            {% else %}
+              <span aria-hidden="true">
+                ✳
+              </span>
+            {% endif %}
+          </span>
+          <strong>
+            {{ entry.category.name }}
+          </strong>
+          <span class="category-cta">
+            Explore
+            <span aria-hidden="true">
+              ↗
+            </span>
+          </span>
+        </a>
+      {% empty %}
+        <div class="empty-state">
+          <h3>
+            Something good is on its way
+          </h3>
+          <p>
+            Categories will appear here when the store adds them.
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  <div class="promo-grid">
+    <section class="promo promo-green">
+      <p class="eyebrow">
+        MAKE YOUR NEXT MEAL
+      </p>
+      <h2>
+        A new recipe.
+        <br>
+        A familiar favourite.
+      </h2>
+      <a href="#products">
+        Find your ingredients
+        <span aria-hidden="true">
+          →
+        </span>
+      </a>
+      <span aria-hidden="true" class="promo-art">
+        ✳
+      </span>
+    </section>
+    <section class="promo promo-peach">
+      <p class="eyebrow">
+        YOUR KITCHEN, YOUR WAY
+      </p>
+      <h2>
+        Everyday essentials.
+        <br>
+        Endless possibilities.
+      </h2>
+      <a href="#categories">
+        Explore the categories
+        <span aria-hidden="true">
+          →
+        </span>
+      </a>
+      <span aria-hidden="true" class="promo-art">
+        ◉
+      </span>
+    </section>
+  </div>
+  <section id="products" class="section" aria-labelledby="products-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">
+          THE STORE CUPBOARD
+        </p>
+        <h2 id="products-title">
+          {% if query %}
+            Search results
+          {% elif selected_category %}
+            {{ selected_category.name }}
+          {% else %}
+            Explore our products
+          {% endif %}
+        </h2>
+      </div>
+      <span class="result-count">
+        {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }}
+      </span>
+    </div>
+    <form class="filters" method="get" action="{% url 'storefront-catalogue' %}#products">
+      <input type="hidden" name="q" value="{{ query }}">
+      <label for="category">
+        Category
+      </label>
+      <select name="category" id="category">
+        <option value="">
+          All categories
+        </option>
+        {% for entry in categories %}
+          <option value="{{ entry.category.pk }}" {% if selected_category.pk == entry.category.pk %} selected {% endif %} >
+            {{ entry.path }}
+          </option>
+        {% endfor %}
+      </select>
+      <button type="submit">
+        Apply filter
+      </button>
+      {% if selected or query %}
+        <a href="{% url 'storefront-catalogue' %}#products">
+          Clear filters
+        </a>
+      {% endif %}
+    </form>
+    {% if query %}
+      <p class="search-context">
+        Results for “{{ query }}”
+      </p>
+    {% endif %}
+    {% if invalid_category %}
+      <p class="filter-message" role="status">
+        That category is unavailable. Choose an available category or clear your filters.
+      </p>
+    {% endif %}
+    <div class="product-grid">
+      {% for product in page_obj %}
+        {% include 'catalog/storefront/product_card.html' %}
+      {% empty %}
+        <div class="empty-state">
+          <h3>
+            {% if query or selected %}
+              No matching products
+            {% else %}
+              The shelves are getting ready
+            {% endif %}
+          </h3>
+          <p>
+            {% if query or selected %}
+              Try another search or browse all products.
+            {% else %}
+              Available products will appear here as the store adds them.
+            {% endif %}
+          </p>
+          {% if query or selected %}
+            <a class="button" href="{% url 'storefront-catalogue' %}#products">
+              Browse all products
+            </a>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Product pages">
+        {% if page_obj.has_previous %}
+          <a href="?q={{ query|urlencode }}&amp;category={{ selected|urlencode }}&amp;page={{ page_obj.previous_page_number }}#products">
+            ← Previous
+          </a>
+        {% endif %}
+        <span>
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        {% if page_obj.has_next %}
+          <a href="?q={{ query|urlencode }}&amp;category={{ selected|urlencode }}&amp;page={{ page_obj.next_page_number }}#products">
+            Next →
+          </a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+  {% if sale_products %}
+    <section class="section sale-section" aria-labelledby="sales-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">
+            A LITTLE MORE FOR LESS
+          </p>
+          <h2 id="sales-title">
+            Currently on sale
+          </h2>
+        </div>
+        <span class="sale-caption">
+          Offers from the store catalogue
+        </span>
+      </div>
+      <div class="product-grid">
+        {% for product in sale_products %}
+          {% include 'catalog/storefront/product_card.html' %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+  <aside class="closing-note">
+    <span aria-hidden="true">
+      ✳
+    </span>
+    <div>
+      <p class="eyebrow">
+        FROM YOUR LIST TO YOUR KITCHEN
+      </p>
+      <h2>
+        Find your next everyday favourite.
+      </h2>
+      <p>
+        Explore the catalogue and see what catches your eye.
+      </p>
+    </div>
+    <a class="button" href="#products">
+      Back to products ↑
+    </a>
+  </aside>
+{% endblock %}

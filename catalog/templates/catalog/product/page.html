@@ -1,0 +1,55 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ product.name }} — Zilly</title>
+  {% include 'catalog/home02/snapshot/styles.html' %}
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=22">
+  <link rel="stylesheet" href="{% static 'catalog/product/product.css' %}?v=2">
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=22"></script>
+  <script defer src="{% static 'catalog/product/product.js' %}"></script>
+</head>
+{% include 'catalog/home02/snapshot/header.html' %}
+<main id="content" class="product-page">
+  <div class="product-breadcrumb"><div class="container"><nav aria-label="Breadcrumb"><a href="{% url 'home' %}" data-live-catalogue>Home</a><span>›</span><a href="{% url 'shop' %}" data-live-shop>Shop</a><span>›</span><span>{{ product.name }}</span></nav></div></div>
+  <div class="container product-layout">
+    <section class="product-gallery" aria-label="Product images">
+      <button type="button" class="product-main-image" id="product-zoom" aria-label="Enlarge product image" {% if not selected_photos %}disabled{% endif %}>
+        <img id="product-image" {% if selected_photos %}src="{{ selected_photos.0.src }}" alt="{{ selected_photos.0.alt }}"{% else %}hidden alt=""{% endif %}>
+        <span id="product-no-image" {% if selected_photos %}hidden{% endif %}>No photo available</span>
+        <span class="product-zoom-hint" aria-hidden="true">⌕</span>
+      </button>
+      <div class="product-gallery-controls"><button type="button" data-gallery-step="-1" aria-label="Previous image">‹</button><span id="product-image-count" role="status"></span><button type="button" data-gallery-step="1" aria-label="Next image">›</button></div>
+      <div id="product-thumbnails" class="product-thumbnails">{% for photo in selected_photos %}<a href="{{ photo.src }}"><img src="{{ photo.src }}" alt="{{ photo.alt }}" width="80" height="80"></a>{% endfor %}</div>
+    </section>
+    <section class="product-summary" aria-labelledby="product-name">
+      <a class="product-category" href="{% url 'shop' %}?category={{ product.category_id }}" data-live-shop>{{ product.category.name }}</a>
+      <h1 id="product-name">{{ product.name }}</h1>
+      <p class="product-availability {% if not product.quantity %}unavailable{% endif %}">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · Sold per {{ product.get_unit_display }}{% endif %}</p>
+      <div class="product-price-group" aria-live="polite"><strong id="product-price">PKR {{ selected_option.price }}</strong><del id="product-regular-price" {% if not product.is_on_sale %}hidden{% endif %}>PKR {{ selected_option.regular_price }}</del>{% if product.is_on_sale %}<span class="product-discount">-{{ product.discount_percentage }}%</span>{% endif %}</div>
+      <p id="product-description" class="product-description">{{ selected_option.description|default:'No description available.' }}</p>
+      {% if has_variants %}
+      <fieldset class="product-variants"><legend>Choose your options</legend><p>View an option to explore its photos and details. Select one or more to add to your basket.</p>
+        {% for option in options %}<div class="product-variant-row" data-variant-row="{{ option.id }}">
+          <input type="checkbox" id="variant-{{ option.id }}" value="{{ option.id }}" class="product-variant-check" {% if option.id == selected_option.id %}checked{% endif %} {% if not product.quantity %}disabled{% endif %} aria-label="Include {{ option.label }}">
+          <button type="button" class="product-variant-view" data-variant="{{ option.id }}" aria-pressed="{% if option.id == selected_option.id %}true{% else %}false{% endif %}"><span>{{ option.label }}</span><small>PKR {{ option.price }}</small></button>
+          <input type="number" min="1" max="{{ product.quantity|default:1 }}" value="1" class="product-variant-quantity" aria-label="Quantity for {{ option.label }}" {% if not product.quantity %}disabled{% endif %}>
+        </div>{% endfor %}
+      </fieldset>
+      {% else %}<label class="product-single-quantity">Quantity <input id="product-quantity" type="number" value="1" min="1" max="{{ product.quantity|default:1 }}" {% if not product.quantity %}disabled{% endif %}></label>{% endif %}
+      <div class="product-purchase"><button type="button" id="product-add" {% if not product.quantity %}disabled{% endif %}><i class="icon-zilly-cart" aria-hidden="true"></i> {% if product.quantity %}Add to Cart{% else %}Out of stock{% endif %}</button><span id="product-selection-total" aria-live="polite"></span></div>
+      <p class="product-basket-note">Basket preview · Checkout is not available yet.</p>
+      <dl class="product-meta"><div><dt>SKU:</dt><dd id="product-sku">{{ selected_option.sku|default:'—' }}</dd></div><div><dt>Category:</dt><dd>{{ product.category.name }}</dd></div></dl>
+      <a href="{% url 'shop' %}" class="product-back" data-live-shop>← Continue shopping</a>
+    </section>
+  </div>
+</main>
+{% include 'catalog/home02/snapshot/footer.html' %}
+{{ product_data|json_script:'product-data' }}
+<dialog id="product-lightbox" aria-label="Enlarged product image"><button type="button" id="product-lightbox-close" aria-label="Close image viewer">×</button><img id="product-lightbox-image" alt=""><div><button type="button" data-gallery-step="-1" aria-label="Previous enlarged image">‹</button><span id="product-lightbox-count"></span><button type="button" data-gallery-step="1" aria-label="Next enlarged image">›</button></div></dialog>
+<dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title"><button class="snapshot-dialog-close" aria-label="Close">×</button><h2 id="snapshot-dialog-title"></h2><p id="snapshot-dialog-message"></p><p class="snapshot-preview-note">Basket preview. Checkout will be connected later.</p></dialog>
+<div id="snapshot-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{% load static %}
+<div id="homepage-hero-slider" class="swiper homepage-hero-slider" role="region" aria-roledescription="carousel" aria-label="Featured promotions">
+  <div class="swiper-wrapper">
+    {% for product in homepage_hero_products %}
+    <div class="swiper-slide">
+      <a href="{% url 'shop' %}?category={{ product.category.name|urlencode:'' }}" class="rt-hero-banner homepage-hero-image-slide" data-live-shop aria-label="Shop {{ product.category.name }} and related products">
+        {% with photo=product.photos.all.0 %}<span class="image-scale"><img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" width="810" height="520" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"></span>{% endwith %}
+      </a>
+    </div>
+    {% empty %}<div class="swiper-slide"><p class="homepage-empty">No product photos are available yet.</p></div>{% endfor %}
+  </div>
+  <button type="button" class="homepage-hero-prev homepage-hero-arrow" aria-label="Previous promotion"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 5-7 7 7 7"/></svg></button>
+  <button type="button" class="homepage-hero-next homepage-hero-arrow" aria-label="Next promotion"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 5 7 7-7 7"/></svg></button>
+  <div class="homepage-hero-pagination swiper-pagination"></div>
+</div>

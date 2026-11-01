@@ -1,0 +1,4 @@
+<li data-slug="" role="option" tabindex="0">All Categories</li>
+{% for entry in homepage_categories %}
+<li data-slug="{{ entry.category.pk }}" role="option" tabindex="0"><span>{{ entry.path }}</span></li>
+{% endfor %}

@@ -1,0 +1,35 @@
+{% load static %}
+<div id="content" class="site-content normal">
+
+    <div class="entry-banner opacity-off">
+        <div class="container">
+            <div class="entry-banner-content">
+                                    <div class="breadcrumb-area"><div class="entry-breadcrumb"><span property="itemListElement" typeof="ListItem"><a property="item" typeof="WebPage" title="Go to zilly." href="{% url 'home' %}" data-live-catalogue class="home" ><span property="name">Home</span></a><meta property="position" content="1"></span><span class="dvdr"> <i class="icon-zilly-right-arrow"></i> </span><span property="itemListElement" typeof="ListItem"><span property="name" class="archive post-product-archive current-item">Shop</span><meta property="url" content="https://www.radiustheme.com/demo/wordpress/themes/zilly/shop/"><meta property="position" content="2"></span></div></div>                                           </div>
+        </div>
+    </div>
+                <div id="rtsb-builder-content" class="rtsb-builder-content content-invisible">
+            <!-- Before Content start -->
+        <div class="shop">
+                <div data-elementor-type="wp-post" data-elementor-id="557" class="elementor elementor-557">
+                <div class="elementor-element elementor-element-cf94edb e-flex e-con-boxed e-con e-parent" data-id="cf94edb" data-element_type="container" data-e-type="container">
+                    <div class="e-con-inner">
+        <div class="elementor-element elementor-element-048991c e-con-full rtsb-sticky-element e-flex e-con e-child" data-id="048991c" data-element_type="container" data-e-type="container">
+                <div class="elementor-element elementor-element-81a4f8b zilly-filter-sidebar-shadow elementor-widget elementor-widget-rtsb-ajax-product-filters" data-id="81a4f8b" data-element_type="widget" data-e-type="widget" data-widget_type="rtsb-ajax-product-filters.default">
+                <div class="elementor-widget-container">
+                    {% include 'catalog/shop/filters.html' %}               </div>
+                </div>
+                </div>
+        <div class="elementor-element elementor-element-eda8704 e-con-full e-flex e-con e-child" data-id="eda8704" data-element_type="container" data-e-type="container">
+                <div class="elementor-element elementor-element-3bc9160 elementor-widget elementor-widget-rtsb-products-archive" data-id="3bc9160" data-element_type="widget" data-e-type="widget" data-widget_type="rtsb-products-archive.default">
+                <div class="elementor-widget-container">
+                    <div class="rtsb-active-filters-wrapper"></div>{% include 'catalog/shop/catalogue.html' %}
+                </div>
+                </div>
+                </div>
+                    </div>
+                </div>
+                </div>
+                </div>
+        <!-- After Content end -->
+        </div>
+            </div>

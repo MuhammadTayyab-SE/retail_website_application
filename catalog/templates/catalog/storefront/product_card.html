@@ -1,0 +1,57 @@
+<article class="product-card">
+  <div class="product-image">
+    {% with photo=product.photos.all.0 %}
+      {% if photo %}
+        <img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" loading="lazy" width="240" height="200">
+      {% else %}
+        <span class="product-placeholder" aria-hidden="true">
+          ✳
+        </span>
+        <span class="photo-note">
+          Photo coming soon
+        </span>
+      {% endif %}
+    {% endwith %}
+    {% if product.is_on_sale %}
+      <span class="sale-badge">
+        {{ product.discount_percentage }}% off
+      </span>
+    {% endif %}
+  </div>
+  <div class="product-content">
+    <p class="product-category">
+      {{ product.category.name }}
+    </p>
+    <h3>
+      {{ product.name }}
+    </h3>
+    <p class="price">
+      PKR {{ product.sale_price|floatformat:2 }}
+      {% if product.unit %}
+        <span>
+          / {{ product.get_unit_display }}
+        </span>
+      {% endif %}
+    </p>
+    {% if product.is_on_sale %}
+      <p class="original-price">
+        <span class="sr-only">
+          Original price
+        </span>
+        <del>
+          PKR {{ product.price|floatformat:2 }}
+        </del>
+      </p>
+    {% endif %}
+    <p class="stock {% if not product.quantity %} unavailable {% endif %} ">
+      {% if product.quantity %}
+        <span aria-hidden="true">
+          ●
+        </span>
+        In stock
+      {% else %}
+        Out of stock
+      {% endif %}
+    </p>
+  </div>
+</article>
