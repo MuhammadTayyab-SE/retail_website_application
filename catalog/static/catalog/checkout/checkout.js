@@ -97,7 +97,7 @@
       else document.querySelector('#checkout-view-cart').focus();
     }
     if (!count) host.textContent = 'Your cart is empty. Return to Shop to add groceries.';
-    document.querySelector('#checkout-item-count').textContent = String(count);
+    document.querySelector('#checkout-item-count').textContent = `Total items in cart: ${count}`;
     document.querySelector('#checkout-item-count').setAttribute('aria-label', `${count} items`);
     document.querySelector('#checkout-clear-cart').disabled = !count || placing;
     document.querySelector('#checkout-subtotal').textContent = money(data.subtotal);

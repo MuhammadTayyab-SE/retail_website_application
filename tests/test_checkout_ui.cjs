@@ -80,7 +80,7 @@ test('below-minimum carts keep their authoritative summary visible', async () =>
 test('network failure preserves cart item preview without inventing verified totals', async () => {
   const ui = await page({ fail: true });
   assert.equal(ui.node('#checkout-items').children.length, 1);
-  assert.equal(ui.node('#checkout-item-count').textContent, '2');
+  assert.equal(ui.node('#checkout-item-count').textContent, 'Total items in cart: 2');
   assert.equal(ui.node('#checkout-delivery-fee').textContent, 'Pending');
   assert.equal(ui.node('#checkout-submit').disabled, true);
   assert.equal(ui.node('#checkout-feedback').textContent, 'Network unavailable');
@@ -102,7 +102,7 @@ test('pickup quotes send fulfillment choice and do not require a delivery addres
 test('empty cart shows recovery text rather than a blank summary', async () => {
   const ui = await page({ empty: true });
   assert.match(ui.node('#checkout-items').textContent, /cart is empty/);
-  assert.equal(ui.node('#checkout-item-count').textContent, '0');
+  assert.equal(ui.node('#checkout-item-count').textContent, 'Total items in cart: 0');
   assert.equal(ui.node('#checkout-submit').disabled, true);
 });
 

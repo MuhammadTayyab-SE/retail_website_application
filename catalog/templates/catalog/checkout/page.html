@@ -7,9 +7,9 @@
   <title>Checkout — Zilly</title>
   {% include 'catalog/home02/snapshot/styles.html' %}
   <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=58">
-  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}?v=4">
   <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=49"></script>
-  <script defer src="{% static 'catalog/checkout/checkout.js' %}?v=3"></script>
+  <script defer src="{% static 'catalog/checkout/checkout.js' %}?v=4"></script>
 </head>
 {% include 'catalog/home02/snapshot/header.html' %}
 <main class="checkout-page">
@@ -62,7 +62,7 @@
         </section>
       </div>
       <aside class="checkout-summary" aria-labelledby="checkout-summary-title">
-        <div class="checkout-summary-heading"><i class="fas fa-shopping-basket" aria-hidden="true"></i><h2 id="checkout-summary-title">Cart Item</h2><span id="checkout-item-count" aria-live="polite"></span><button type="button" id="checkout-clear-cart">Clear All</button></div>
+        <div class="checkout-summary-heading"><div class="checkout-summary-title-copy"><h2 id="checkout-summary-title">Cart Item</h2><span id="checkout-item-count" aria-live="polite">Total items in cart: 0</span></div><button type="button" id="checkout-clear-cart">Clear All</button></div>
         <div id="checkout-items" aria-live="polite"></div>
         <div class="checkout-coupon"><p><i class="fas fa-ticket-alt" aria-hidden="true"></i> Click Here, <strong>Apply Coupon</strong></p><div><input type="text" placeholder="ENTER COUPON CODE" aria-label="Coupon code" disabled><button type="button" disabled>Apply</button></div><small>Coupons are not available yet.</small></div>
         <dl class="checkout-totals"><div><dt>Subtotal</dt><dd id="checkout-subtotal"></dd></div><div><dt>Shipping Fee</dt><dd id="checkout-delivery-fee"></dd></div><div id="checkout-tax-row"><dt>Tax</dt><dd id="checkout-tax"></dd></div><div class="checkout-grand-total"><dt>Total</dt><dd id="checkout-total"></dd></div></dl>
