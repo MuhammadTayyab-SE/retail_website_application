@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ product.name }} — Zilly</title>
   {% include 'catalog/home02/snapshot/styles.html' %}
-  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=22">
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=57">
   <link rel="stylesheet" href="{% static 'catalog/product/product.css' %}?v=2">
-  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=22"></script>
-  <script defer src="{% static 'catalog/product/product.js' %}"></script>
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=47"></script>
+  <script defer src="{% static 'catalog/product/product.js' %}?v=2"></script>
 </head>
 {% include 'catalog/home02/snapshot/header.html' %}
 <main id="content" class="product-page">
@@ -47,6 +47,7 @@
   </div>
 </main>
 {% include 'catalog/home02/snapshot/footer.html' %}
+{% include 'catalog/home02/snapshot/overlays.html' %}
 {{ product_data|json_script:'product-data' }}
 <dialog id="product-lightbox" aria-label="Enlarged product image"><button type="button" id="product-lightbox-close" aria-label="Close image viewer">×</button><img id="product-lightbox-image" alt=""><div><button type="button" data-gallery-step="-1" aria-label="Previous enlarged image">‹</button><span id="product-lightbox-count"></span><button type="button" data-gallery-step="1" aria-label="Next enlarged image">›</button></div></dialog>
 <dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title"><button class="snapshot-dialog-close" aria-label="Close">×</button><h2 id="snapshot-dialog-title"></h2><p id="snapshot-dialog-message"></p><p class="snapshot-preview-note">Basket preview. Checkout will be connected later.</p></dialog>

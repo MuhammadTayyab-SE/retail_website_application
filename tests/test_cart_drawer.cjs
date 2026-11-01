@@ -5,7 +5,7 @@ const { test } = require('node:test');
 const path = require('node:path');
 
 // Exercise the production drawer handlers without a browser or database.
-function setup() {
+function setup(storage) {
   function element() {
     return {
       listeners: {}, attributes: {}, dataset: {}, children: [], hidden: false,
@@ -58,7 +58,7 @@ function setup() {
   const initialization = source.slice(0, source.indexOf('  const heroSlider ='));
   const addItems = source.slice(source.indexOf("  document.addEventListener('snapshot:add-items'"), source.indexOf('  function showDialog('));
   const addCard = source.slice(source.indexOf('    if (/add_to_cart|add-to-cart/'), source.indexOf('    if (product && /wishlist/'));
-  const runtime = { document, status() {} };
+  const runtime = { document, status() {}, sessionStorage: storage };
   vm.runInNewContext(`${initialization}\n${addItems}
     globalThis.addCard = (product, control) => {
       const classes = 'rtsb-add-to-cart-btn', href = '#';
@@ -222,4 +222,93 @@ test('server price metadata takes precedence over stale visible card prices', ()
   assert.equal(prices.children[0].textContent, 'PKR 390.00');
   assert.equal(prices.children[1].textContent, 'PKR 0.00');
   assert.equal(ui.amounts[0].textContent, 'PKR 0.00');
+});
+
+function tabStorage(initial = null) {
+  let value = initial;
+  return { getItem() { return value; }, setItem(key, next) { value = next; } };
+}
+
+test('cart details, quantities and deletion survive navigation between page instances', () => {
+  const storage = tabStorage();
+  const home = setup(storage);
+  home.document.listeners['snapshot:add-items']({ detail: [{
+    id: 'live-11', name: 'Milk', description: 'Full cream', image: '/products/photos/34/',
+    quantity: 1, price: 39000, salePrice: 19500, stock: 3,
+  }] });
+  const shop = setup(storage);
+  assert.equal(shop.counters[0].textContent, 1);
+  shop.floating.click();
+  assert.equal(shop.items.children[0].children[0].src, '/products/photos/34/');
+  assert.equal(shop.items.children[0].querySelector('.homepage-cart-item-description').textContent, 'Full cream');
+  const plus = shop.items.children[0].querySelector('[data-cart-action="increase"]');
+  shop.items.listeners.click({ target: plus });
+  const product = setup(storage);
+  product.floating.click();
+  assert.equal(product.counters[0].textContent, 2);
+  assert.equal(product.amounts[0].textContent, 'PKR 390.00');
+  const remove = product.items.children[0].querySelector('[data-cart-action="remove"]');
+  product.items.listeners.click({ target: remove });
+  const returned = setup(storage);
+  assert.equal(returned.empty.hidden, false);
+  assert.equal(returned.counters[0].textContent, 0);
+});
+
+test('Clear All remains cleared after reload; malformed/blocked storage does not break cart', () => {
+  const storage = tabStorage();
+  const ui = setup(storage);
+  ui.document.listeners['snapshot:add-items']({ detail: [{ id: 'rice', name: 'Rice', quantity: 1 }] });
+  ui.floating.click();
+  ui.clear.click();
+  assert.equal(setup(storage).counters[0].textContent, 0);
+  for (const bad of ['{bad JSON', '{}', '[["bad",{"name":"Bad","quantity":-2}]]']) {
+    assert.equal(setup(tabStorage(bad)).counters[0].textContent, 0);
+  }
+  const blocked = setup({ getItem() { throw Error('blocked'); }, setItem() { throw Error('blocked'); } });
+  blocked.document.listeners['snapshot:add-items']({ detail: [{ id: 'rice', name: 'Rice', quantity: 1 }] });
+  blocked.floating.click();
+  assert.equal(blocked.counters[0].textContent, 1);
+});
+
+test('Shop cards use their product metadata and merge into the same cart across reloads', () => {
+  const storage = tabStorage();
+  const shop = setup(storage);
+  const product = {
+    name: 'Rice', dataset: { id: 'live-11', cartDescription: 'Basmati', cartPrice: '250.00', cartSalePrice: '', cartStock: '3' },
+    querySelector: () => null,
+  };
+  shop.addCard(product, { closest: () => null });
+  const nextPage = setup(storage);
+  nextPage.addCard(product, { closest: () => null });
+  nextPage.floating.click();
+  assert.equal(nextPage.items.children.length, 1);
+  assert.equal(nextPage.counters[0].textContent, 2);
+  assert.equal(nextPage.amounts[0].textContent, 'PKR 500.00');
+});
+
+test('product-page Add to Cart sends complete details and stable standard/variant IDs', () => {
+  const storage = tabStorage();
+  const ui = setup(storage);
+  let add;
+  const button = { disabled: false, addEventListener(type, callback) { add = callback; } };
+  const source = fs.readFileSync(path.join(__dirname, '../catalog/static/catalog/product/product.js'), 'utf8');
+  const handler = source.slice(source.indexOf("  document.querySelector('#product-add').addEventListener"), source.indexOf('  viewOption(data.selected);'));
+  const runtime = {
+    data: { product: '11', name: 'Milk', stock: 3, photos: [{ variant: '', src: '/products/photos/34/' }] },
+    selection: () => [{ option: { id: '', price: '195.00', regular_price: '390.00', description: 'Full cream' }, input: { value: '1' } }],
+    updateTotal() {}, CustomEvent: class { constructor(type, payload) { this.type = type; this.detail = payload.detail; } },
+    document: { querySelector: () => button, dispatchEvent: event => ui.document.listeners[event.type](event) },
+  };
+  vm.runInNewContext(handler, runtime);
+  add();
+  const nextPage = setup(storage);
+  nextPage.floating.click();
+  assert.equal(nextPage.items.children[0].dataset.cartId, 'live-11');
+  assert.equal(nextPage.amounts[0].textContent, 'PKR 195.00');
+  assert.equal(nextPage.items.children[0].children[0].src, '/products/photos/34/');
+  runtime.selection = () => [{ option: { id: '7', label: 'Large', price: '500.00', regular_price: '500.00' }, input: { value: '1' } }];
+  add();
+  const variants = setup(storage);
+  assert.equal(variants.items.children.length, 2);
+  assert.equal(variants.items.children[1].dataset.cartId, 'live-11:7');
 });

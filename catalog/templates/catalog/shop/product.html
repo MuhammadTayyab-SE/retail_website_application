@@ -1,4 +1,5 @@
-<li class="shop-product product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}">
+{% load l10n %}
+<li class="shop-product product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}" data-cart-description="{{ product.description }}" data-cart-price="{{ product.price|unlocalize }}" data-cart-sale-price="{% if product.is_on_sale %}{{ product.sale_price|unlocalize }}{% endif %}" data-cart-stock="{{ product.quantity|unlocalize }}">
   <div class="rt-product-block rt-product-grid">
     <div class="rt-thumb-wrapper">
       <div class="rt-cat-meta-wrap"><div class="product-cat"><a href="{% url 'shop' %}?category={{ product.homepage_category.pk }}" data-live-shop>{{ product.homepage_category.name }}</a></div><div class="rt-shop-meta rtsb-action-buttons"><a class="rtsb-wishlist-btn" href="#" aria-label="Save {{ product.name }}"><span class="icon"><i class="icon-zilly-wishlist" aria-hidden="true"></i></span></a><a class="rtsb-quick-view-btn" href="{% url 'product-detail' product.pk %}" aria-label="View {{ product.name }}" data-product-page><i class="icon-zilly-search" aria-hidden="true"></i></a></div></div>

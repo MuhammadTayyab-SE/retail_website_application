@@ -99,6 +99,7 @@
 .homepage-results a { color: #19815b; text-decoration: underline; margin-left: 12px; }
 .homepage-pagination { display: flex; justify-content: center; gap: 18px; padding: 22px 0; }
 .homepage-pagination a { color: #19815b; text-decoration: underline; }
+#rtsb-cart-float-menu { display: block; }
 .rtsb-cart-float-inner[role=button] { cursor: pointer; }
 .rtsb-cart-float-inner[role=button]:focus-visible { outline: 3px solid #ffd647; outline-offset: 3px; }
 #homepage-cart-drawer {

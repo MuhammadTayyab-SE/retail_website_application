@@ -10,6 +10,23 @@ from catalog.models import Category, Product
 
 
 class Home02QARegressionTests(SimpleTestCase):
+    def test_home_shop_and_product_pages_share_one_floating_cart(self):
+        context = {
+            "product": {"pk": 11, "name": "Milk", "quantity": 3, "category_id": 7},
+            "page_obj": Paginator([], 25).get_page(1),
+            "product_data": {},
+        }
+        for template in (
+            "catalog/home02/home.html",
+            "catalog/shop/page.html",
+            "catalog/product/page.html",
+        ):
+            with self.subTest(template=template):
+                html = render_to_string(template, context)
+                self.assertEqual(html.count('id="rtsb-cart-float-menu"'), 1)
+                self.assertEqual(html.count('id="homepage-cart-drawer"'), 1)
+                self.assertIn('snapshot.js?v=47', html)
+
     def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
         product = Product(
             name="Milk & cream",

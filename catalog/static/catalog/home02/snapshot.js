@@ -5,6 +5,24 @@
   const title = document.querySelector('#snapshot-dialog-title');
   const message = document.querySelector('#snapshot-dialog-message');
   const basket = new Map();
+  const basketStorageKey = 'retail-preview-basket-v1';
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(basketStorageKey) || '[]');
+    if (Array.isArray(saved)) saved.forEach(record => {
+      if (!Array.isArray(record) || record.length !== 2) return;
+      const [id, item] = record;
+      if (typeof id !== 'string' || !item || typeof item.name !== 'string'
+        || !Number.isSafeInteger(item.quantity) || item.quantity < 1
+        || (item.stock != null && (!Number.isSafeInteger(item.stock) || item.stock < 1))
+        || [item.price, item.salePrice].some(price => price != null
+          && (!Number.isSafeInteger(price) || price < 0))) return;
+      basket.set(id, { ...item, quantity: Math.min(item.quantity, item.stock ?? Number.MAX_SAFE_INTEGER) });
+    });
+  } catch { /* Storage may be blocked; the current-page preview still works. */ }
+  function saveBasket() {
+    try { sessionStorage.setItem(basketStorageKey, JSON.stringify([...basket])); }
+    catch { /* Keep the current-page basket usable when storage is unavailable. */ }
+  }
   const favourites = new Map();
   const comparisons = new Map();
   let statusTimer;
@@ -136,6 +154,7 @@
       if (action === 'remove') basket.delete(id);
       else if (action === 'increase' && item.quantity < (item.stock ?? Number.MAX_SAFE_INTEGER)) item.quantity++;
       else if (action === 'decrease' && item.quantity > 1) item.quantity--;
+      saveBasket();
       renderCartDrawer();
       const list = cartDrawer.querySelector('.homepage-cart-items');
       const updated = [...list.children].find(row => row.dataset.cartId === id);
@@ -159,12 +178,15 @@
     });
     cartDrawer.querySelector('.homepage-cart-clear').addEventListener('click', () => {
       basket.clear();
+      saveBasket();
       document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => { counter.textContent = '0'; });
       renderCartDrawer();
       cartDrawer.querySelector('.homepage-cart-shopping').focus();
       status('Preview basket cleared');
     });
   }
+
+  renderCartDrawer();
 
   const heroSlider = document.querySelector('#homepage-hero-slider');
   if (heroSlider && window.Swiper && heroSlider.querySelectorAll('.swiper-slide').length > 1) {
@@ -287,10 +309,12 @@
 
   document.addEventListener('snapshot:add-items', event => {
     event.detail.forEach(item => {
+      if (!Number.isSafeInteger(item.quantity) || item.quantity < 1) return;
       const entry = basket.get(item.id) || { ...item, quantity: 0 };
-      entry.quantity += item.quantity;
+      entry.quantity = Math.min(entry.quantity + item.quantity, entry.stock ?? Number.MAX_SAFE_INTEGER);
       basket.set(item.id, entry);
     });
+    saveBasket();
     document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
       counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
     });
@@ -401,7 +425,7 @@
     matchProductSectionHeights();
   }
   document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
-    counter.textContent = '0';
+    counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
   });
   document.querySelectorAll('.sidebarBtn').forEach(toggle => {
     toggle.setAttribute('role', 'button');
@@ -549,7 +573,7 @@
 
     if (/add_to_cart|add-to-cart/.test(classes + href)) {
       event.preventDefault();
-      const data = control.closest('.homepage-card-actions')?.dataset;
+      const data = control.closest('.homepage-card-actions')?.dataset || product?.dataset;
       // Cached templates and older cards may lack the new data attributes.
       // Read their already-rendered prices without recalculating discounts.
       const priceHost = product?.querySelector('.homepage-featured-price, .product-price');
@@ -572,6 +596,7 @@
       }
       entry.quantity++;
       basket.set(id, entry);
+      saveBasket();
       document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
         counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
       });
@@ -594,6 +619,10 @@
     }
     if (/cart-icon|cart-float/.test(classes) || /\/cart\//.test(href)) {
       event.preventDefault();
+      if (cartDrawer && floatingCart) {
+        floatingCart.click();
+        return;
+      }
       showDialog('Your basket', basket.size ? [...basket.values()].map(item => `${item.name} × ${item.quantity}`).join('\n\n') : 'Your basket is empty.');
       return;
     }
