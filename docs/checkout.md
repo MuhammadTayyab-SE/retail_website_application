@@ -73,6 +73,33 @@ Placed orders persist in PostgreSQL. Unplaced carts still use browser-tab storag
 durable guest/account carts and registration are separate scope, not claimed here.
 Order processing/cancellation/restocking/notifications require the follow-up work.
 
+## Confirmation receipt and PDF download
+
+The updated user-supplied confirmation reference is implemented as a complete
+receipt page: order ID/date (Asia/Karachi), customer and address details,
+delivery/pickup, actual payment/order status, item names/SKUs/quantities, regular
+and discounted unit prices, line totals, original total, item savings, net
+subtotal, shipping/pickup, tax and amount payable. It uses saved order snapshots,
+so later product edits cannot change the receipt. No email/WhatsApp notification,
+paid status, merchant street address or pickup time is invented from demo content.
+
+Download PDF returns an attachment from
+`/checkout/orders/<public_id>/receipt.pdf`. The same account/guest ownership check
+protects both HTML and PDF, with no-cache headers and 404 for other viewers.
+ReportLab generates an actual PDF using the existing local Inter font, wrapped
+tables, repeated table headings and numbered pages for long orders. A separate
+Print receipt action uses the browser's print dialog and print stylesheet.
+
+ReportLab is a locked runtime dependency; pypdf is a locked test dependency.
+Run `uv sync --frozen` when updating an existing environment. No additional schema
+migration is needed for receipt export. PDFs are streamed without saving customer
+receipt files to the server's public/static directories.
+
+Six PDF/receipt tests verify download headers, contents and totals, immutable
+prices, special characters, pagination, manual/pickup status and ownership.
+PDF text/structure was checked programmatically. Browser/PDF visual rendering
+and screenshots were not performed, following the user's visual-QA hold.
+
 ## Local setup
 
 Worktree: `checkout-work`, branch `feature/storefront-checkout`, based on the
@@ -102,7 +129,7 @@ Tests use synthetic data in disposable PostgreSQL database
 `test_checkout_20261101`; the test runner creates and destroys it. No test orders
 were placed in the development catalog.
 
-- 26 Django tests: authoritative prices, fees/thresholds, minimum/city checks,
+- 32 Django tests: receipts/PDF downloads, authoritative prices, fees/thresholds, minimum/city checks,
   manual review, contact validation, CSRF, account/guest isolation, immutable
   snapshots, changed-price rejection, idempotency and rollback, and two concurrent
   order scenarios (last-item competition and duplicate submission).

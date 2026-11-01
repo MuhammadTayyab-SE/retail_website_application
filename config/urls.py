@@ -34,6 +34,11 @@ urlpatterns = [
     path("checkout/quote/", checkout_views.checkout_quote, name="checkout-quote"),
     path("checkout/place/", checkout_views.checkout_place, name="checkout-place"),
     path(
+        "checkout/orders/<uuid:public_id>/receipt.pdf",
+        checkout_views.download_receipt,
+        name="checkout-receipt",
+    ),
+    path(
         "checkout/orders/<uuid:public_id>/",
         checkout_views.confirmation,
         name="checkout-confirmation",

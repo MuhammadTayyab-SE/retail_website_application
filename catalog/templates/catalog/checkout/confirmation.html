@@ -1,15 +1,28 @@
 {% load static %}
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Order {{ order.number }} — Zilly</title>{% include 'catalog/home02/snapshot/styles.html' %}<link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Order {{ order.number }} - Zilly</title>{% include 'catalog/home02/snapshot/styles.html' %}<link rel="stylesheet" href="{% static 'catalog/checkout/receipt.css' %}"><script defer src="{% static 'catalog/checkout/receipt.js' %}"></script></head>
 <body>
-<main class="checkout-page"><div class="container checkout-confirmation">
-  <p class="checkout-eyebrow">ORDER RECEIVED</p><h1>Thank you for your order.</h1>
-  <p>{% if order.delivery_method == 'pickup' %}Your pickup order has been received. The store will confirm when it is ready for collection. Payment is due at pickup.{% elif order.status == 'delivery_review' %}Your order is pending delivery-distance review. The store will verify your address and confirm delivery. Payment is due on delivery.{% else %}Your order has been received. Payment is due on delivery.{% endif %}</p>
-  <section class="checkout-section"><h2>{{ order.number }}</h2><p>{{ order.contact.first_name }} {{ order.contact.last_name }}</p>{% if order.delivery_method == 'pickup' %}<p>Store Pickup · Cash on collection</p>{% else %}<p>{{ order.address.address }}{% if order.address.landmark %}, {{ order.address.landmark }}{% endif %}, {{ order.address.city }}</p><p>Standard delivery · Cash on delivery</p>{% endif %}<p>Payment status: unpaid</p>
-    <div class="checkout-receipt-items">{% for item in order.items.all %}<div><span>{{ item.name }} × {{ item.quantity }}</span><strong>PKR {{ item.line_total|floatformat:2 }}</strong></div>{% endfor %}</div>
-    <dl class="checkout-totals"><div><dt>Subtotal</dt><dd>PKR {{ order.subtotal|floatformat:2 }}</dd></div><div><dt>Delivery</dt><dd>PKR {{ order.delivery_fee|floatformat:2 }}</dd></div><div><dt>Tax</dt><dd>PKR {{ order.tax|floatformat:2 }}</dd></div><div class="checkout-grand-total"><dt>Amount payable</dt><dd>PKR {{ order.total|floatformat:2 }}</dd></div></dl>
-  </section>
-  <a class="checkout-continue" href="{% url 'shop' %}">Continue shopping</a>
+<main class="receipt-page"><div class="receipt-container">
+  <nav class="receipt-top-nav" aria-label="Receipt navigation"><a href="{% url 'shop' %}">&larr; Continue shopping</a><span>Zilly order receipt</span></nav>
+  <article class="receipt-card" aria-labelledby="receipt-title">
+    <header class="receipt-banner"><div><p class="receipt-status">{{ receipt.status }}</p><h1 id="receipt-title">Thank you for your order.</h1><p>{{ receipt.date }}</p></div><div class="receipt-reference"><span>Order reference</span><strong>{{ order.number }}</strong></div></header>
+    <p class="receipt-message">{{ receipt.message }}</p>
+    <section class="receipt-metadata" aria-label="Order details">
+      <div><h2>Customer details</h2><strong>{{ order.contact.first_name }} {{ order.contact.last_name }}</strong><p>{{ order.contact.phone }}</p><p>{{ order.contact.email }}</p></div>
+      <div><h2>{% if order.delivery_method == 'pickup' %}Store Pickup{% else %}Delivery address{% endif %}</h2>{% if order.delivery_method == 'pickup' %}<p>Collect from the store.</p><p>The store will confirm pickup readiness.</p>{% else %}<strong>{{ order.address.address }}</strong>{% if order.address.landmark %}<p>{{ order.address.landmark }}</p>{% endif %}<p>{{ order.address.city }}{% if order.address.postal_code %}, {{ order.address.postal_code }}{% endif %}</p>{% endif %}</div>
+      <div><h2>Delivery / pickup</h2><strong>{{ receipt.fulfillment }}</strong><p>Charges: {% if order.delivery_fee == 0 %}Free{% else %}PKR {{ order.delivery_fee|floatformat:2 }}{% endif %}</p>{% if order.status == 'delivery_review' %}<p>Pending distance verification</p>{% endif %}</div>
+      <div><h2>Payment details</h2><strong>{{ receipt.payment }}</strong><p class="receipt-payment-status">Payment status: {{ receipt.payment_status }}</p><p>Amount payable: PKR {{ order.total|floatformat:2 }}</p></div>
+    </section>
+    <div class="receipt-content">
+      <div class="receipt-section-heading"><div><h2>Item summary</h2><p>Original prices, discounts and the final amount for every item.</p></div><span>{{ receipt.product_count }} products &middot; {{ receipt.quantity }} items</span></div>
+      <div class="receipt-table-scroll"><table class="receipt-table"><thead><tr><th scope="col">Item name / SKU</th><th scope="col">Quantity</th><th scope="col">Original price</th><th scope="col">Price after deal</th><th scope="col">Line total</th></tr></thead><tbody>{% for item in receipt.items %}<tr><td><strong>{{ item.name }}</strong>{% if item.sku %}<small>SKU: {{ item.sku }}</small>{% endif %}</td><td>{{ item.quantity }}</td><td>PKR {{ item.regular_price|floatformat:2 }}</td><td class="receipt-discount-price">PKR {{ item.unit_price|floatformat:2 }}</td><td><strong>PKR {{ item.line_total|floatformat:2 }}</strong></td></tr>{% endfor %}</tbody></table></div>
+      <div class="receipt-bottom-grid"><div>{% if receipt.item_discount > 0 %}<section class="receipt-savings"><h2>Your item savings</h2><strong>PKR {{ receipt.item_discount|floatformat:2 }}</strong><p>Discounts applied to the saved item prices.</p></section>{% endif %}{% if order.address.notes %}<section class="receipt-notes"><h2>Order notes</h2><p>{{ order.address.notes|linebreaksbr }}</p></section>{% endif %}</div>
+        <section class="receipt-breakdown" aria-labelledby="receipt-breakdown-title"><h2 id="receipt-breakdown-title">Financial breakdown</h2><dl><div><dt>Original item total</dt><dd>PKR {{ receipt.gross_subtotal|floatformat:2 }}</dd></div><div class="receipt-saving-row"><dt>Item discount</dt><dd>- PKR {{ receipt.item_discount|floatformat:2 }}</dd></div><div><dt>Net item subtotal</dt><dd>PKR {{ order.subtotal|floatformat:2 }}</dd></div><div><dt>{% if order.delivery_method == 'pickup' %}Pickup fee{% else %}Shipping fee{% endif %}</dt><dd>{% if order.delivery_fee == 0 %}Free{% else %}PKR {{ order.delivery_fee|floatformat:2 }}{% endif %}</dd></div><div><dt>Tax</dt><dd>PKR {{ order.tax|floatformat:2 }}</dd></div><div class="receipt-grand-total"><dt>Amount payable</dt><dd>PKR {{ order.total|floatformat:2 }}</dd></div></dl></section>
+      </div>
+      <footer class="receipt-footer"><strong>Zilly</strong><span>Digital order receipt &middot; {{ order.number }}</span><span>{{ receipt.payment_status }}</span></footer>
+      <div class="receipt-actions"><a href="{% url 'shop' %}" class="receipt-secondary">Continue shopping</a><div><button type="button" id="receipt-print" class="receipt-secondary"><i class="fas fa-print" aria-hidden="true"></i> Print receipt</button><a href="{% url 'checkout-receipt' order.public_id %}" class="receipt-download" download><i class="far fa-file-pdf" aria-hidden="true"></i> Download PDF</a></div></div>
+    </div>
+  </article>
 </div></main>
 </body></html>

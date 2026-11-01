@@ -2,7 +2,7 @@ import json
 import uuid
 
 from django.core import signing
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 from catalog.views import storefront_categories
 from checkout.forms import CheckoutForm
 from checkout.models import DeliveryPolicy, Order
+from checkout.receipts import receipt_details, receipt_pdf
 from checkout.services import (
     CheckoutError,
     owned_order,
@@ -161,12 +162,31 @@ def checkout_place(request):
     )
 
 
+def owned_order_or_404(request, public_id):
+    order = get_object_or_404(Order.objects.prefetch_related("items"), public_id=public_id)
+    if not owned_order(order, request.user, request.session.get("checkout_owner")):
+        raise Http404
+    return order
+
+
 @never_cache
 @require_GET
 def confirmation(request, public_id):
-    order = get_object_or_404(Order.objects.prefetch_related("items"), public_id=public_id)
-    if not owned_order(order, request.user, request.session.get("checkout_owner")):
-        from django.http import Http404
+    order = owned_order_or_404(request, public_id)
+    return render(
+        request,
+        "catalog/checkout/confirmation.html",
+        {"order": order, "receipt": receipt_details(order)},
+    )
 
-        raise Http404
-    return render(request, "catalog/checkout/confirmation.html", {"order": order})
+
+@never_cache
+@require_GET
+def download_receipt(request, public_id):
+    order = owned_order_or_404(request, public_id)
+    return FileResponse(
+        receipt_pdf(order),
+        as_attachment=True,
+        filename=f"{order.number}-receipt.pdf",
+        content_type="application/pdf",
+    )
