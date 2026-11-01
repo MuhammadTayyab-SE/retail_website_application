@@ -25,7 +25,7 @@ class Home02QARegressionTests(SimpleTestCase):
                 html = render_to_string(template, context)
                 self.assertEqual(html.count('id="rtsb-cart-float-menu"'), 1)
                 self.assertEqual(html.count('id="homepage-cart-drawer"'), 1)
-                self.assertIn('snapshot.js?v=48', html)
+                self.assertIn('snapshot.js?v=49', html)
 
     def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
         product = Product(

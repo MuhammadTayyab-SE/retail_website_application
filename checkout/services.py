@@ -88,6 +88,10 @@ def priced_items(items, *, lock=False):
                 "image": reverse("public-product-photo", args=[photo.pk]) if photo else "",
             }
         )
+    for line in lines:
+        line["stock"] = (
+            line["product"].quantity - stock_quantities[line["product"].pk] + line["quantity"]
+        )
     return lines
 
 

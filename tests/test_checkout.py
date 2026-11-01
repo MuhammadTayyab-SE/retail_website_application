@@ -231,6 +231,9 @@ class CheckoutTests(TestCase):
         items = [{"id": f"live-{self.product.pk}:{variant.pk}", "quantity": 2}]
         quote = self.quote(items).json()
         self.assertEqual(quote["subtotal"], "180.00")
+        combined = items + [{"id": f"live-{self.product.pk}", "quantity": 1}]
+        shared_stock = self.quote(combined).json()["items"]
+        self.assertEqual([item["stock"] for item in shared_stock], [4, 3])
         items.append({"id": f"live-{self.product.pk}", "quantity": 4})
         self.assertEqual(self.quote(items).status_code, 400)
 
@@ -387,7 +390,7 @@ class CheckoutTests(TestCase):
         self.policy.save()
         response = self.client.get(reverse("checkout"))
         for text in (
-            "Your order summary",
+            "Cart Item",
             "Standard",
             "Instant",
             "Store Pickup",

@@ -91,15 +91,20 @@ def checkout_quote(request):
         {
             "items": [
                 {
-                    key: line[key]
-                    for key in (
-                        "name",
-                        "quantity",
-                        "regular_price",
-                        "unit_price",
-                        "line_total",
-                        "image",
-                    )
+                    "id": f"live-{line['product'].pk}"
+                    + (f":{line['variant'].pk}" if line["variant"] else ""),
+                    "stock": line["stock"],
+                    **{
+                        key: line[key]
+                        for key in (
+                            "name",
+                            "quantity",
+                            "regular_price",
+                            "unit_price",
+                            "line_total",
+                            "image",
+                        )
+                    },
                 }
                 for line in lines
             ],

@@ -325,3 +325,20 @@ test('product-page Add to Cart sends complete details and stable standard/varian
   assert.equal(variants.items.children.length, 2);
   assert.equal(variants.items.children[1].dataset.cartId, 'live-11:7');
 });
+
+test('checkout summary edits change the same basket and persist through navigation', () => {
+  const storage = tabStorage();
+  const ui = setup(storage);
+  ui.document.listeners['snapshot:add-items']({ detail: [{ id: 'live-11', name: 'Milk', price: 10000, quantity: 1, stock: 5 }] });
+  ui.document.listeners['snapshot:edit-cart']({ detail: { action: 'increase', id: 'live-11', limit: 2 } });
+  assert.equal(ui.counters[0].textContent, 2);
+  ui.document.listeners['snapshot:edit-cart']({ detail: { action: 'increase', id: 'live-11', limit: 2 } });
+  assert.equal(ui.counters[0].textContent, 2);
+  const next = setup(storage);
+  assert.equal(next.counters[0].textContent, 2);
+  next.document.listeners['snapshot:edit-cart']({ detail: { action: 'decrease', id: 'live-11' } });
+  assert.equal(next.counters[0].textContent, 1);
+  next.document.listeners['snapshot:edit-cart']({ detail: { action: 'remove', id: 'live-11' } });
+  assert.equal(next.empty.hidden, false);
+  assert.equal(setup(storage).counters[0].textContent, 0);
+});

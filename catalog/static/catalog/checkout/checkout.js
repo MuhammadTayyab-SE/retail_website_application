@@ -9,6 +9,7 @@
   let placing = false;
   let lastQuotedCart = '';
   let quoteToken = '';
+  const knownStock = new Map();
   function cartRecords() {
     try {
       const records = JSON.parse(sessionStorage.getItem('retail-preview-basket-v1') || '[]');
@@ -22,39 +23,93 @@
   }
   function renderSummary(data) {
     const host = document.querySelector('#checkout-items');
+    const focusAction = document.activeElement?.dataset?.checkoutAction;
+    const focusId = document.activeElement?.closest('[data-checkout-id]')?.dataset.checkoutId;
     host.replaceChildren();
     let count = 0;
     data.items.forEach(item => {
       count += item.quantity;
+      if (!data.preview && item.stock != null) knownStock.set(item.id, item.stock);
       const row = document.createElement('div');
       row.className = 'checkout-order-item';
-      const image = document.createElement('img');
-      if (item.image) { image.src = item.image; image.alt = item.name; }
-      else image.hidden = true;
+      row.dataset.checkoutId = item.id;
+      row.dataset.stock = String(item.stock ?? Number.MAX_SAFE_INTEGER);
+      const photo = document.createElement('div');
+      photo.className = 'checkout-order-photo';
+      if (item.image) {
+        const image = document.createElement('img');
+        image.src = item.image;
+        image.alt = item.name;
+        photo.append(image);
+      } else photo.textContent = 'No photo';
       const details = document.createElement('div');
+      details.className = 'checkout-order-details';
       const name = document.createElement('h3');
       name.textContent = item.name;
-      const quantity = document.createElement('p');
-      quantity.textContent = `Qty ${item.quantity} ? ${money(item.unit_price)} each`;
-      details.append(name, quantity);
+      const prices = document.createElement('div');
+      prices.className = 'checkout-order-prices';
       if (Number(item.regular_price) > Number(item.unit_price)) {
         const regular = document.createElement('del');
         regular.textContent = money(item.regular_price);
-        details.append(regular);
+        prices.append(regular);
       }
-      const amount = document.createElement('strong');
-      amount.textContent = money(item.line_total);
-      row.append(image, details, amount);
+      const current = document.createElement('strong');
+      current.textContent = money(item.unit_price);
+      prices.append(current);
+      const controls = document.createElement('div');
+      controls.className = 'checkout-quantity-control';
+      for (const action of ['decrease', 'increase']) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.checkoutAction = action;
+        button.textContent = action === 'increase' ? '+' : '-';
+        button.setAttribute('aria-label', `${action === 'increase' ? 'Increase' : 'Decrease'} quantity of ${item.name}`);
+        button.disabled = placing || (action === 'decrease' && item.quantity <= 1)
+          || (action === 'increase' && item.stock != null && item.quantity >= item.stock);
+        controls.append(button);
+        if (action === 'decrease') {
+          const quantity = document.createElement('span');
+          quantity.textContent = String(item.quantity);
+          quantity.setAttribute('aria-label', `Quantity: ${item.quantity}`);
+          controls.append(quantity);
+        }
+      }
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'checkout-delete-item';
+      remove.dataset.checkoutAction = 'remove';
+      remove.disabled = placing;
+      remove.setAttribute('aria-label', `Delete ${item.name}`);
+      const icon = document.createElement('i');
+      icon.className = 'far fa-trash-alt';
+      icon.setAttribute('aria-hidden', 'true');
+      remove.append(icon);
+      details.append(name, prices, controls);
+      row.append(photo, details, remove);
       host.append(row);
     });
+    if (focusAction) {
+      const row = [...host.children].find(item => item.dataset.checkoutId === focusId);
+      const target = row?.querySelector(`[data-checkout-action="${focusAction}"]`);
+      if (target && !target.disabled) target.focus();
+      else if (row) row.querySelector('[data-checkout-action="remove"]').focus();
+      else if (host.children.length) host.children[0].querySelector('[data-checkout-action="remove"]').focus();
+      else document.querySelector('#checkout-view-cart').focus();
+    }
     if (!count) host.textContent = 'Your cart is empty. Return to Shop to add groceries.';
-    document.querySelector('#checkout-item-count').textContent = `${count} item${count === 1 ? '' : 's'}`;
+    document.querySelector('#checkout-item-count').textContent = String(count);
+    document.querySelector('#checkout-item-count').setAttribute('aria-label', `${count} items`);
+    document.querySelector('#checkout-clear-cart').disabled = !count || placing;
     document.querySelector('#checkout-subtotal').textContent = money(data.subtotal);
-    document.querySelector('#checkout-delivery-fee').textContent = money(data.delivery_fee);
+    const shipping = document.querySelector('#checkout-delivery-fee');
+    const freeShipping = data.delivery_fee != null && Number(data.delivery_fee) === 0;
+    shipping.textContent = freeShipping ? 'Free' : money(data.delivery_fee);
+    shipping.dataset.free = String(freeShipping);
     document.querySelector('#checkout-tax').textContent = money(data.tax);
+    document.querySelector('#checkout-tax-row').hidden = data.tax == null || Number(data.tax) === 0;
     document.querySelector('#checkout-total').textContent = money(data.total);
     const note = document.querySelector('#checkout-total-note');
-    note.textContent = data.preview ? 'Checking current prices and availability?'
+    note.textContent = data.preview ? 'Checking current prices and availability...'
       : data.free_delivery_remaining == null ? '' : Number(data.free_delivery_remaining) > 0
         ? `Add ${money(data.free_delivery_remaining)} more to unlock free delivery.` : 'Free delivery unlocked.';
     const progress = document.querySelector('#checkout-delivery-progress');
@@ -65,10 +120,10 @@
       ? Math.min(100, Number(data.subtotal) / threshold * 100) : 100;
   }
   function renderPreview() {
-    const items = cartRecords().map(([, item]) => {
+    const items = cartRecords().map(([id, item]) => {
       const cents = item.salePrice ?? item.price;
       const unit = Number.isSafeInteger(cents) ? cents / 100 : null;
-      return { name: item.name, image: item.image, quantity: item.quantity,
+      return { id, stock: knownStock.get(id) ?? item.stock, name: item.name, image: item.image, quantity: item.quantity,
         unit_price: unit, regular_price: Number.isSafeInteger(item.price) ? item.price / 100 : null,
         line_total: unit == null ? null : unit * item.quantity };
     });
@@ -130,6 +185,22 @@
     } catch (failure) { if (version === quoteVersion) { error(failure.message); document.querySelector('#checkout-total-note').textContent = 'Cart prices are shown for reference. Your order must be verified before submission.'; } }
     finally { if (version === quoteVersion) quoting = false; }
   }
+  document.querySelector('#checkout-items').addEventListener('click', event => {
+    const button = event.target.closest('[data-checkout-action]');
+    if (!button || button.disabled || placing) return;
+    const row = button.closest('[data-checkout-id]');
+    document.dispatchEvent(new CustomEvent('snapshot:edit-cart', { detail: {
+      action: button.dataset.checkoutAction, id: row.dataset.checkoutId, limit: Number(row.dataset.stock),
+    } }));
+  });
+  document.querySelector('#checkout-clear-cart').addEventListener('click', () => {
+    if (placing) return;
+    document.dispatchEvent(new CustomEvent('snapshot:edit-cart', { detail: { action: 'clear' } }));
+    document.querySelector('#checkout-view-cart').focus();
+  });
+  document.querySelector('#checkout-view-cart').addEventListener('click', () => {
+    if (!placing) document.querySelector('.rtsb-cart-float-inner')?.click();
+  });
   form.addEventListener('input', event => { event.target.setCustomValidity?.(''); event.target.removeAttribute('aria-invalid'); });
   function updateFulfillment() {
     const pickup = form.elements.delivery_method.value === 'pickup';

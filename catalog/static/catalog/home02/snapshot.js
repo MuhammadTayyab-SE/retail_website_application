@@ -129,6 +129,27 @@
       amount.textContent = pricesKnown ? formatCartPrice(total) : 'Not calculated';
     });
   }
+  function editBasket(action, id, limit) {
+    if (action === 'clear') basket.clear();
+    else {
+      const item = basket.get(id);
+      if (!item) return;
+      if (action === 'remove') basket.delete(id);
+      else if (action === 'increase') {
+        const maximum = Math.min(item.stock ?? Number.MAX_SAFE_INTEGER,
+          Number.isSafeInteger(limit) ? limit : Number.MAX_SAFE_INTEGER);
+        if (item.quantity >= maximum) return;
+        item.quantity++;
+      } else if (action === 'decrease' && item.quantity > 1) item.quantity--;
+      else return;
+    }
+    saveBasket();
+    renderCartDrawer();
+  }
+  document.addEventListener('snapshot:edit-cart', event => {
+    const { action, id, limit } = event.detail || {};
+    editBasket(action, id, limit);
+  });
   if (cartDrawer && floatingCart) {
     cartDrawer.querySelector('.homepage-cart-checkout')?.addEventListener('click', event => {
       if (!basket.size) event.preventDefault();
@@ -153,14 +174,8 @@
       const button = event.target.closest('[data-cart-action]');
       if (!button || button.disabled) return;
       const id = button.closest('[data-cart-id]').dataset.cartId;
-      const item = basket.get(id);
-      if (!item) return;
       const action = button.dataset.cartAction;
-      if (action === 'remove') basket.delete(id);
-      else if (action === 'increase' && item.quantity < (item.stock ?? Number.MAX_SAFE_INTEGER)) item.quantity++;
-      else if (action === 'decrease' && item.quantity > 1) item.quantity--;
-      saveBasket();
-      renderCartDrawer();
+      editBasket(action, id);
       const list = cartDrawer.querySelector('.homepage-cart-items');
       const updated = [...list.children].find(row => row.dataset.cartId === id);
       const focusTarget = updated?.querySelector(`[data-cart-action="${action}"]`);
@@ -182,10 +197,7 @@
       floatingCart.focus();
     });
     cartDrawer.querySelector('.homepage-cart-clear').addEventListener('click', () => {
-      basket.clear();
-      saveBasket();
-      document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => { counter.textContent = '0'; });
-      renderCartDrawer();
+      editBasket('clear');
       cartDrawer.querySelector('.homepage-cart-shopping').focus();
       status('Preview basket cleared');
     });

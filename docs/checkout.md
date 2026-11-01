@@ -39,6 +39,16 @@ with an eligibility message while blocking submission. A browser cart preview is
 rendered before the quote so a network failure cannot leave a blank summary;
 unverified charges are labelled Pending.
 
+The order-summary card follows the supplied Cart Item reference: photo/name,
+struck-through original price where discounted, current price, compact quantity
+stepper, trash-icon deletion and Clear All. These controls edit the shared cart
+and trigger a new authoritative quote. Stock limits account for other variants of
+the same product. Extra measuring-unit labels are omitted; catalog product names
+and pack sizes are preserved. Eligible delivery and pickup shipping display Free,
+and zero tax is hidden. Coupon fields are a disabled visual section until coupon
+rules are implemented. View cart opens the shared drawer; Place order submits the
+existing checkout form. No security/encryption claims are copied from the reference.
+
 Credit/debit card and JazzCash/Easypaisa/Raast panels expand to show the reference
 fields. Fields are disabled and have no submitted names: no card numbers, CVVs or
 wallet identifiers are collected. Only cash can place an order.
@@ -96,7 +106,7 @@ were placed in the development catalog.
   manual review, contact validation, CSRF, account/guest isolation, immutable
   snapshots, changed-price rejection, idempotency and rollback, and two concurrent
   order scenarios (last-item competition and duplicate submission).
-- 17 Node checks: cart behavior, checkout submit routing, summary preservation on
+- 20 Node checks: cart behavior, checkout submit routing, summary preservation on
   eligibility/network errors, empty-cart recovery and pickup field handling.
 - JavaScript syntax, migration drift, Django system and scoped whitespace checks.
 - Browser interaction, visual QA and screenshot comparisons were not run, per the
