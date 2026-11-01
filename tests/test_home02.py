@@ -4,11 +4,30 @@ from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import translation
 
 from catalog.models import Category, Product
 
 
 class Home02QARegressionTests(SimpleTestCase):
+    def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
+        product = Product(
+            name="Milk & cream",
+            description="<b>Full cream</b>",
+            price=Decimal("390.00"),
+            is_on_sale=True,
+            discount_percentage=50,
+            quantity=3,
+        )
+        with translation.override("de"):
+            html = render_to_string(
+                "catalog/home02/dynamic/card-actions.html", {"product": product}
+            )
+        self.assertIn('data-cart-price="390.00"', html)
+        self.assertIn('data-cart-sale-price="195.00"', html)
+        self.assertIn('data-cart-stock="3"', html)
+        self.assertIn('data-cart-description="&lt;b&gt;Full cream&lt;/b&gt;"', html)
+
     def test_floating_basket_has_accessible_empty_cart_drawer(self):
         html = render_to_string("catalog/home02/snapshot/overlays.html")
         self.assertIn('aria-controls="homepage-cart-drawer"', html)

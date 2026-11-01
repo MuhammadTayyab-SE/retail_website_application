@@ -141,6 +141,21 @@
 #homepage-cart-drawer .homepage-cart-shopping:hover { background: #126344; }
 #homepage-cart-drawer .homepage-cart-items { width: 100%; margin: 0; padding: 0; list-style: none; }
 #homepage-cart-drawer .homepage-cart-items li { padding: 16px 0; border-bottom: 1px solid #eee; overflow-wrap: anywhere; }
+#homepage-cart-drawer .homepage-cart-items .homepage-cart-item { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 14px; }
+#homepage-cart-drawer .homepage-cart-item-image { width: 72px; height: 88px; object-fit: contain; background: #fff; }
+#homepage-cart-drawer .homepage-cart-item-image-missing { display: flex; align-items: center; justify-content: center; height: 88px; color: #68716c; font-size: 12px; }
+#homepage-cart-drawer .homepage-cart-item-details { min-width: 0; }
+#homepage-cart-drawer .homepage-cart-item h3 { margin: 0 0 5px; color: #191d28; font-size: 14px; line-height: 20px; font-weight: 600; }
+#homepage-cart-drawer .homepage-cart-item-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin: 0 0 8px; color: #68716c; font-size: 12px; line-height: 18px; white-space: pre-line; }
+#homepage-cart-drawer .homepage-cart-item-prices { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0 0 10px; }
+#homepage-cart-drawer .homepage-cart-item-prices del { color: #68716c; font-size: 12px; }
+#homepage-cart-drawer .homepage-cart-item-prices strong { color: #19815b; font-size: 14px; font-weight: 600; }
+#homepage-cart-drawer .homepage-cart-item-controls { display: flex; align-items: center; gap: 4px; }
+#homepage-cart-drawer .homepage-cart-item-controls button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; padding: 4px 8px; border: 1px solid #dce5df; border-radius: 5px; background: #fff; color: #191d28; }
+#homepage-cart-drawer .homepage-cart-item-controls button:hover:not(:disabled) { border-color: #19815b; background: #edf7f1; }
+#homepage-cart-drawer .homepage-cart-item-controls button:disabled { color: #929a95; background: #f5f6f5; }
+#homepage-cart-drawer .homepage-cart-item-quantity { min-width: 24px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+#homepage-cart-drawer .homepage-cart-item-controls [data-cart-action=remove] { margin-left: auto; padding: 4px; border-color: transparent; color: #a92b2b; font-size: 12px; }
 #homepage-cart-drawer .homepage-cart-footer { flex-shrink: 0; padding: 16px 18px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #eee; }
 #homepage-cart-drawer .homepage-cart-coupon { display: flex; align-items: center; gap: 12px; padding: 0; margin: 0 0 18px; border: 0; background: transparent; color: #525967; text-align: left; }
 #homepage-cart-drawer .homepage-cart-coupon strong { color: #19815b; font-weight: 600; }

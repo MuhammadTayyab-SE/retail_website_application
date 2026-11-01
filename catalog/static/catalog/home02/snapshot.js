@@ -12,6 +12,13 @@
   const cartDrawer = document.querySelector('#homepage-cart-drawer');
   const floatingCart = document.querySelector('.rtsb-cart-float-inner');
   let previousBodyOverflow;
+  const formatCartPrice = cents => `PKR ${(cents / 100).toFixed(2)}`;
+  function cartPriceCents(value) {
+    if (!/^\d+(\.\d{1,2})?$/.test(value || '')) return null;
+    const [whole, fraction = ''] = value.split('.');
+    const cents = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+    return Number.isSafeInteger(cents) ? cents : null;
+  }
   function renderCartDrawer() {
     if (!cartDrawer) return;
     const empty = basket.size === 0;
@@ -19,14 +26,81 @@
     const list = cartDrawer.querySelector('.homepage-cart-items');
     list.hidden = empty;
     list.replaceChildren();
-    basket.forEach(item => {
+    let total = 0;
+    let pricesKnown = true;
+    basket.forEach((item, id) => {
       const row = document.createElement('li');
-      row.textContent = `${item.name} × ${item.quantity}`;
+      row.className = 'homepage-cart-item';
+      row.dataset.cartId = id;
+      if (item.image) {
+        const image = document.createElement('img');
+        image.src = item.image;
+        image.alt = item.name;
+        image.width = 72;
+        image.height = 88;
+        image.className = 'homepage-cart-item-image';
+        row.append(image);
+      } else {
+        const placeholder = document.createElement('span');
+        placeholder.className = 'homepage-cart-item-image-missing';
+        placeholder.textContent = 'No photo';
+        row.append(placeholder);
+      }
+      const details = document.createElement('div');
+      details.className = 'homepage-cart-item-details';
+      const name = document.createElement('h3');
+      name.textContent = item.name;
+      details.append(name);
+      if (item.description) {
+        const description = document.createElement('p');
+        description.className = 'homepage-cart-item-description';
+        description.textContent = item.description;
+        description.title = item.description;
+        details.append(description);
+      }
+      const prices = document.createElement('div');
+      prices.className = 'homepage-cart-item-prices';
+      const unitPrice = item.salePrice ?? item.price;
+      if (item.salePrice != null && item.price != null) {
+        const regular = document.createElement('del');
+        regular.textContent = formatCartPrice(item.price);
+        prices.append(regular);
+      }
+      const current = document.createElement('strong');
+      current.textContent = unitPrice == null ? 'Price unavailable' : formatCartPrice(unitPrice);
+      prices.append(current);
+      details.append(prices);
+      if (unitPrice == null || !Number.isSafeInteger(total + unitPrice * item.quantity)) pricesKnown = false;
+      else total += unitPrice * item.quantity;
+      const controls = document.createElement('div');
+      controls.className = 'homepage-cart-item-controls';
+      for (const action of ['decrease', 'increase', 'remove']) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.cartAction = action;
+        button.setAttribute('aria-label', `${action === 'remove' ? 'Remove' : action === 'increase' ? 'Increase quantity of' : 'Decrease quantity of'} ${item.name}`);
+        button.textContent = action === 'remove' ? 'Remove' : action === 'increase' ? '+' : '−';
+        button.disabled = (action === 'decrease' && item.quantity <= 1)
+          || (action === 'increase' && item.quantity >= item.stock);
+        controls.append(button);
+        if (action === 'decrease') {
+          const quantity = document.createElement('span');
+          quantity.className = 'homepage-cart-item-quantity';
+          quantity.textContent = String(item.quantity);
+          quantity.setAttribute('aria-label', `Quantity: ${item.quantity}`);
+          controls.append(quantity);
+        }
+      }
+      details.append(controls);
+      row.append(details);
       list.append(row);
+    });
+    document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
+      counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
     });
     cartDrawer.querySelector('.homepage-cart-clear').disabled = empty;
     cartDrawer.querySelectorAll('[data-cart-subtotal], [data-cart-total]').forEach(amount => {
-      amount.textContent = empty ? 'PKR 0.00' : 'Not calculated';
+      amount.textContent = pricesKnown ? formatCartPrice(total) : 'Not calculated';
     });
   }
   if (cartDrawer && floatingCart) {
@@ -46,6 +120,26 @@
       }
     });
     cartDrawer.querySelector('.homepage-cart-close').addEventListener('click', () => cartDrawer.close());
+    cartDrawer.querySelector('.homepage-cart-items').addEventListener('click', event => {
+      const button = event.target.closest('[data-cart-action]');
+      if (!button || button.disabled) return;
+      const id = button.closest('[data-cart-id]').dataset.cartId;
+      const item = basket.get(id);
+      if (!item) return;
+      const action = button.dataset.cartAction;
+      if (action === 'remove') basket.delete(id);
+      else if (action === 'increase' && item.quantity < (item.stock ?? Number.MAX_SAFE_INTEGER)) item.quantity++;
+      else if (action === 'decrease' && item.quantity > 1) item.quantity--;
+      renderCartDrawer();
+      const list = cartDrawer.querySelector('.homepage-cart-items');
+      const updated = [...list.children].find(row => row.dataset.cartId === id);
+      const focusTarget = updated?.querySelector(`[data-cart-action="${action}"]`);
+      if (focusTarget && !focusTarget.disabled) focusTarget.focus();
+      else if (updated) updated.querySelector('[data-cart-action="remove"]').focus();
+      else if (list.children.length) list.children[0].querySelector('[data-cart-action="remove"]').focus();
+      else cartDrawer.querySelector('.homepage-cart-shopping').focus();
+      status(action === 'remove' ? 'Product removed from preview basket' : 'Preview basket quantity updated');
+    });
     cartDrawer.addEventListener('click', event => {
       if (event.target !== cartDrawer) return;
       const bounds = cartDrawer.getBoundingClientRect();
@@ -61,6 +155,7 @@
       basket.clear();
       document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => { counter.textContent = '0'; });
       renderCartDrawer();
+      cartDrawer.querySelector('.homepage-cart-shopping').focus();
       status('Preview basket cleared');
     });
   }
@@ -186,13 +281,14 @@
 
   document.addEventListener('snapshot:add-items', event => {
     event.detail.forEach(item => {
-      const entry = basket.get(item.id) || { name: item.name, quantity: 0 };
+      const entry = basket.get(item.id) || { ...item, quantity: 0 };
       entry.quantity += item.quantity;
       basket.set(item.id, entry);
     });
     document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
       counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
     });
+    if (cartDrawer?.open) renderCartDrawer();
     status('Selected options added to preview basket');
   });
 
@@ -447,7 +543,19 @@
 
     if (/add_to_cart|add-to-cart/.test(classes + href)) {
       event.preventDefault();
-      const entry = basket.get(id) || { name: productTitle, quantity: 0 };
+      const data = control.closest('.homepage-card-actions')?.dataset;
+      const entry = basket.get(id) || {
+        name: productTitle, quantity: 0,
+        description: data?.cartDescription || '',
+        image: product?.querySelector('.homepage-featured-photo img, .rtsb-product-image, .rtsb-product-img img')?.src || '',
+        price: cartPriceCents(data?.cartPrice),
+        salePrice: cartPriceCents(data?.cartSalePrice),
+        stock: data?.cartStock ? Number(data.cartStock) : Number.MAX_SAFE_INTEGER,
+      };
+      if (entry.quantity >= entry.stock) {
+        status('Available stock limit reached');
+        return;
+      }
       entry.quantity++;
       basket.set(id, entry);
       document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => {
