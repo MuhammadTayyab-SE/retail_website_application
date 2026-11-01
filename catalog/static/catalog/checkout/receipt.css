@@ -56,7 +56,12 @@
 .receipt-actions { padding-top: 22px; margin-top: 22px; border-top: 1px solid #e3e9e5; }
 .receipt-actions a, .receipt-actions button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 44px; padding: 11px 17px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; box-sizing: border-box; }
 .receipt-secondary { border: 1px solid #d4ddd6; background: #fff; color: #435b49; }
-.receipt-download { border: 1px solid #126344; background: #126344; color: #fff; }
+.receipt-actions .receipt-download,
+.receipt-actions .receipt-download:visited,
+.receipt-actions .receipt-download:hover,
+.receipt-actions .receipt-download:focus,
+.receipt-actions .receipt-download:active { border: 1px solid #126344; background: #126344; color: #fff; }
+.receipt-actions .receipt-download i { color: inherit; }
 .receipt-actions :focus-visible, .receipt-top-nav a:focus-visible { outline: 2px solid #126344; outline-offset: 3px; }
 @media (max-width: 900px) { .receipt-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); } .receipt-banner { align-items: flex-start; } .receipt-banner h1 { font-size: 24px; } .receipt-reference strong { font-size: 16px; } .receipt-bottom-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
 @media (max-width: 575px) { .receipt-page { padding: 16px 12px 32px; } .receipt-banner { flex-direction: column; padding: 24px 20px; } .receipt-reference { width: 100%; text-align: left; box-sizing: border-box; } .receipt-message, .receipt-content { padding: 20px; } .receipt-metadata { grid-template-columns: minmax(0, 1fr); padding: 20px; } .receipt-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; } .receipt-actions, .receipt-actions > div { width: 100%; } .receipt-actions > div { display: grid; grid-template-columns: minmax(0, 1fr); } .receipt-actions a, .receipt-actions button { width: 100%; } .receipt-top-nav > span { display: none; } }
