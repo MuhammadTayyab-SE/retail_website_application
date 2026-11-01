@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — Zilly</title>
+  {% include 'catalog/home02/snapshot/styles.html' %}
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=58">
+  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}">
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=48"></script>
+  <script defer src="{% static 'catalog/checkout/checkout.js' %}"></script>
+</head>
+{% include 'catalog/home02/snapshot/header.html' %}
+<main class="checkout-page">
+  <div class="container">
+    <nav class="checkout-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'home' %}">Home</a><span aria-hidden="true">/</span><a href="{% url 'shop' %}">Shop</a><span aria-hidden="true">/</span><span>Checkout</span></nav>
+    <div class="checkout-heading"><div><p class="checkout-eyebrow">ALMOST THERE</p><h1>Checkout</h1><p>Review your groceries and delivery details.</p></div><a href="{% url 'shop' %}" class="checkout-back">Continue shopping</a></div>
+    <ol class="checkout-progress" aria-label="Checkout progress"><li>1 <span>Shopping cart</span></li><li aria-current="step">2 <span>Checkout details</span></li><li>3 <span>Order complete</span></li></ol>
+    <div id="checkout-feedback" role="alert" tabindex="-1" hidden></div>
+    <div class="checkout-delivery-progress" id="checkout-delivery-progress" hidden><p id="checkout-delivery-progress-label"></p><progress id="checkout-delivery-progress-bar" max="100" value="0" aria-labelledby="checkout-delivery-progress-label"></progress></div>
+    {% if not checkout_enabled %}<p class="checkout-policy-notice" role="status">Checkout is not available until delivery rules are configured. You can review your details below.</p>{% endif %}
+    <form id="checkout-form" method="post" class="checkout-layout" data-checkout-form data-quote-url="{% url 'checkout-quote' %}" data-order-url="{% url 'checkout-place' %}" data-enabled="{{ checkout_enabled|yesno:'true,false' }}">
+      {% csrf_token %}
+      {{ form.idempotency_key }}
+      <div class="checkout-sections">
+        <section class="checkout-section" aria-labelledby="checkout-contact-title">
+          <h2 id="checkout-contact-title"><span>1</span> Contact information</h2>
+          <div class="checkout-fields">
+            <div><label for="{{ form.email.id_for_label }}">Email address <span aria-hidden="true">*</span></label>{{ form.email }}{{ form.email.errors }}</div>
+            <div><label for="{{ form.phone.id_for_label }}">Phone number <span aria-hidden="true">*</span></label>{{ form.phone }}{{ form.phone.errors }}</div>
+          </div>
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-address-title">
+          <h2 id="checkout-address-title"><span>2</span> Delivery address</h2>
+          <div class="checkout-fields">
+            <div><label for="{{ form.first_name.id_for_label }}">First name <span aria-hidden="true">*</span></label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+            <div><label for="{{ form.last_name.id_for_label }}">Last name <span aria-hidden="true">*</span></label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+            <div class="checkout-field-wide"><label for="{{ form.address.id_for_label }}">Street address / house number <span aria-hidden="true">*</span></label>{{ form.address }}{{ form.address.errors }}</div>
+            <div class="checkout-field-wide"><label for="{{ form.landmark.id_for_label }}">Apartment or landmark <small>(optional)</small></label>{{ form.landmark }}{{ form.landmark.errors }}</div>
+            <div><label for="{{ form.city.id_for_label }}">City <span aria-hidden="true">*</span></label>{{ form.city }}{{ form.city.errors }}</div>
+            <div><label for="{{ form.postal_code.id_for_label }}">Postal code <small>(optional)</small></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div>
+            <div class="checkout-field-wide"><label for="{{ form.notes.id_for_label }}">Delivery instructions <small>(optional)</small></label>{{ form.notes }}{{ form.notes.errors }}</div>
+          </div>
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-delivery-title"><h2 id="checkout-delivery-title"><span>3</span> Delivery</h2><div id="checkout-delivery-options">{{ form.delivery_method }}{{ form.delivery_method.errors }}</div>{% if delivery_radius_km %}<p class="checkout-total-note">Delivery is limited to {{ delivery_radius_km|floatformat:0 }} km driving distance from the store. The store will verify your address and confirm delivery after receiving your order.</p>{% endif %}</section>
+        <section class="checkout-section" aria-labelledby="checkout-payment-title"><h2 id="checkout-payment-title"><span>4</span> Payment method</h2><div id="checkout-payment-options">{{ form.payment_method }}{{ form.payment_method.errors }}</div></section>
+      </div>
+      <aside class="checkout-summary" aria-labelledby="checkout-summary-title">
+        <div class="checkout-summary-heading"><h2 id="checkout-summary-title">Your order summary</h2><span id="checkout-item-count"></span></div>
+        <div id="checkout-items" aria-live="polite"></div>
+        <dl class="checkout-totals"><div><dt>Subtotal</dt><dd id="checkout-subtotal"></dd></div><div><dt>Delivery</dt><dd id="checkout-delivery-fee"></dd></div><div><dt>Tax</dt><dd id="checkout-tax"></dd></div><div class="checkout-grand-total"><dt>Total</dt><dd id="checkout-total"></dd></div></dl>
+        <p class="checkout-total-note" id="checkout-total-note"></p>
+        <button type="submit" id="checkout-submit" disabled>Place order</button>
+        <p class="checkout-submit-note">Review your address and order total before placing your order.</p>
+      </aside>
+    </form>
+  </div>
+</main>
+{% include 'catalog/home02/snapshot/footer.html' %}
+{% include 'catalog/home02/snapshot/overlays.html' %}
+<dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title"><button class="snapshot-dialog-close" aria-label="Close">&times;</button><h2 id="snapshot-dialog-title"></h2><p id="snapshot-dialog-message"></p></dialog>
+<div id="snapshot-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

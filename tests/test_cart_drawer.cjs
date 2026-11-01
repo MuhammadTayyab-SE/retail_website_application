@@ -229,6 +229,19 @@ function tabStorage(initial = null) {
   return { getItem() { return value; }, setItem(key, next) { value = next; } };
 }
 
+test('shared preview form handler does not intercept real checkout submission', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../catalog/static/catalog/home02/snapshot.js'), 'utf8');
+  const registration = source.slice(source.indexOf("  document.addEventListener('submit'"), source.indexOf('  function closeCategoryMenus'));
+  let handler;
+  vm.runInNewContext(registration, { document: { addEventListener(type, callback) { handler = callback; } } });
+  let prevented = false;
+  handler({
+    target: { hasAttribute: name => name === 'data-checkout-form', querySelector() { throw Error('Checkout must not be treated as a demo form'); } },
+    preventDefault() { prevented = true; },
+  });
+  assert.equal(prevented, false);
+});
+
 test('cart details, quantities and deletion survive navigation between page instances', () => {
   const storage = tabStorage();
   const home = setup(storage);

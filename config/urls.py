@@ -15,6 +15,7 @@ from catalog.views import (
     public_category_photo,
     public_product_photo,
 )
+from checkout import views as checkout_views
 from config.admin import site
 
 
@@ -29,6 +30,14 @@ def health(request):
 urlpatterns = [
     path("", home02, name="home"),
     path("shop/", shop, name="shop"),
+    path("checkout/", checkout_views.checkout_page, name="checkout"),
+    path("checkout/quote/", checkout_views.checkout_quote, name="checkout-quote"),
+    path("checkout/place/", checkout_views.checkout_place, name="checkout-place"),
+    path(
+        "checkout/orders/<uuid:public_id>/",
+        checkout_views.confirmation,
+        name="checkout-confirmation",
+    ),
     path("shop/product/<int:pk>/", product_detail, name="product-detail"),
     path("catalogue/", catalogue_redirect, name="storefront-catalogue"),
     path("categories/photos/<int:pk>/", public_category_photo, name="public-category-photo"),

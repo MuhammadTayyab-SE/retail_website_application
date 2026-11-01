@@ -22,6 +22,7 @@
   function saveBasket() {
     try { sessionStorage.setItem(basketStorageKey, JSON.stringify([...basket])); }
     catch { /* Keep the current-page basket usable when storage is unavailable. */ }
+    if (typeof CustomEvent !== 'undefined') document.dispatchEvent(new CustomEvent('snapshot:basket-changed'));
   }
   const favourites = new Map();
   const comparisons = new Map();
@@ -123,11 +124,15 @@
       counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
     });
     cartDrawer.querySelector('.homepage-cart-clear').disabled = empty;
+    cartDrawer.querySelector('.homepage-cart-checkout')?.setAttribute('aria-disabled', String(empty));
     cartDrawer.querySelectorAll('[data-cart-subtotal], [data-cart-total]').forEach(amount => {
       amount.textContent = pricesKnown ? formatCartPrice(total) : 'Not calculated';
     });
   }
   if (cartDrawer && floatingCart) {
+    cartDrawer.querySelector('.homepage-cart-checkout')?.addEventListener('click', event => {
+      if (!basket.size) event.preventDefault();
+    });
     floatingCart.addEventListener('click', () => {
       if (cartDrawer.open) return;
       renderCartDrawer();
@@ -478,7 +483,7 @@
   });
 
   document.addEventListener('submit', event => {
-    if (event.target.hasAttribute('data-shop-filters')) return;
+    if (event.target.hasAttribute('data-shop-filters') || event.target.hasAttribute('data-checkout-form')) return;
     event.preventDefault();
     const search = event.target.querySelector('input[name="s"], input[name="q"]');
     if (search) {

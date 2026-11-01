@@ -25,7 +25,7 @@ class Home02QARegressionTests(SimpleTestCase):
                 html = render_to_string(template, context)
                 self.assertEqual(html.count('id="rtsb-cart-float-menu"'), 1)
                 self.assertEqual(html.count('id="homepage-cart-drawer"'), 1)
-                self.assertIn('snapshot.js?v=47', html)
+                self.assertIn('snapshot.js?v=48', html)
 
     def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
         product = Product(
@@ -54,7 +54,8 @@ class Home02QARegressionTests(SimpleTestCase):
         self.assertIn("No products in the cart.", html)
         self.assertIn('href="/shop/"', html)
         self.assertIn("Go Shopping", html)
-        self.assertIn('class="homepage-cart-checkout" disabled', html)
+        self.assertIn('href="/checkout/"', html)
+        self.assertIn('aria-disabled="true"', html)
         self.assertNotIn("loading-cart", html)
 
     def test_preview_basket_keeps_count_without_an_unsupported_total(self):
