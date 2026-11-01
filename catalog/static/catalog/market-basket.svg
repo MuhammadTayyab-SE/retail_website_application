@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="500" viewBox="0 0 620 500" fill="none">
+  <title>Market basket illustration</title>
+  <defs><linearGradient id="basket" x1="300" y1="265" x2="350" y2="460" gradientUnits="userSpaceOnUse"><stop stop-color="#D7AB69"/><stop offset="1" stop-color="#B77B43"/></linearGradient><linearGradient id="leaf" x1="270" y1="60" x2="350" y2="310" gradientUnits="userSpaceOnUse"><stop stop-color="#739249"/><stop offset="1" stop-color="#2E643D"/></linearGradient></defs>
+  <circle cx="353" cy="270" r="201" fill="#DEE9C7"/><circle cx="405" cy="205" r="150" fill="#E9F0D8"/>
+  <ellipse cx="355" cy="456" rx="210" ry="23" fill="#79935B" opacity=".14"/>
+  <path d="M212 298C191 156 226 84 256 89C280 90 288 176 273 299" stroke="#A37141" stroke-width="13"/>
+  <path d="M294 291C297 165 347 66 377 81C410 97 372 198 343 297" fill="#E7C28A"/><path d="M340 160L370 178M329 192L358 210M318 225L347 243" stroke="#C99A59" stroke-width="6" stroke-linecap="round"/>
+  <path d="M266 295C221 259 171 191 205 170C231 155 257 209 266 243C250 159 256 75 286 78C317 81 310 168 293 225C312 151 344 118 364 136C392 163 324 241 294 291" fill="url(#leaf)"/>
+  <path d="M280 294L285 117M274 269L213 187M289 264L351 155" stroke="#A6BA76" stroke-width="3"/>
+  <path d="M400 286C411 214 448 163 473 178C502 196 467 249 439 289" fill="#E59A42"/><path d="M457 186C449 157 451 138 466 139C475 141 472 159 470 173C493 144 511 145 513 157C515 170 489 179 475 182C504 176 518 184 512 194C506 205 482 192 468 188" fill="#457446"/>
+  <path d="M374 301C389 249 436 210 455 224C478 241 439 274 412 310" fill="#F0AE55"/>
+  <path d="M359 306C329 271 335 218 366 212C390 209 405 229 404 250C422 230 455 235 464 260C477 296 442 327 405 328" fill="#74954C"/>
+  <path d="M394 258C398 237 394 214 407 201" stroke="#3E6B35" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="227" cy="288" r="44" fill="#CA674C"/><path d="M225 248L231 261L248 252L241 268L254 278L233 275L221 288L222 270L206 262L222 259Z" fill="#4C743D"/>
+  <circle cx="319" cy="301" r="42" fill="#D97C4E"/><path d="M319 260L326 274L341 267L335 282L347 291L329 288L317 300L317 281L304 274L319 273Z" fill="#4C743D"/>
+  <path d="M155 304H523L489 429C486 443 474 453 459 453H219C205 453 193 444 189 430Z" fill="url(#basket)"/>
+  <path d="M174 334H509M184 364H502M193 395H493M202 425H482" stroke="#E9CA91" stroke-width="9"/>
+  <path d="M206 308L233 450M251 308L269 450M295 308L304 450M340 308V450M385 308L376 450M430 308L413 450M476 308L449 450" stroke="#AC743D" stroke-width="5" opacity=".6"/>
+  <rect x="148" y="294" width="382" height="24" rx="12" fill="#D7AD71"/><path d="M166 300H514" stroke="#E8C995" stroke-width="5" stroke-linecap="round"/>
+  <path d="M404 295C433 157 482 109 506 125C531 143 488 233 456 296" stroke="#BD8A51" stroke-width="13"/>
+  <ellipse cx="154" cy="432" rx="40" ry="25" transform="rotate(-20 154 432)" fill="#E4BE59"/><path d="M141 422C147 414 160 410 167 413" stroke="#F1D888" stroke-width="4" stroke-linecap="round"/>
+  <path d="M509 423C542 384 559 392 551 414C579 405 588 425 566 437C546 448 527 443 509 423" fill="#64854A"/><path d="M511 423L558 427" stroke="#A0B576" stroke-width="3"/>
+  <path d="M127 229L134 210L141 229L160 236L141 243L134 262L127 243L108 236Z" fill="#A5BA79"/><circle cx="539" cy="289" r="5" fill="#A5BA79"/><circle cx="171" cy="146" r="6" fill="#C8D5AC"/>
+</svg>

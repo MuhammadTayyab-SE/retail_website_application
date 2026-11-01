@@ -1,0 +1,9 @@
+<div class="homepage-card-actions">
+  {% if product.quantity %}
+  <a href="#" class="homepage-card-cart rtsb-add-to-cart-btn" aria-label="Add {{ product.name }} to preview basket">
+  {% else %}
+  <span class="homepage-card-cart homepage-card-cart-unavailable" aria-disabled="true">
+  {% endif %}
+    <span>{% if product.quantity %}Add to cart{% else %}Out of stock{% endif %}</span>
+  {% if product.quantity %}</a>{% else %}</span>{% endif %}
+</div>

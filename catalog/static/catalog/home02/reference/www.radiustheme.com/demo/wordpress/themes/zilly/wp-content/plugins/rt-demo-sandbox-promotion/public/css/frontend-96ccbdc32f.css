@@ -1,0 +1,1168 @@
+/**
+ * RT Demo Sandbox Promotion — Frontend Styles
+ *
+ * Lightweight CSS for the topbar, Backend Tour, and Drawer.
+ * Uses BEM naming with rtdsp- prefix to avoid conflicts.
+ *
+ * Responsive strategy:
+ * - Desktop (>=1024px): all promotional features visible
+ * - Below 1024px: all promotional features hidden entirely
+ *   to keep mobile/tablet experience clean and avoid
+ *   interfering with theme navigation.
+ */
+
+/* ===========================
+   Hide ALL promotional elements below 1024px
+   =========================== */
+
+@media screen and (max-width: 1023px) {
+    .rtdsp-bar,
+    .rtdsp-backend-tour-wrap,
+    .rtdsp-buy-now-float-wrap,
+    .rtdsp-drawer {
+        display: none !important;
+    }
+
+    html.rtdsp-has-topbar body {
+        padding-top: 0 !important;
+    }
+}
+
+/* ===========================
+   Topbar — base
+   =========================== */
+
+.rtdsp-bar {
+    position: relative;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rtdsp-bar *,
+.rtdsp-bar *::before,
+.rtdsp-bar *::after {
+    box-sizing: border-box;
+}
+
+/* ===========================
+   Desktop: fixed topbar
+   =========================== */
+
+@media screen and (min-width: 1024px) {
+    .rtdsp-bar {
+        position: fixed;
+        top: 0;
+        z-index: 99999;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html.rtdsp-has-topbar body {
+        padding-top: var(--rtdsp-bar-height, 57px);
+    }
+
+    /*
+     * Push theme sticky headers down so they sit below the topbar.
+     * Targets RadiusTheme themes' sticky header wrapper.
+     */
+    html.rtdsp-has-topbar .main-header-sticky-wrapper {
+        top: var(--rtdsp-bar-height, 57px);
+    }
+
+    body.admin-bar .rtdsp-bar {
+        top: 32px;
+    }
+
+    html.rtdsp-has-topbar body.admin-bar .main-header-sticky-wrapper {
+        top: 89px;
+    }
+}
+
+/* ===========================
+   Topbar Inner Layout
+   =========================== */
+
+.rtdsp-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 12px 28px;
+    flex-wrap: wrap;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ===========================
+   Product Name
+   =========================== */
+
+.rtdsp-bar__product-name {
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+    opacity: 0.95;
+}
+
+/* Divider after product name — only when followed by other items */
+.rtdsp-bar__product-name::after {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 16px;
+    background: currentColor;
+    opacity: 0.2;
+    margin-left: 20px;
+    vertical-align: middle;
+}
+
+/* Hide divider when product name is the last child (nothing after it) */
+.rtdsp-bar__product-name:last-child::after {
+    display: none;
+}
+
+/* ===========================
+   Navigation Links
+   =========================== */
+
+.rtdsp-bar__nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.rtdsp-bar__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 5px;
+    white-space: nowrap;
+    /* background-color, color set via inline styles */
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.rtdsp-bar__link:hover,
+.rtdsp-bar__link:focus {
+    filter: brightness(1.15);
+    text-decoration: none;
+    color: inherit;
+}
+
+/* ===========================
+   Actions (Buy Now + Close)
+   =========================== */
+
+.rtdsp-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+/* ===========================
+   Buy Now Button (in topbar)
+   =========================== */
+
+.rtdsp-bar__buy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.rtdsp-bar__buy-btn:hover,
+.rtdsp-bar__buy-btn:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    color: inherit;
+    opacity: 0.95;
+}
+
+.rtdsp-bar__buy-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================
+   Close Button (in topbar)
+   =========================== */
+
+.rtdsp-bar__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    margin: 0;
+    /* background-color, border-color, color set via inline styles */
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 50%;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.2s ease, filter 0.2s ease, transform 0.2s ease;
+}
+
+.rtdsp-bar__close:hover,
+.rtdsp-bar__close:focus {
+    opacity: 1;
+    filter: brightness(1.2);
+    transform: scale(1.1);
+    outline: none;
+}
+
+.rtdsp-bar__close:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* ===========================
+   Topbar Hidden State
+   =========================== */
+
+/* Desktop: slide up */
+.rtdsp-bar--hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ===========================
+   Topbar Layout Variants
+   =========================== */
+
+/*
+ * Layout: Classic (default)
+ * Centered row — no extra styles needed,
+ * base .rtdsp-bar__inner handles it.
+ */
+
+/*
+ * Layout: Split
+ * Product name left, links center, actions right.
+ */
+.rtdsp-bar--layout-split .rtdsp-bar__inner {
+    justify-content: space-between;
+}
+
+.rtdsp-bar--layout-split .rtdsp-bar__product-name {
+    margin-right: auto;
+}
+
+.rtdsp-bar--layout-split .rtdsp-bar__product-name::after {
+    display: none;
+}
+
+.rtdsp-bar--layout-split .rtdsp-bar__actions {
+    margin-left: 0;
+}
+
+/*
+ * Layout: Centered CTA
+ * Two rows — text on top, CTA + close centered below.
+ */
+.rtdsp-bar--layout-centered .rtdsp-bar__inner {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+}
+
+.rtdsp-bar--layout-centered .rtdsp-bar__product-name::after {
+    content: '\00b7';
+    width: auto;
+    height: auto;
+    background: none;
+    opacity: 0.4;
+    margin-left: 10px;
+    font-size: 18px;
+    vertical-align: baseline;
+}
+
+.rtdsp-bar--layout-centered .rtdsp-bar__actions {
+    margin-left: 0;
+    justify-content: center;
+}
+
+.rtdsp-bar--layout-centered .rtdsp-bar__buy-btn {
+    padding: 8px 28px;
+    font-size: 13px;
+    border-radius: 50px;
+}
+
+/*
+ * Layout: Minimal
+ * Compact, no product name, gradient accent top border.
+ */
+.rtdsp-bar--layout-minimal {
+    border-top: 2px solid transparent;
+    border-image: linear-gradient(90deg, #6366f1, #3232ff, #06b6d4) 1;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__inner {
+    padding: 8px 28px;
+    gap: 16px;
+    justify-content: center;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__product-name {
+    display: none;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__link {
+    font-size: 12px;
+    padding: 3px 10px;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__buy-btn {
+    font-size: 12px;
+    padding: 5px 16px;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__close {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+}
+
+.rtdsp-bar--layout-minimal .rtdsp-bar__actions {
+    margin-left: 0;
+}
+
+/*
+ * Layout: Gradient
+ * Full-width gradient background with glass effect.
+ */
+.rtdsp-bar--layout-gradient {
+    background-image: linear-gradient(135deg, var(--rtdsp-grad-from, #1e293b) 0%, var(--rtdsp-grad-to, #0f172a) 100%) !important;
+    border-bottom: none;
+}
+
+.rtdsp-bar--layout-gradient .rtdsp-bar__inner {
+    gap: 28px;
+}
+
+.rtdsp-bar--layout-gradient .rtdsp-bar__buy-btn {
+    border-radius: 50px;
+    padding: 8px 24px;
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3), 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.rtdsp-bar--layout-gradient .rtdsp-bar__link {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/*
+ * Layout: Banner
+ * Two-row stacked layout with large CTA.
+ * Product name as headline, links + button below.
+ */
+.rtdsp-bar--layout-banner .rtdsp-bar__inner {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 28px;
+}
+
+.rtdsp-bar--layout-banner .rtdsp-bar__product-name {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.rtdsp-bar--layout-banner .rtdsp-bar__product-name::after {
+    display: none;
+}
+
+.rtdsp-bar--layout-banner .rtdsp-bar__actions {
+    margin-left: 0;
+}
+
+.rtdsp-bar--layout-banner .rtdsp-bar__buy-btn {
+    border-radius: 50px;
+    padding: 8px 28px;
+    font-size: 13px;
+}
+
+/* ===========================
+   Backend Tour — Wrapper (handles position)
+   =========================== */
+
+.rtdsp-backend-tour-wrap {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    animation: rtdsp-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.6s;
+}
+
+/* Positions */
+.rtdsp-backend-tour-wrap--bottom-right {
+    bottom: var(--rtdsp-bt-dy, 24px);
+    right: var(--rtdsp-bt-dx, 24px);
+    align-items: flex-end;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-backend-tour-wrap--bottom-left {
+    bottom: var(--rtdsp-bt-dy, 24px);
+    left: var(--rtdsp-bt-dx, 24px);
+    align-items: flex-start;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-backend-tour-wrap--bottom-center {
+    bottom: var(--rtdsp-bt-dy, 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-backend-tour-wrap--middle-right {
+    top: 50%;
+    right: var(--rtdsp-bt-dx, 24px);
+    transform: translateY(-50%);
+    margin-top: var(--rtdsp-bt-dy, 0px);
+    align-items: flex-end;
+}
+
+.rtdsp-backend-tour-wrap--middle-left {
+    top: 50%;
+    left: var(--rtdsp-bt-dx, 24px);
+    transform: translateY(-50%);
+    margin-top: var(--rtdsp-bt-dy, 0px);
+    align-items: flex-start;
+}
+
+/* Entrance animation */
+@keyframes rtdsp-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Adjust for centered/mid positions */
+.rtdsp-backend-tour-wrap--bottom-center {
+    animation-name: rtdsp-slide-in-center;
+}
+
+@keyframes rtdsp-slide-in-center {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+.rtdsp-backend-tour-wrap--middle-right,
+.rtdsp-backend-tour-wrap--middle-left {
+    animation-name: rtdsp-slide-in-mid;
+}
+
+@keyframes rtdsp-slide-in-mid {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+/* ===========================
+   Backend Tour — Button
+   =========================== */
+
+.rtdsp-backend-tour-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 50px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.rtdsp-backend-tour-btn:hover,
+.rtdsp-backend-tour-btn:focus {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
+    color: inherit;
+}
+
+.rtdsp-backend-tour-btn:active {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rtdsp-backend-tour-btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+.rtdsp-backend-tour-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* ===========================
+   Backend Tour — Pulse ring
+   =========================== */
+
+.rtdsp-backend-tour-btn--pulse::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: inherit;
+    opacity: 0;
+    z-index: -1;
+    animation: rtdsp-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes rtdsp-pulse {
+    0%,
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.25;
+        transform: scale(1.08);
+    }
+}
+
+/* Stop pulse on hover — user is already engaged */
+.rtdsp-backend-tour-btn--pulse:hover::before {
+    animation: none;
+    opacity: 0;
+}
+
+/* ===========================
+   Backend Tour — Layout Variants
+   =========================== */
+
+/*
+ * Layout: Pill (default)
+ * Already styled by base .rtdsp-backend-tour-btn rules.
+ */
+
+/*
+ * Layout: Icon Only
+ * Circular button with just the icon, no text.
+ */
+.rtdsp-backend-tour-btn--layout-icon-only {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+}
+
+.rtdsp-backend-tour-btn--layout-icon-only .rtdsp-backend-tour-btn__text {
+    display: none;
+}
+
+.rtdsp-backend-tour-btn--layout-icon-only svg {
+    width: 22px;
+    height: 22px;
+}
+
+/*
+ * Layout: Outlined
+ * Transparent background with colored border.
+ */
+.rtdsp-backend-tour-btn--layout-outlined {
+    background-color: transparent !important;
+    border: 2px solid currentColor;
+    box-shadow: none;
+}
+
+.rtdsp-backend-tour-btn--layout-outlined:hover,
+.rtdsp-backend-tour-btn--layout-outlined:focus {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+/*
+ * Layout: Rounded
+ * Squarish rounded rectangle with larger text.
+ */
+.rtdsp-backend-tour-btn--layout-rounded {
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 15px;
+}
+
+.rtdsp-backend-tour-btn--layout-rounded svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===========================
+   Backend Tour — Tooltip (::after on button)
+   =========================== */
+
+/* Raise wrapper z-index on hover so tooltip appears above topbar */
+.rtdsp-backend-tour-wrap:hover {
+    z-index: 999999;
+}
+
+/* Tooltip only for icon-only layout */
+.rtdsp-backend-tour-btn--layout-icon-only[data-rtdsp-tooltip]::after {
+    content: attr(data-rtdsp-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 6px 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+}
+
+.rtdsp-backend-tour-btn--layout-icon-only[data-rtdsp-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+
+/* ===========================
+   Buy Now Float — Wrapper (handles position)
+   =========================== */
+
+.rtdsp-buy-now-float-wrap {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    animation: rtdsp-slide-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.6s;
+}
+
+/* Positions */
+.rtdsp-buy-now-float-wrap--bottom-right {
+    bottom: var(--rtdsp-bnf-dy, 24px);
+    right: var(--rtdsp-bnf-dx, 24px);
+    align-items: flex-end;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-buy-now-float-wrap--bottom-left {
+    bottom: var(--rtdsp-bnf-dy, 24px);
+    left: var(--rtdsp-bnf-dx, 24px);
+    align-items: flex-start;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-buy-now-float-wrap--bottom-center {
+    bottom: var(--rtdsp-bnf-dy, 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.rtdsp-buy-now-float-wrap--middle-right {
+    top: 50%;
+    right: var(--rtdsp-bnf-dx, 24px);
+    transform: translateY(-50%);
+    margin-top: var(--rtdsp-bnf-dy, 0px);
+    align-items: flex-end;
+}
+
+.rtdsp-buy-now-float-wrap--middle-left {
+    top: 50%;
+    left: var(--rtdsp-bnf-dx, 24px);
+    transform: translateY(-50%);
+    margin-top: var(--rtdsp-bnf-dy, 0px);
+    align-items: flex-start;
+}
+
+/* Adjust for centered/mid positions */
+.rtdsp-buy-now-float-wrap--bottom-center {
+    animation-name: rtdsp-slide-in-center;
+}
+
+.rtdsp-buy-now-float-wrap--middle-right,
+.rtdsp-buy-now-float-wrap--middle-left {
+    animation-name: rtdsp-slide-in-mid;
+}
+
+/* ===========================
+   Buy Now Float — Button
+   =========================== */
+
+.rtdsp-buy-now-float-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 50px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.rtdsp-buy-now-float-btn:hover,
+.rtdsp-buy-now-float-btn:focus {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 4px 8px rgba(0, 0, 0, 0.12);
+    text-decoration: none;
+    color: inherit;
+}
+
+.rtdsp-buy-now-float-btn:active {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.rtdsp-buy-now-float-btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+.rtdsp-buy-now-float-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* ===========================
+   Buy Now Float — Pulse ring
+   =========================== */
+
+.rtdsp-buy-now-float-btn--pulse::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: inherit;
+    opacity: 0;
+    z-index: -1;
+    animation: rtdsp-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Stop pulse on hover — user is already engaged */
+.rtdsp-buy-now-float-btn--pulse:hover::before {
+    animation: none;
+    opacity: 0;
+}
+
+/* ===========================
+   Buy Now Float — Layout Variants
+   =========================== */
+
+/*
+ * Layout: Pill (default)
+ * Already styled by base .rtdsp-buy-now-float-btn rules.
+ */
+
+/*
+ * Layout: Icon Only
+ * Circular button with just the icon, no text.
+ */
+.rtdsp-buy-now-float-btn--layout-icon-only {
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+}
+
+.rtdsp-buy-now-float-btn--layout-icon-only .rtdsp-buy-now-float-btn__text {
+    display: none;
+}
+
+.rtdsp-buy-now-float-btn--layout-icon-only svg {
+    width: 22px;
+    height: 22px;
+}
+
+/*
+ * Layout: Outlined
+ * Transparent background with colored border.
+ */
+.rtdsp-buy-now-float-btn--layout-outlined {
+    background-color: transparent !important;
+    border: 2px solid currentColor;
+    box-shadow: none;
+}
+
+.rtdsp-buy-now-float-btn--layout-outlined:hover,
+.rtdsp-buy-now-float-btn--layout-outlined:focus {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+/*
+ * Layout: Rounded
+ * Squarish rounded rectangle with larger text.
+ */
+.rtdsp-buy-now-float-btn--layout-rounded {
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 15px;
+}
+
+.rtdsp-buy-now-float-btn--layout-rounded svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===========================
+   Buy Now Float — Tooltip (::after on button)
+   =========================== */
+
+/* Raise wrapper z-index on hover so tooltip appears above topbar */
+.rtdsp-buy-now-float-wrap:hover {
+    z-index: 999999;
+}
+
+/* Tooltip only for icon-only layout */
+.rtdsp-buy-now-float-btn--layout-icon-only[data-rtdsp-tooltip]::after {
+    content: attr(data-rtdsp-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    padding: 6px 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+}
+
+.rtdsp-buy-now-float-btn--layout-icon-only[data-rtdsp-tooltip]:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+/* ===========================
+   Drawer — Floating Toolbar
+   =========================== */
+
+.rtdsp-drawer {
+    position: fixed;
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: visible;
+}
+
+/* ---- Side: right ---- */
+.rtdsp-drawer[data-rtdsp-drawer-position^="right"] {
+    right: var(--rtdsp-dx, 0px);
+    flex-direction: row;
+}
+
+/* ---- Side: left ---- */
+.rtdsp-drawer[data-rtdsp-drawer-position^="left"] {
+    left: var(--rtdsp-dx, 0px);
+    flex-direction: row-reverse;
+}
+
+/* ---- Vertical: top ---- */
+.rtdsp-drawer[data-rtdsp-drawer-position$="-top"] {
+    top: var(--rtdsp-dy, 24px);
+}
+
+/* ---- Vertical: center ---- */
+.rtdsp-drawer[data-rtdsp-drawer-position$="-center"] {
+    top: 50%;
+    margin-top: var(--rtdsp-dy, 0px);
+    transform: translateY(-50%);
+}
+
+/* ---- Vertical: bottom ---- */
+.rtdsp-drawer[data-rtdsp-drawer-position$="-bottom"] {
+    bottom: var(--rtdsp-dy, 24px);
+}
+
+/* ===========================
+   Drawer — Panel
+   =========================== */
+
+.rtdsp-drawer__panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    border-radius: 12px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+/* Shadow on the panel (not wrapper, to avoid clipping tooltips) */
+.rtdsp-drawer:not(.rtdsp-drawer--closed) .rtdsp-drawer__panel {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Flat edge on panel's docked side + toggle side */
+.rtdsp-drawer[data-rtdsp-drawer-position^="right"] .rtdsp-drawer__panel {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.rtdsp-drawer[data-rtdsp-drawer-position^="left"] .rtdsp-drawer__panel {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Closed — collapse panel width so toggle slides to edge */
+.rtdsp-drawer--closed .rtdsp-drawer__panel {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* ===========================
+   Drawer — Items
+   =========================== */
+
+.rtdsp-drawer__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.rtdsp-drawer__item:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: scale(1.1);
+}
+
+.rtdsp-drawer__item svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ===========================
+   Drawer — Tooltip
+   =========================== */
+
+.rtdsp-drawer__item::after {
+    content: attr(data-rtdsp-tooltip);
+    position: absolute;
+    white-space: nowrap;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    background: #1e293b;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    top: 50%;
+}
+
+/* Right-side drawer: tooltip appears to the left */
+.rtdsp-drawer[data-rtdsp-drawer-position^="right"] .rtdsp-drawer__item::after {
+    right: calc(100% + 8px);
+    transform: translateY(-50%) scale(0.95);
+}
+
+.rtdsp-drawer[data-rtdsp-drawer-position^="right"] .rtdsp-drawer__item:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+}
+
+/* Left-side drawer: tooltip appears to the right */
+.rtdsp-drawer[data-rtdsp-drawer-position^="left"] .rtdsp-drawer__item::after {
+    left: calc(100% + 8px);
+    transform: translateY(-50%) scale(0.95);
+}
+
+.rtdsp-drawer[data-rtdsp-drawer-position^="left"] .rtdsp-drawer__item:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+}
+
+/* ===========================
+   Drawer — Divider
+   =========================== */
+
+.rtdsp-drawer__divider {
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.1;
+    margin: 4px 0;
+    flex-shrink: 0;
+}
+
+/* ===========================
+   Drawer — Toggle Button
+   =========================== */
+
+.rtdsp-drawer__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 44px;
+    border: none;
+    cursor: pointer;
+    color: #64748b;
+    background: inherit;
+    box-shadow: none;
+    transition: color 0.2s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.rtdsp-drawer__toggle:hover {
+    color: #1e293b;
+}
+
+/* Right drawer: toggle on left side, rounded on left */
+.rtdsp-drawer[data-rtdsp-drawer-position^="right"] .rtdsp-drawer__toggle {
+    border-radius: 8px 0 0 8px;
+}
+
+/* Left drawer: toggle on right side, rounded on right */
+.rtdsp-drawer[data-rtdsp-drawer-position^="left"] .rtdsp-drawer__toggle {
+    border-radius: 0 8px 8px 0;
+}
+
+/*
+ * When closed: the panel is collapsed and the toggle is the only
+ * visible element — give it its own background and shadow.
+ */
+.rtdsp-drawer--closed .rtdsp-drawer__toggle {
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.rtdsp-drawer__toggle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+/* Toggle icon visibility */
+.rtdsp-drawer__toggle-open,
+.rtdsp-drawer__toggle-close {
+    display: none;
+}
+
+.rtdsp-drawer--closed .rtdsp-drawer__toggle-open {
+    display: block;
+}
+
+.rtdsp-drawer:not(.rtdsp-drawer--closed) .rtdsp-drawer__toggle-close {
+    display: block;
+}

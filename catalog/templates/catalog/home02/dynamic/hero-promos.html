@@ -1,0 +1,7 @@
+{% for product in homepage_banner_products %}
+<div class="elementor-element elementor-widget homepage-hero-promo-widget">
+  <a class="homepage-hero-promo homepage-hero-promo-photo" href="{% url 'shop' %}?category={{ product.category.name|urlencode:'' }}" data-live-shop aria-label="Shop {{ product.category.name }} and related products">
+    {% with photo=product.photos.all.0 %}<img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" width="360" height="249" loading="lazy">{% endwith %}
+  </a>
+</div>
+{% empty %}<p class="homepage-empty">No product photos are available yet.</p>{% endfor %}
