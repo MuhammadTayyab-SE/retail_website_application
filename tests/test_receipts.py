@@ -54,13 +54,13 @@ class ReceiptTests(TestCase):
             "Item discount",
             "Net item subtotal",
             "Download PDF",
-            "Print receipt",
             "PKT",
             "307.50",
             "50.00",
         ):
             self.assertContains(response, text)
         self.assertContains(response, self.url())
+        self.assertNotContains(response, "Print receipt")
         self.assertNotContains(response, "WhatsApp receipt have been sent")
 
     def test_download_contains_authoritative_receipt_details(self):
