@@ -57,8 +57,17 @@ function setup() {
   const source = fs.readFileSync(path.join(__dirname, '../catalog/static/catalog/home02/snapshot.js'), 'utf8');
   const initialization = source.slice(0, source.indexOf('  const heroSlider ='));
   const addItems = source.slice(source.indexOf("  document.addEventListener('snapshot:add-items'"), source.indexOf('  function showDialog('));
-  vm.runInNewContext(`${initialization}\n${addItems}\n})();`, { document, status() {} });
-  return { document, floating, drawer, empty, items, clear, close, amounts, counters, shopping };
+  const addCard = source.slice(source.indexOf('    if (/add_to_cart|add-to-cart/'), source.indexOf('    if (product && /wishlist/'));
+  const runtime = { document, status() {} };
+  vm.runInNewContext(`${initialization}\n${addItems}
+    globalThis.addCard = (product, control) => {
+      const classes = 'rtsb-add-to-cart-btn', href = '#';
+      const productTitle = product.name, id = product.dataset.id;
+      const event = { preventDefault() {} };
+      ${addCard}
+    };
+  })();`, runtime);
+  return { document, floating, drawer, empty, items, clear, close, amounts, counters, shopping, addCard: runtime.addCard };
 }
 
 test('floating div opens empty drawer and close restores scrolling and focus', () => {
@@ -167,8 +176,50 @@ test('zero sale price is retained and removing one row keeps other basket produc
   assert.equal(ui.items.children[0].querySelector('.homepage-cart-item-prices').children[1].textContent, 'PKR 0.00');
   assert.equal(ui.amounts[0].textContent, 'PKR 250.00');
   const remove = ui.items.children[0].querySelector('[data-cart-action="remove"]');
+  assert.equal(remove.children[0].className, 'fas fa-trash-alt');
+  assert.equal(remove.attributes['aria-label'], 'Delete Free product');
+  assert.notEqual(remove.textContent, 'Remove');
   ui.items.listeners.click({ target: remove });
   assert.equal(ui.items.children.length, 1);
   assert.equal(ui.items.children[0].dataset.cartId, 'rice');
   assert.equal(ui.amounts[0].textContent, 'PKR 250.00');
+});
+
+test('Add to cart recovers regular and sale prices from older cached card HTML', () => {
+  for (const sale of [false, true]) {
+    const ui = setup();
+    const priceHost = {
+      querySelector: selector => selector === 'ins .amount'
+        ? (sale ? { textContent: 'PKR 499.95' } : null)
+        : { textContent: 'PKR 1,000.00' },
+    };
+    const product = {
+      name: 'Milk', dataset: { id: 'milk' },
+      querySelector: selector => selector === '.homepage-featured-price, .product-price'
+        ? priceHost : { src: '/products/photos/1/' },
+    };
+    const control = { closest: () => ({ dataset: {} }) };
+    ui.addCard(product, control);
+    ui.floating.click();
+    const prices = ui.items.children[0].querySelector('.homepage-cart-item-prices');
+    assert.equal(prices.children[0].textContent, 'PKR 1000.00');
+    if (sale) assert.equal(prices.children[1].textContent, 'PKR 499.95');
+    assert.equal(ui.amounts[0].textContent, sale ? 'PKR 499.95' : 'PKR 1000.00');
+  }
+});
+
+test('server price metadata takes precedence over stale visible card prices', () => {
+  const ui = setup();
+  const product = {
+    name: 'Milk', dataset: { id: 'milk' },
+    querySelector: selector => selector === '.homepage-featured-price, .product-price'
+      ? { querySelector: () => ({ textContent: 'PKR 999.00' }) } : null,
+  };
+  const control = { closest: () => ({ dataset: { cartPrice: '390.00', cartSalePrice: '0.00', cartStock: '1' } }) };
+  ui.addCard(product, control);
+  ui.floating.click();
+  const prices = ui.items.children[0].querySelector('.homepage-cart-item-prices');
+  assert.equal(prices.children[0].textContent, 'PKR 390.00');
+  assert.equal(prices.children[1].textContent, 'PKR 0.00');
+  assert.equal(ui.amounts[0].textContent, 'PKR 0.00');
 });

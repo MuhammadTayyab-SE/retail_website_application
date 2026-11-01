@@ -78,8 +78,14 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.cartAction = action;
-        button.setAttribute('aria-label', `${action === 'remove' ? 'Remove' : action === 'increase' ? 'Increase quantity of' : 'Decrease quantity of'} ${item.name}`);
-        button.textContent = action === 'remove' ? 'Remove' : action === 'increase' ? '+' : '−';
+        button.setAttribute('aria-label', `${action === 'remove' ? 'Delete' : action === 'increase' ? 'Increase quantity of' : 'Decrease quantity of'} ${item.name}`);
+        if (action === 'remove') {
+          const icon = document.createElement('i');
+          icon.className = 'fas fa-trash-alt';
+          icon.setAttribute('aria-hidden', 'true');
+          button.title = `Delete ${item.name}`;
+          button.append(icon);
+        } else button.textContent = action === 'increase' ? '+' : '−';
         button.disabled = (action === 'decrease' && item.quantity <= 1)
           || (action === 'increase' && item.quantity >= item.stock);
         controls.append(button);
@@ -544,12 +550,20 @@
     if (/add_to_cart|add-to-cart/.test(classes + href)) {
       event.preventDefault();
       const data = control.closest('.homepage-card-actions')?.dataset;
+      // Cached templates and older cards may lack the new data attributes.
+      // Read their already-rendered prices without recalculating discounts.
+      const priceHost = product?.querySelector('.homepage-featured-price, .product-price');
+      const displayedPrice = selector => {
+        const label = priceHost?.querySelector(selector)?.textContent || '';
+        return cartPriceCents(label.replace(/^\s*PKR\s*/, '').replace(/,/g, '').trim());
+      };
       const entry = basket.get(id) || {
         name: productTitle, quantity: 0,
         description: data?.cartDescription || '',
         image: product?.querySelector('.homepage-featured-photo img, .rtsb-product-image, .rtsb-product-img img')?.src || '',
-        price: cartPriceCents(data?.cartPrice),
-        salePrice: cartPriceCents(data?.cartSalePrice),
+        price: cartPriceCents(data?.cartPrice) ?? displayedPrice('del .amount, .price > .amount'),
+        salePrice: data?.cartSalePrice !== undefined
+          ? cartPriceCents(data.cartSalePrice) : displayedPrice('ins .amount'),
         stock: data?.cartStock ? Number(data.cartStock) : Number.MAX_SAFE_INTEGER,
       };
       if (entry.quantity >= entry.stock) {

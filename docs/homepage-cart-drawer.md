@@ -19,6 +19,10 @@ Populated rows show the existing product photo, name, description, original pric
 and discounted price when on sale. Descriptions are rendered as text, not HTML.
 The shared homepage card template supplies unlocalized prices from Product.price
 and the existing Product.sale_price property; discounts are not recomputed in JS.
+Older cached card HTML without the new attributes falls back to the regular and
+sale price labels already rendered on that card. A restart of the local server
+loads updated cached templates. The per-product delete action uses the existing
+Font Awesome trash icon with an accessible Delete label.
 Preview totals sum integer minor units to avoid fractional-currency drift.
 Items added through older events without pricing still display Not calculated.
 Totals are previews, not authoritative checkout charges.
@@ -30,7 +34,7 @@ and Clear All resets the basket. Removing the last item restores the empty state
 Focus remains in the drawer after row updates. Coupon, View cart and Checkout stay
 disabled with a preview notice; no new routes or persistence are introduced.
 
-Checks: JavaScript syntax; six Node event-handler checks using DOM stubs;
+Checks: JavaScript syntax; eight Node event-handler checks using DOM stubs;
 four focused Django template/regression tests without database setup; whitespace.
 Browser interaction, layout, focus behavior in a real browser and screenshot
 comparison have not been performed, per the user's visual-QA instruction.

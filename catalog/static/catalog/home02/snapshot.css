@@ -155,7 +155,7 @@
 #homepage-cart-drawer .homepage-cart-item-controls button:hover:not(:disabled) { border-color: #19815b; background: #edf7f1; }
 #homepage-cart-drawer .homepage-cart-item-controls button:disabled { color: #929a95; background: #f5f6f5; }
 #homepage-cart-drawer .homepage-cart-item-quantity { min-width: 24px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
-#homepage-cart-drawer .homepage-cart-item-controls [data-cart-action=remove] { margin-left: auto; padding: 4px; border-color: transparent; color: #a92b2b; font-size: 12px; }
+#homepage-cart-drawer .homepage-cart-item-controls [data-cart-action=remove] { margin-left: auto; padding: 4px; border-color: transparent; color: #a92b2b; font-size: 15px; }
 #homepage-cart-drawer .homepage-cart-footer { flex-shrink: 0; padding: 16px 18px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #eee; }
 #homepage-cart-drawer .homepage-cart-coupon { display: flex; align-items: center; gap: 12px; padding: 0; margin: 0 0 18px; border: 0; background: transparent; color: #525967; text-align: left; }
 #homepage-cart-drawer .homepage-cart-coupon strong { color: #19815b; font-weight: 600; }
