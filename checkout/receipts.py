@@ -181,7 +181,13 @@ def receipt_pdf(order):
     rows = [
         [
             paragraph(text, white)
-            for text in ("Item / SKU", "Qty", "Original price", "Price after deal", "Line total")
+            for text in (
+                "Item / SKU",
+                "Qty",
+                "Original price\nBefore discount",
+                "Price after deal\nPayable price",
+                "Line total\nQty x payable price",
+            )
         ]
     ]
     for item in data["items"]:
@@ -189,7 +195,9 @@ def receipt_pdf(order):
             [
                 [paragraph(item.name), paragraph(f"SKU: {item.sku or '-'}", label)],
                 paragraph(item.quantity, right),
-                paragraph(money(item.regular_price), right),
+                Paragraph(f"<strike>{escape(money(item.regular_price))}</strike>", right)
+                if item.regular_price > item.unit_price
+                else paragraph(money(item.regular_price), right),
                 paragraph(money(item.unit_price), right),
                 paragraph(money(item.line_total), right),
             ]

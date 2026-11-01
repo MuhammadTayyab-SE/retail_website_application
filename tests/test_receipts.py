@@ -84,6 +84,26 @@ class ReceiptTests(TestCase):
         ):
             self.assertIn(value, text)
 
+    def test_item_columns_distinguish_original_discounted_and_line_prices(self):
+        url = reverse("checkout-confirmation", args=[self.order.public_id])
+        html = self.client.get(url).content.decode()
+        self.assertInHTML('<td class="receipt-original-price"><del>PKR 100.00</del></td>', html)
+        self.assertInHTML('<td class="receipt-discount-price">PKR 75.00</td>', html)
+        self.assertInHTML("<td><strong>PKR 150.00</strong></td>", html)
+        Product.objects.filter(pk=self.product.pk).update(
+            is_on_sale=False, discount_percentage=None
+        )
+        items = [{"id": f"live-{self.product.pk}", "quantity": 2}]
+        lines = priced_items(items)
+        accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
+        regular_order = place_order(items, details(), AnonymousUser(), self.owner, accepted)
+        html = self.client.get(
+            reverse("checkout-confirmation", args=[regular_order.public_id])
+        ).content.decode()
+        self.assertInHTML('<td class="receipt-original-price">PKR 100.00</td>', html)
+        self.assertInHTML("<td>PKR 100.00</td>", html)
+        self.assertInHTML("<td><strong>PKR 200.00</strong></td>", html)
+
     def test_pdf_is_private_to_guest_browser_or_account_owner(self):
         self.assertEqual(Client().get(self.url()).status_code, 404)
         owner = get_user_model().objects.create_user(username="receipt-owner")
