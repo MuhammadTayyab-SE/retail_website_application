@@ -4,11 +4,59 @@ from django.core.paginator import Paginator
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.utils import translation
 
 from catalog.models import Category, Product
 
 
 class Home02QARegressionTests(SimpleTestCase):
+    def test_home_shop_and_product_pages_share_one_floating_cart(self):
+        context = {
+            "product": {"pk": 11, "name": "Milk", "quantity": 3, "category_id": 7},
+            "page_obj": Paginator([], 25).get_page(1),
+            "product_data": {},
+        }
+        for template in (
+            "catalog/home02/home.html",
+            "catalog/shop/page.html",
+            "catalog/product/page.html",
+        ):
+            with self.subTest(template=template):
+                html = render_to_string(template, context)
+                self.assertEqual(html.count('id="rtsb-cart-float-menu"'), 1)
+                self.assertEqual(html.count('id="homepage-cart-drawer"'), 1)
+                self.assertIn('snapshot.js?v=47', html)
+
+    def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
+        product = Product(
+            name="Milk & cream",
+            description="<b>Full cream</b>",
+            price=Decimal("390.00"),
+            is_on_sale=True,
+            discount_percentage=50,
+            quantity=3,
+        )
+        with translation.override("de"):
+            html = render_to_string(
+                "catalog/home02/dynamic/card-actions.html", {"product": product}
+            )
+        self.assertIn('data-cart-price="390.00"', html)
+        self.assertIn('data-cart-sale-price="195.00"', html)
+        self.assertIn('data-cart-stock="3"', html)
+        self.assertIn('data-cart-description="&lt;b&gt;Full cream&lt;/b&gt;"', html)
+
+    def test_floating_basket_has_accessible_empty_cart_drawer(self):
+        html = render_to_string("catalog/home02/snapshot/overlays.html")
+        self.assertIn('aria-controls="homepage-cart-drawer"', html)
+        self.assertIn('role="button" tabindex="0"', html)
+        self.assertIn('<dialog id="homepage-cart-drawer"', html)
+        self.assertIn('aria-label="Close basket"', html)
+        self.assertIn("No products in the cart.", html)
+        self.assertIn('href="/shop/"', html)
+        self.assertIn("Go Shopping", html)
+        self.assertIn('class="homepage-cart-checkout" disabled', html)
+        self.assertNotIn("loading-cart", html)
+
     def test_preview_basket_keeps_count_without_an_unsupported_total(self):
         html = render_to_string("catalog/home02/snapshot/overlays.html")
         self.assertIn('class="rtsb-cart-icon-num"', html)

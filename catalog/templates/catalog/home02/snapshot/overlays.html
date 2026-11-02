@@ -1,6 +1,6 @@
 {% load static %}
 <div id="rtsb-cart-float-menu" class="rtsb-cart-float-menu  right_center style2 rtsb-flying-cart">
-                <div class="rtsb-cart-float-inner">
+                <div class="rtsb-cart-float-inner" role="button" tabindex="0" aria-label="Open basket" aria-haspopup="dialog" aria-controls="homepage-cart-drawer" aria-expanded="false">
                     <span class="cart-icon">
                         <span class="cart-icon-svg"></span>
                         <span class="cart-number-wrapper">
@@ -11,10 +11,25 @@
                     </span>
                 </div>
             </div>
-<div class="rtsb-drawer-container rtsb-minicart-drawer  style2 open-always">
-            <span class="close"></span>
-            <div id="rtsb-side-content-area-id">
-                <img class="loading-cart" src="{% static 'catalog/home02/reference/www.radiustheme.com/demo/wordpress/themes/zilly/wp-content/plugins/shopbuilder-pro/assets/images/mini-cart-loading.gif' %}" alt="Loadding...">
-            </div>
-        </div>
-<div class="drawer-overlay"></div>
+<dialog id="homepage-cart-drawer" aria-labelledby="homepage-cart-title">
+  <header class="homepage-cart-header">
+    <span class="homepage-cart-bag" aria-hidden="true"><i class="icon-zilly-cart"></i><span class="rtsb-cart-icon-num">0</span></span>
+    <h2 id="homepage-cart-title">Cart Item</h2>
+    <button type="button" class="homepage-cart-clear" disabled>Clear All</button>
+    <button type="button" class="homepage-cart-close" aria-label="Close basket"><i class="eicon-close" aria-hidden="true"></i></button>
+  </header>
+  <div class="homepage-cart-body">
+    <div class="homepage-cart-empty">
+      <img src="{% static 'catalog/home02/empty-cart.png' %}" width="240" height="240" alt="" decoding="async">
+      <p>No products in the cart.</p>
+      <a href="{% url 'shop' %}" class="homepage-cart-shopping" data-live-shop>Go Shopping</a>
+    </div>
+    <ul class="homepage-cart-items" aria-label="Basket items" hidden></ul>
+  </div>
+  <footer class="homepage-cart-footer">
+    <button type="button" class="homepage-cart-coupon" disabled title="Coupons are not available in the preview basket"><i class="fas fa-ticket-alt" aria-hidden="true"></i><span><strong>Click Here.</strong> Apply Coupon</span></button>
+    <dl class="homepage-cart-totals"><div><dt>Subtotal</dt><dd data-cart-subtotal>PKR 0.00</dd></div><div><dt>Total</dt><dd data-cart-total>PKR 0.00</dd></div></dl>
+    <div class="homepage-cart-footer-actions"><button type="button" disabled>View cart</button><button type="button" class="homepage-cart-checkout" disabled>Checkout</button></div>
+    <p class="homepage-cart-note">Preview basket. Checkout is not available yet.</p>
+  </footer>
+</dialog>

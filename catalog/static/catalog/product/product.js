@@ -108,8 +108,16 @@
     updateTotal();
     if (document.querySelector('#product-add').disabled) return;
     document.dispatchEvent(new CustomEvent('snapshot:add-items', { detail: selection().map(item => ({
-      id: `live-${data.product}:${item.option.id}`, name: `${data.name}${item.option.id ? ` — ${item.option.label}` : ''}`,
+      id: `live-${data.product}${item.option.id ? `:${item.option.id}` : ''}`,
+      name: `${data.name}${item.option.id ? ` — ${item.option.label}` : ''}`,
       quantity: Number(item.input.value),
+      description: item.option.description,
+      image: (data.photos.find(photo => photo.variant === item.option.id)
+        || data.photos.find(photo => !photo.variant))?.src || '',
+      price: Math.round(Number(item.option.regular_price) * 100),
+      salePrice: item.option.price !== item.option.regular_price
+        ? Math.round(Number(item.option.price) * 100) : null,
+      stock: data.stock,
     })) }));
   });
   viewOption(data.selected);
