@@ -1,4 +1,5 @@
-<div class="homepage-card-actions">
+{% load l10n %}
+<div class="homepage-card-actions" data-cart-description="{{ product.description }}" data-cart-price="{{ product.price|unlocalize }}" data-cart-sale-price="{% if product.is_on_sale %}{{ product.sale_price|unlocalize }}{% endif %}" data-cart-stock="{{ product.quantity|unlocalize }}">
   {% if product.quantity %}
   <a href="#" class="homepage-card-cart rtsb-add-to-cart-btn" aria-label="Add {{ product.name }} to preview basket">
   {% else %}
