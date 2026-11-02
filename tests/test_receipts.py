@@ -1,6 +1,6 @@
+import uuid
 from decimal import Decimal
 from io import BytesIO
-import uuid
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser

@@ -43,7 +43,6 @@ def request_json(request):
 def checkout_page(request):
     browser_owner(request)
     attempt = str(uuid.uuid4())
-    request.session["checkout_attempt"] = attempt
     policy = DeliveryPolicy.objects.filter(pk=1).first()
     form = CheckoutForm(
         policy=policy,
@@ -81,11 +80,6 @@ def checkout_quote(request):
         totals = policy_totals(
             lines, policy, str(data.get("city", "")), method, enforce_rules=False
         )
-        eligibility_error = ""
-        try:
-            policy_totals(lines, policy, str(data.get("city", "")), method)
-        except CheckoutError as error:
-            eligibility_error = str(error)
     except CheckoutError as error:
         return JsonResponse({"error": str(error)}, status=400)
     return JsonResponse(
@@ -111,8 +105,6 @@ def checkout_quote(request):
             ],
             **totals,
             "tax_rate": policy.tax_rate,
-            "can_place_order": not bool(eligibility_error),
-            "error": eligibility_error,
             "quote_token": signing.dumps(quote_snapshot(lines, totals), salt="checkout-quote"),
         }
     )
@@ -135,10 +127,6 @@ def checkout_place(request):
                     "fields": form.errors.get_json_data(),
                 },
                 status=400,
-            )
-        if str(form.cleaned_data["idempotency_key"]) != request.session.get("checkout_attempt"):
-            raise CheckoutError(
-                "Your checkout has expired. Reload this page before placing the order."
             )
         try:
             accepted_quote = signing.loads(

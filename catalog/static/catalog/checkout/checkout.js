@@ -169,7 +169,6 @@
     const items = cartItems();
     renderPreview();
     if (!items.length) {
-      document.querySelector('#checkout-items').textContent = 'Your cart is empty. Return to Shop to add groceries.';
       quoting = false;
       error('Your cart is empty.');
       return;

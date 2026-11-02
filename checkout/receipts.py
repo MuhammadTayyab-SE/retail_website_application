@@ -43,9 +43,15 @@ def receipt_details(order):
         "payment": "Cash on collection" if pickup else "Cash on delivery",
         "payment_status": order.payment_status.replace("_", " ").capitalize(),
         "status": "Pending delivery-distance review" if pending else "Order received",
-        "message": "Your pickup order has been received. The store will confirm when it is ready for collection. Payment is due at pickup."
+        "message": (
+            "Your pickup order has been received. "
+            "The store will confirm when it is ready for collection. Payment is due at pickup."
+        )
         if pickup
-        else "Your order is pending delivery-distance review. The store will verify your address and confirm delivery. Payment is due on delivery."
+        else (
+            "Your order is pending delivery-distance review. "
+            "The store will verify your address and confirm delivery. Payment is due on delivery."
+        )
         if pending
         else "Your order has been received. Payment is due on delivery.",
     }

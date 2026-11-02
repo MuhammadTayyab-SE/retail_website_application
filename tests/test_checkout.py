@@ -1,16 +1,17 @@
 import json
-import uuid
 import tempfile
-from pathlib import Path
-from unittest.mock import patch
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from pathlib import Path
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.db import close_old_connections
-from django.core.management import call_command, CommandError
+from django.core.management import CommandError, call_command
+from django.db import close_old_connections, connection
 from django.test import Client, TestCase, TransactionTestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
 from catalog.models import Category, Product, ProductVariant
@@ -85,11 +86,11 @@ class CheckoutTests(TestCase):
 
     def payload(self, client=None):
         client = client or self.client
-        client.get(reverse("checkout"))
+        response = client.get(reverse("checkout"))
         quote = self.quote(client=client).json()
         return {
             "items": self.items,
-            "details": details(client.session["checkout_attempt"]),
+            "details": details(response.context["form"]["idempotency_key"].value()),
             "quote_token": quote["quote_token"],
         }
 
@@ -159,6 +160,16 @@ class CheckoutTests(TestCase):
         self.assertEqual(line.name, "Checkout milk")
         self.assertEqual(line.unit_price, Decimal("75.00"))
 
+    def test_opening_another_checkout_tab_keeps_the_first_checkout_valid(self):
+        first = self.payload()
+        second = self.payload()
+        self.assertNotEqual(
+            first["details"]["idempotency_key"], second["details"]["idempotency_key"]
+        )
+        self.assertEqual(self.place(first).status_code, 200)
+        self.assertEqual(self.place(first).status_code, 200)
+        self.assertEqual(Order.objects.count(), 1)
+
     def test_guest_confirmation_is_private_and_idempotency_owner_is_checked(self):
         payload = self.payload()
         response = self.place(payload)
@@ -167,9 +178,6 @@ class CheckoutTests(TestCase):
         other = Client()
         self.assertEqual(other.get(url).status_code, 404)
         other.get(reverse("checkout"))
-        session = other.session
-        session["checkout_attempt"] = payload["details"]["idempotency_key"]
-        session.save()
         self.assertEqual(self.place(payload, client=other).status_code, 409)
         self.assertEqual(Order.objects.count(), 1)
 
@@ -237,6 +245,26 @@ class CheckoutTests(TestCase):
         items.append({"id": f"live-{self.product.pk}", "quantity": 4})
         self.assertEqual(self.quote(items).status_code, 400)
 
+    def test_variant_lines_share_one_stock_update_and_one_line_insert(self):
+        variant = ProductVariant.objects.create(
+            product=self.product, sku="CHECKOUT-LARGE", price=Decimal("120")
+        )
+        items = self.items + [{"id": f"live-{self.product.pk}:{variant.pk}", "quantity": 1}]
+        lines = priced_items(items)
+        accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
+        with CaptureQueriesContext(connection) as queries:
+            order = place_order(items, details(), AnonymousUser(), uuid.uuid4(), accepted)
+        stock_updates = [q for q in queries if q["sql"].startswith('UPDATE "catalog_product"')]
+        line_inserts = [
+            q for q in queries if q["sql"].startswith('INSERT INTO "checkout_orderitem"')
+        ]
+        self.assertEqual(len(stock_updates), 1)
+        self.assertEqual(len(line_inserts), 1)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 2)
+        self.assertEqual(order.items.count(), 2)
+        self.assertEqual(order.subtotal, Decimal("240.00"))
+
     def test_csrf_and_contact_validation(self):
         strict = Client(enforce_csrf_checks=True)
         strict.get(reverse("checkout"))
@@ -290,16 +318,14 @@ class CheckoutTests(TestCase):
         items = self.items + [{"id": f"live-{second.pk}", "quantity": 1}]
         lines = priced_items(items)
         accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
-        original = OrderItem.objects.create
-        calls = []
 
-        def fail_second(**kwargs):
-            calls.append(kwargs)
-            if len(calls) == 2:
-                raise RuntimeError("Synthetic second-line failure")
-            return original(**kwargs)
+        def fail_insert(*args, **kwargs):
+            self.product.refresh_from_db()
+            second.refresh_from_db()
+            self.assertEqual((self.product.quantity, second.quantity), (3, 4))
+            raise RuntimeError("Synthetic line-insert failure")
 
-        with patch("checkout.services.OrderItem.objects.create", side_effect=fail_second):
+        with patch("checkout.services.OrderItem.objects.bulk_create", side_effect=fail_insert):
             with self.assertRaises(RuntimeError):
                 place_order(items, details(), AnonymousUser(), uuid.uuid4(), accepted)
         self.assertFalse(Order.objects.exists())
@@ -350,16 +376,25 @@ class CheckoutTests(TestCase):
         self.assertIn("minimum order", data["error"])
         self.assertEqual(self.place(self.payload()).status_code, 409)
 
+    def test_out_of_area_quote_keeps_totals_and_blocks_order(self):
+        self.policy.allowed_cities = ["Karachi"]
+        self.policy.save()
+        data = self.quote().json()
+        self.assertEqual(data["total"], "307.50")
+        self.assertEqual(len(data["items"]), 1)
+        self.assertFalse(data["can_place_order"])
+        self.assertEqual(data["error"], "Delivery is not available in this city.")
+
     def test_pickup_is_free_without_minimum_or_delivery_address(self):
         self.policy.pickup_enabled = True
         self.policy.minimum_order = 1500
         self.policy.save()
-        self.client.get(reverse("checkout"))
+        response = self.client.get(reverse("checkout"))
         quote = self.quote(method="pickup").json()
         self.assertTrue(quote["can_place_order"])
         self.assertEqual(quote["delivery_fee"], "0.00")
         self.assertIsNone(quote["free_delivery_remaining"])
-        values = details(self.client.session["checkout_attempt"])
+        values = details(response.context["form"]["idempotency_key"].value())
         values.update(delivery_method="pickup")
         values.pop("address")
         values.pop("city")

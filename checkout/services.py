@@ -1,6 +1,6 @@
-import re
 import hashlib
 import json
+import re
 from collections import Counter
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -41,7 +41,12 @@ def priced_items(items, *, lock=False):
     quantities = cart_quantities(items)
     product_ids = sorted({key[0] for key in quantities})
     if lock:
-        list(Product.objects.select_for_update().filter(pk__in=product_ids).order_by("pk"))
+        list(
+            Product.objects.select_for_update()
+            .filter(pk__in=product_ids)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
     products = {
         p.pk: p
         for p in Product.objects.visible().filter(pk__in=product_ids).prefetch_related("photos")
@@ -113,19 +118,21 @@ def policy_totals(lines, policy, city="", delivery_method="delivery", *, enforce
         )
     ):
         raise CheckoutError("Delivery distance cannot be verified with the current configuration.")
+    eligibility_error = ""
     if (
-        enforce_rules
-        and not pickup
+        not pickup
         and city
         and policy.allowed_cities
         and city.strip().casefold()
         not in {str(value).strip().casefold() for value in policy.allowed_cities}
     ):
-        raise CheckoutError("Delivery is not available in this city.")
+        eligibility_error = "Delivery is not available in this city."
     subtotal = sum((line["line_total"] for line in lines), Decimal("0.00"))
     minimum = policy.pickup_minimum_order if pickup else policy.minimum_order
-    if enforce_rules and subtotal < minimum:
-        raise CheckoutError(f"The minimum order is PKR {minimum:.2f}.")
+    if not eligibility_error and subtotal < minimum:
+        eligibility_error = f"The minimum order is PKR {minimum:.2f}."
+    if enforce_rules and eligibility_error:
+        raise CheckoutError(eligibility_error)
     threshold = None if pickup else policy.free_delivery_threshold
     delivery = (
         policy.pickup_fee
@@ -138,6 +145,8 @@ def policy_totals(lines, policy, city="", delivery_method="delivery", *, enforce
     if subtotal + delivery + tax >= Decimal("100000000000000"):
         raise CheckoutError("The order total is too large. Please reduce the quantities.")
     return {
+        "can_place_order": not bool(eligibility_error),
+        "error": eligibility_error,
         "subtotal": subtotal,
         "delivery_fee": delivery,
         "tax": tax,
@@ -222,7 +231,8 @@ def place_order(items, details, user, browser_owner, accepted_quote):
     totals = policy_totals(lines, policy, details["city"], details["delivery_method"])
     if quote_snapshot(lines, totals) != accepted_quote:
         raise CheckoutError(
-            "Prices or delivery charges changed. Review the refreshed total before placing your order again."
+            "Prices or delivery charges changed. "
+            "Review the refreshed total before placing your order again."
         )
     order.subtotal, order.delivery_fee = totals["subtotal"], totals["delivery_fee"]
     order.tax, order.total = totals["tax"], totals["total"]
@@ -256,25 +266,33 @@ def place_order(items, details, user, browser_owner, accepted_quote):
     order.save(
         update_fields=["subtotal", "delivery_fee", "tax", "total", "policy_snapshot", "status"]
     )
+    stock_quantities = Counter()
     for line in lines:
-        OrderItem.objects.create(
-            order=order,
-            **{
-                key: line[key]
-                for key in (
-                    "product",
-                    "variant",
-                    "name",
-                    "sku",
-                    "description",
-                    "quantity",
-                    "regular_price",
-                    "unit_price",
-                    "line_total",
-                )
-            },
+        stock_quantities[line["product"].pk] += line["quantity"]
+    for product_id, quantity in stock_quantities.items():
+        Product.objects.filter(pk=product_id).update(
+            quantity=F("quantity") - quantity, updated_at=timezone.now()
         )
-        Product.objects.filter(pk=line["product"].pk).update(
-            quantity=F("quantity") - line["quantity"], updated_at=timezone.now()
-        )
+    OrderItem.objects.bulk_create(
+        [
+            OrderItem(
+                order=order,
+                **{
+                    key: line[key]
+                    for key in (
+                        "product",
+                        "variant",
+                        "name",
+                        "sku",
+                        "description",
+                        "quantity",
+                        "regular_price",
+                        "unit_price",
+                        "line_total",
+                    )
+                },
+            )
+            for line in lines
+        ]
+    )
     return order

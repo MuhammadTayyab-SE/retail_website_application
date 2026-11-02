@@ -62,6 +62,9 @@ against current values at placement. Changed charges require customer review.
 Order creation, immutable item/address/price/policy snapshots, and stock allocation
 commit atomically. Product rows are locked in deterministic order. A unique
 idempotency key and request fingerprint prevent duplicate/replayed submissions.
+Each checkout form has its own key; opening another tab does not invalidate it.
+Order items are inserted together, and stock is updated once per product even
+when the order contains several of its variants. Failures roll back all writes.
 Cash-on-delivery orders remain unpaid. Successful checkout removes purchased
 quantities from the tab cart, retaining items added while the request was pending.
 
@@ -88,7 +91,10 @@ Download PDF returns an attachment from
 protects both HTML and PDF, with no-cache headers and 404 for other viewers.
 ReportLab generates an actual PDF using the existing local Inter font, wrapped
 tables, repeated table headings and numbered pages for long orders. A separate
-Print receipt action uses the browser's print dialog and print stylesheet.
+Download PDF is the receipt export action. The Print receipt button has been removed;
+the print stylesheet still supports the browser's built-in print command.
+The receipt loads only its own styles and the existing Inter font stylesheet;
+it does not load storefront/plugin CSS or an icon font.
 
 ReportLab is a locked runtime dependency; pypdf is a locked test dependency.
 Run `uv sync --frozen` when updating an existing environment. No additional schema
@@ -148,3 +154,34 @@ were placed in the development catalog.
 
 User-approved local schema/configuration is enabled. No merge or deployment is
 performed by this implementation.
+
+## Ponytail review, 2 November 2026
+
+Reviewed PR #50 and its connected cart, pricing, ownership, stock, receipt and
+configuration code. Assumed a retailer storefront with concurrent customers,
+bounded carts of at most 100 rows, and a retailer-local PostgreSQL database.
+
+- Fixed a second checkout tab invalidating the first tab's submission key.
+  UUID validation, signed quotes, CSRF, ownership checks and idempotent replay
+  protection remain in place.
+- Removed 39 unused stylesheet references from the receipt, avoiding 2,464,504
+  raw CSS bytes before compression/cache effects. This is a source-size count,
+  not a browser timing measurement. The receipt now has two stylesheet links.
+- Batched item inserts and combined variant stock deductions per product;
+  locked product queries fetch IDs instead of unused full product records.
+- Removed duplicate quote calculations, redundant empty-summary rendering,
+  unused receipt button styles and the print-action wrapper. Fixed scoped lint
+  errors and corrected the stale print-button documentation.
+- Added checks for two checkout tabs, grouped variant writes, out-of-area
+  summary preservation, and rollback after stock writes if item insertion fails.
+
+Validation initially found an existing homepage fixture failure: its sale product
+omitted discount_percentage. The test's source from the PR base branch reproduced
+the same failure. The fixture now supplies a valid discount without changing
+catalog behavior. The checkout, receipt, homepage, shop and product test suites
+pass all 61 tests. All 20 Node cart/checkout checks pass. Scoped lint/format
+checks, migration drift, local font references and whitespace checks pass.
+
+No browser performance measurements, visual comparisons, production load tests,
+merge or deployment were performed. This is a scoped regression run, not a full
+application regression signoff.
