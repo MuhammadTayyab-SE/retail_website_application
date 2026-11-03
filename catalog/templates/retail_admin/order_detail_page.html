@@ -1,0 +1,5 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/orders.css' %}">{% endblock %}
+{% block content_title %}{% endblock %}
+{% block content %}<div class="retail-page-heading"><div><span class="retail-eyebrow">ORDER MANAGEMENT</span><h1>Order details</h1></div><a class="retail-button secondary" href="{% url 'admin:orders' %}">← All orders</a></div><section class="retail-card orders-detail-page">{% include "retail_admin/order_detail.html" %}</section>{% endblock %}

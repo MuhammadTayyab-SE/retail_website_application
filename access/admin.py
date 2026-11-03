@@ -60,7 +60,14 @@ class PermissionChoices(forms.ModelMultipleChoiceField):
 
 class RoleForm(forms.ModelForm):
     permissions = PermissionChoices(
-        queryset=Permission.objects.filter(content_type__app_label="catalog")
+        queryset=Permission.objects.filter(
+            Q(content_type__app_label="catalog")
+            | Q(
+                content_type__app_label="checkout",
+                content_type__model="order",
+                codename__in=["view_order", "change_order"],
+            )
+        )
         .exclude(content_type__model__in=["productphoto", "productvariant"])
         .order_by("codename"),
         widget=forms.CheckboxSelectMultiple(attrs={"class": "permission-grid"}),
