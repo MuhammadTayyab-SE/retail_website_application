@@ -167,6 +167,8 @@
 #homepage-cart-drawer .homepage-cart-footer-actions { display: flex; gap: 10px; }
 #homepage-cart-drawer .homepage-cart-footer-actions button { flex: 1; padding: 10px 8px; border: 0; border-radius: 5px; background: #eeeef4; color: #30343a; }
 #homepage-cart-drawer .homepage-cart-footer-actions .homepage-cart-checkout { background: #19815b; color: #fff; }
+#homepage-cart-drawer .homepage-cart-footer-actions a { display: block; width: 100%; padding: 12px; box-sizing: border-box; border-radius: 5px; text-align: center; text-decoration: none; font-weight: 600; }
+#homepage-cart-drawer .homepage-cart-footer-actions a[aria-disabled=true] { opacity: .5; cursor: not-allowed; }
 #homepage-cart-drawer .homepage-cart-note { margin: 8px 0 0; color: #68716c; font-size: 12px; }
 @keyframes homepage-cart-enter { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { #homepage-cart-drawer[open] { animation: none; } }
