@@ -49,9 +49,12 @@ class RetailAdminSite(AdminSite):
             "catalog_category_changelist": "Categories",
             "catalog_parent_categories": "Parent Categories",
             "settings": "Settings",
-            "orders": "Orders",
+            "orders": "All orders",
             "order-detail": "Orders / Details",
             "order-status": "Orders / Update status",
+            "order-payment": "Orders / Payment",
+            "order-note": "Orders / Notes",
+            "order-settings": "Settings / Orders",
             "password_change": "Settings / Change password",
             "password_change_done": "Settings / Change password",
             "auth_user_changelist": "Workers",
@@ -79,6 +82,33 @@ class RetailAdminSite(AdminSite):
         context["can_view_orders"] = request.user.has_perm(
             "checkout.view_order"
         ) or request.user.has_perm("checkout.change_order")
+        context["can_view_order_settings"] = request.user.has_perm(
+            "checkout.view_deliverypolicy"
+        ) or request.user.has_perm("checkout.change_deliverypolicy")
+        from checkout.admin_views import ORDER_SECTIONS
+
+        section = (
+            request.resolver_match.kwargs.get("section", "all") if request.resolver_match else "all"
+        )
+        context["order_navigation"] = [
+            {
+                "key": key,
+                "title": title,
+                "active": key == section
+                and route
+                in {
+                    "orders",
+                    "order-workspace",
+                    "order-detail",
+                    "order-status",
+                    "order-payment",
+                    "order-note",
+                },
+            }
+            for key, (title, _) in ORDER_SECTIONS.items()
+        ]
+        if route == "order-workspace" and section in ORDER_SECTIONS:
+            context["workspace_header"] = ORDER_SECTIONS[section][0]
         if request.user.is_authenticated and not request.user.is_superuser:
             context["worker_role"] = (
                 WorkerProfile.objects.filter(user=request.user).select_related("role").first()
@@ -91,6 +121,9 @@ class RetailAdminSite(AdminSite):
         return [
             path("orders/", self.admin_view(admin_views.orders_dashboard), name="orders"),
             path(
+                "orders/export/", self.admin_view(admin_views.orders_export), name="orders-export"
+            ),
+            path(
                 "orders/<uuid:object_id>/",
                 self.admin_view(admin_views.order_detail),
                 name="order-detail",
@@ -99,6 +132,36 @@ class RetailAdminSite(AdminSite):
                 "orders/<uuid:object_id>/status/",
                 self.admin_view(admin_views.order_status),
                 name="order-status",
+            ),
+            path(
+                "orders/<uuid:object_id>/payment/",
+                self.admin_view(admin_views.order_payment),
+                name="order-payment",
+            ),
+            path(
+                "orders/<uuid:object_id>/notes/",
+                self.admin_view(admin_views.order_note),
+                name="order-note",
+            ),
+            path(
+                "orders/<uuid:object_id>/receipt.pdf",
+                self.admin_view(admin_views.order_receipt),
+                name="order-receipt",
+            ),
+            path(
+                "orders/<uuid:object_id>/label/",
+                self.admin_view(admin_views.order_label),
+                name="order-label",
+            ),
+            path(
+                "orders/<slug:section>/",
+                self.admin_view(admin_views.orders_dashboard),
+                name="order-workspace",
+            ),
+            path(
+                "settings/orders/",
+                self.admin_view(admin_views.order_settings),
+                name="order-settings",
             ),
             path("settings/", self.admin_view(self.settings_view), name="settings"),
         ] + super().get_urls()

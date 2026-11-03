@@ -1,45 +1,32 @@
 {% extends "admin/base_site.html" %}
-{% load static tz %}
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/orders.css' %}">{% endblock %}
-{% block extrahead %}{{ block.super }}<script defer src="{% static 'catalog/admin/orders.js' %}"></script>{% endblock %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/orders.css' %}?v=2">{% endblock %}
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'catalog/admin/orders.js' %}?v=2"></script>{% endblock %}
 {% block content_title %}{% endblock %}
 {% block content %}
-<div class="retail-page-heading"><div><span class="retail-eyebrow">SALES WORKSPACE</span><h1>Orders Dashboard</h1><p>Track customer orders from checkout to completion.</p></div><a class="retail-button secondary" href="{% url 'admin:orders' %}">Refresh orders</a></div>
-<form class="retail-card orders-filters" method="get" aria-label="Order filters">
-  <div class="orders-search"><label for="{{ filters.q.id_for_label }}">Search orders</label>{{ filters.q }}{{ filters.q.errors }}<small>Order number, customer, email or phone</small></div>
-  <div><label for="{{ filters.start.id_for_label }}">From date</label>{{ filters.start }}{{ filters.start.errors }}</div>
-  <div><label for="{{ filters.end.id_for_label }}">To date</label>{{ filters.end }}{{ filters.end.errors }}</div>
-  <div><label for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}{{ filters.status.errors }}</div>
-  <div><label for="{{ filters.fulfillment.id_for_label }}">Fulfillment</label>{{ filters.fulfillment }}{{ filters.fulfillment.errors }}</div>
-  <div><label for="{{ filters.payment.id_for_label }}">Payment</label>{{ filters.payment }}{{ filters.payment.errors }}</div>
-  <div class="orders-filter-actions"><button type="submit" class="button">Apply filters</button><a href="{% url 'admin:orders' %}">Reset</a></div>
-  {{ filters.non_field_errors }}{{ filters.order.errors }}
-</form>
+<div class="retail-page-heading"><div><span class="retail-eyebrow">ORDER MANAGEMENT</span><h1>{{ title }}</h1><p>{{ description }}</p></div><div class="retail-heading-actions"><a class="retail-button secondary" href="{% url 'admin:orders-export' %}?section={{ section }}&amp;{{ filter_query }}">&darr; Export CSV</a>{% if section == 'overview' %}<a class="retail-button" href="{% url 'admin:orders' %}">View all orders &rarr;</a>{% else %}<a class="retail-button" href="{% url 'admin:order-workspace' 'overview' %}">&larr; Overview</a>{% endif %}</div></div>
+{% if section != 'overview' %}{% include "retail_admin/order_filters.html" %}{% endif %}
 <section class="retail-stat-grid orders-stats" aria-label="Order summary for the current filters">
-  <article class="retail-stat"><span>Total orders</span><strong>{{ order_counts.total }}</strong><small>For the current filters</small></article>
-  <article class="retail-stat"><span>New today</span><strong>{{ order_counts.new }}</strong><small>Placed today · PKT</small></article>
-  <article class="retail-stat"><span>Processing</span><strong>{{ order_counts.processing }}</strong><small>Being prepared</small></article>
-  <article class="retail-stat"><span>Shipped</span><strong>{{ order_counts.shipped }}</strong><small>Out for delivery</small></article>
-  <article class="retail-stat"><span>Payment cleared</span><strong>{{ order_counts.paid }}</strong><small>Recorded as paid</small></article>
-  <article class="retail-stat"><span>Distance review</span><strong>{{ order_counts.review }}</strong><small>Address check required</small></article>
+{% if section == 'payments' %}
+  <article class="retail-stat"><span>Outstanding payments</span><strong>{{ order_counts.unpaid }}</strong><small>Awaiting collection</small></article><article class="retail-stat"><span>Amount outstanding</span><strong class="orders-money">PKR {{ order_counts.unpaid_amount|floatformat:2 }}</strong><small>Excludes cancelled orders</small></article><article class="retail-stat"><span>Payment cleared</span><strong>{{ order_counts.paid }}</strong><small>Recorded as paid</small></article><article class="retail-stat"><span>Cash orders</span><strong>{{ order_counts.cod }}</strong><small>Delivery and pickup</small></article>
+{% elif section == 'fulfillment' %}
+  <article class="retail-stat"><span>New orders</span><strong>{{ order_counts.awaiting }}</strong><small>Awaiting confirmation</small></article><article class="retail-stat"><span>Preparing</span><strong>{{ order_counts.processing }}</strong><small>Picking and packing</small></article><article class="retail-stat"><span>Ready for pickup</span><strong>{{ order_counts.ready }}</strong><small>Awaiting collection</small></article><article class="retail-stat"><span>Needs review</span><strong>{{ order_counts.review }}</strong><small>Check Needs Attention</small></article>
+{% elif section == 'delivery' %}
+  <article class="retail-stat"><span>Ready for pickup</span><strong>{{ order_counts.ready }}</strong><small>Prepared for collection</small></article><article class="retail-stat"><span>Out for delivery</span><strong>{{ order_counts.shipped }}</strong><small>Dispatched orders</small></article><article class="retail-stat"><span>Delivered / collected</span><strong>{{ order_counts.fulfilled }}</strong><small>Includes completed orders</small></article><article class="retail-stat"><span>Delivery issues</span><strong>{{ order_counts.failed }}</strong><small>Check Needs Attention</small></article>
+{% elif section == 'attention' %}
+  <article class="retail-stat"><span>Address / manual review</span><strong>{{ order_counts.review }}</strong><small>Confirmation required</small></article><article class="retail-stat"><span>Failed deliveries</span><strong>{{ order_counts.failed }}</strong><small>Recorded delivery issues</small></article><article class="retail-stat"><span>Cancelled</span><strong>{{ order_counts.cancelled }}</strong><small>Historical records</small></article><article class="retail-stat"><span>Total exceptions</span><strong>{{ order_counts.review|add:order_counts.failed|add:order_counts.cancelled }}</strong><small>Review this queue first</small></article>
+{% else %}
+  <article class="retail-stat"><span>Total orders</span><strong>{{ order_counts.total }}</strong><small>Across matching orders</small></article><article class="retail-stat"><span>Awaiting confirmation</span><strong>{{ order_counts.awaiting }}</strong><small>New orders need action</small></article><article class="retail-stat"><span>In fulfillment</span><strong>{{ order_counts.processing|add:order_counts.ready }}</strong><small>Preparing or ready for pickup</small></article><article class="retail-stat"><span>Order value</span><strong class="orders-money">PKR {{ order_counts.amount|floatformat:2 }}</strong><small>Excludes cancelled &middot; includes unpaid</small></article>
+{% endif %}
 </section>
-<section class="retail-card" aria-labelledby="orders-list-title">
-  <div class="retail-card-heading"><div><h2 id="orders-list-title">Order list</h2><p>{{ order_page.paginator.count }} matching order{{ order_page.paginator.count|pluralize }} · Newest first</p></div><span class="orders-live-label"><span aria-hidden="true"></span>Checkout orders</span></div>
-  {% if order_page %}<div class="retail-table-scroll"><table class="orders-table"><thead><tr><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Items</th><th scope="col">Total / Payment</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody>
-  {% for order in order_page %}<tr>
-    <td><a href="{% url 'admin:order-detail' order.public_id %}" data-order-detail>{{ order.number }}</a>{% timezone "Asia/Karachi" %}<small><time datetime="{{ order.created_at|date:'c' }}">{{ order.created_at|date:"d M Y · H:i" }} PKT</time></small>{% endtimezone %}<small>{% if order.delivery_method == 'pickup' %}Store pickup{% else %}Standard delivery{% endif %}</small></td>
-    <td><strong>{{ order.contact.first_name }} {{ order.contact.last_name }}</strong><small>{{ order.contact.phone }}</small><small>{% if order.delivery_method == 'pickup' %}Collect from store{% else %}{{ order.address.city }}{% endif %}</small></td>
-    <td><div class="orders-item-preview">{% for item in order.items.all %}{% if forloop.counter <= 2 %}<span>{{ item.quantity }} × {{ item.name }}</span>{% elif forloop.counter == 3 %}<small>+ {{ order.items.all|length|add:"-2" }} more products</small>{% endif %}{% endfor %}</div></td>
-    <td><strong class="orders-amount">PKR {{ order.total|floatformat:2 }}</strong><small>{{ order.payment_status|title }}</small></td>
-    <td><span class="orders-status status-{{ order.status|slugify }}">{{ order.status_label }}</span></td>
-    <td><a class="orders-detail-link" href="{% url 'admin:order-detail' order.public_id %}" data-order-detail aria-label="View details for {{ order.number }}">View details <span aria-hidden="true">→</span></a></td>
-  </tr>{% endfor %}
-  </tbody></table></div>
-  <nav class="orders-pagination" aria-label="Orders pagination"><span>Showing {{ order_page.start_index }}–{{ order_page.end_index }} of {{ order_page.paginator.count }}</span><div>{% if order_page.has_previous %}<a href="?{{ filter_query }}&amp;page={{ order_page.previous_page_number }}">← Previous</a>{% endif %}<span>Page {{ order_page.number }} of {{ order_page.paginator.num_pages }}</span>{% if order_page.has_next %}<a href="?{{ filter_query }}&amp;page={{ order_page.next_page_number }}">Next →</a>{% endif %}</div></nav>
-  {% else %}<div class="retail-empty"><h3>No orders found</h3><p>{% if filters.errors %}Correct the filters above to see matching orders.{% else %}Orders placed through checkout appear here. Try changing the filters or refresh after a new order.{% endif %}</p></div>{% endif %}
-</section>
-<dialog class="orders-drawer" id="orders-drawer" aria-labelledby="orders-drawer-title" data-open-url="{{ open_order_url }}">
-  <header class="orders-drawer-heading"><div><span class="retail-eyebrow">ORDER MANAGEMENT</span><h2 id="orders-drawer-title">Order details</h2></div><button type="button" data-close-orders aria-label="Close order details">×</button></header>
-  <div id="orders-drawer-content" aria-live="polite"></div>
-</dialog>
+{% if section == 'overview' or section == 'reports' %}{% include "retail_admin/order_charts.html" %}{% endif %}
+{% if section == 'overview' %}
+<div class="orders-overview-grid">
+  <section class="retail-card"><div class="retail-card-heading"><div><h2>Requires your attention</h2><p>Keep orders and cash collection moving</p></div></div><div class="orders-attention-list"><a href="{% url 'admin:order-workspace' 'attention' %}"><span><strong>{{ order_counts.review }} orders need review</strong><small>Check the delivery address and distance</small></span><span>Review &rarr;</span></a><a href="{% url 'admin:order-workspace' 'fulfillment' %}"><span><strong>{{ order_counts.awaiting }} orders awaiting confirmation</strong><small>Accept and prepare new checkout orders</small></span><span>Open &rarr;</span></a><a href="{% url 'admin:order-workspace' 'payments' %}"><span><strong>{{ order_counts.unpaid }} payments outstanding</strong><small>Cash awaiting confirmed collection</small></span><span>Check &rarr;</span></a></div></section>
+  <section class="retail-card"><div class="retail-card-heading"><h2>Quick actions</h2></div><div class="orders-quick-grid"><a href="{% url 'admin:order-workspace' 'fulfillment' %}"><strong>{{ order_counts.awaiting }}</strong><span>Confirm orders &rarr;</span></a><a href="{% url 'admin:order-workspace' 'delivery' %}"><strong>{{ order_counts.ready|add:order_counts.shipped }}</strong><span>Dispatch &amp; pickup &rarr;</span></a><a href="{% url 'admin:order-workspace' 'payments' %}"><strong>{{ order_counts.unpaid }}</strong><span>Unpaid orders &rarr;</span></a><a href="{% url 'admin:order-workspace' 'attention' %}"><strong>{{ order_counts.review }}</strong><span>Issues to resolve &rarr;</span></a></div></section>
+</div>
+{% elif section == 'payments' %}<p class="orders-review-note">Mark cash collected only after the money is received. Fulfillment and payment are recorded separately.</p>
+{% elif section == 'fulfillment' %}<p class="orders-review-note">Open an order to confirm it and move it to the next approved stage. Pickup and delivery use their own fulfillment steps.</p>
+{% elif section == 'attention' %}<p class="orders-review-note">Address reviews can move to Processing after verification. Cancellation, refunds and failed-delivery recovery require their own rules.</p>{% endif %}
+{% if section == 'reports' %}<section class="retail-card orders-report-summary"><div class="retail-card-heading"><h2>Payment reconciliation</h2></div><dl><div><dt>Recorded as paid</dt><dd>PKR {{ order_counts.paid_amount|floatformat:2 }}</dd></div><div><dt>Still outstanding</dt><dd>PKR {{ order_counts.unpaid_amount|floatformat:2 }}</dd></div></dl><p>Figures use saved order totals and payment states. Export filtered orders for reconciliation.</p></section>{% else %}{% include "retail_admin/order_table.html" %}{% endif %}
 {% endblock %}

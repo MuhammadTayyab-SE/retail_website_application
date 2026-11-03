@@ -8,7 +8,7 @@ from django.db import models
 
 
 class DeliveryPolicy(models.Model):
-    """Retailer-local checkout rules; admin management is a separate backlog item."""
+    """Retailer-local checkout rules managed from admin Order settings."""
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     enabled = models.BooleanField(default=False)

@@ -1,83 +1,108 @@
-# Admin Orders panel
+# Admin Orders workspace
 
-Implements the user-authorized Orders dashboard from issue #52, related to #13.
-Visual inspiration: `supporting docs/Templated/Admin - Orders/admin_dashboard.html`.
-Only its Orders dashboard and details panel are in scope. Its sample orders,
-unrelated modules, demo percentages and third-party scripts are not used.
+Issue #52, related to #13 and the order-settings increment of #47. Draft PR #53
+is based on development. Worktree: admin-orders-work; branch: feature/admin-orders.
 
-## Usage and implementation
+## Reference and scope
 
-Run the app from `admin-orders-work` and open `/admin/orders/`. The existing
-admin navigation contains an Orders link for authorized users. Checkout orders
-appear on page load or Refresh orders; no separate import or order copy exists.
-This feature is on `feature/admin-orders`, not development until its PR merges.
+The current approved inspiration is
+`supporting docs/Templated/Admin - Orders/retail_orders_prototype.html`.
+It replaces the earlier admin_dashboard.html layout. The HTML is a design
+reference, not an authority for backend rules, demo data or browser instructions.
+Sample orders, illustrative charts, local JavaScript order storage and demo
+payment/status toggles are not copied into the application.
 
-The page reuses the existing admin shell and Order/OrderItem tables. It provides
-six database-backed summary cards, search by displayed reference/customer/phone/
-email, inclusive PKT date filters, status/fulfillment/payment filters, 25-order
-pagination, and a right-side details panel. Links also work as standalone detail
-pages without JavaScript. Saved item/contact/address/price snapshots are used;
-catalog edits do not change recorded order names or totals. Available catalog
-photos accompany items; deleted products retain the saved text and prices.
+The existing admin shell now exposes Orders overview, All orders, Fulfillment,
+Delivery center, Payments & COD, Needs attention and Order reports. Order settings
+are inside Settings, alongside Account security, rather than a separate Orders
+navigation item. The existing inventory and team pages remain available.
 
-Summary cards reflect the current filters. Payment cleared counts only orders
-explicitly stored as paid; completing fulfillment never marks an order paid.
-The browser loads only the selected order's details. Related item/photo data is
-prefetched rather than fetched separately for every item.
+## Implementation
 
-## Approved fulfillment workflow
+- /admin/orders/ is All orders. Other sections use /admin/orders/<section>/.
+  The overview is /admin/orders/overview/; settings are /admin/settings/orders/.
+- Existing Order/OrderItem records and saved snapshots supply all pages. Orders
+  appear on load or Refresh orders. There is no separate order import or copy.
+- Shared GET filters support reference/customer/email/phone/city searches,
+  inclusive PKT date ranges, specific dates and All time/Today/7-day/30-day
+  presets. All orders and queues use 25-order pagination; overview shows five.
+- Summary cards use the current search/date/status/payment filters across orders;
+  queue restrictions apply to the table. Payments defaults to outstanding orders
+  and can explicitly show recorded paid orders through its payment filter.
+- Overview and reports chart actual daily order and paid-order counts. Missing
+  days show zero. A native table exposes the chart data. Pipeline counts come
+  from actual fulfillment states. Order value includes unpaid orders and is
+  labelled accordingly; it is not presented as collected revenue.
+- Full-page order details replace the drawer. They show progress, saved items and
+  original/deal/line prices, contact/address data, customer instructions, order
+  information, status controls, cash collection, totals and activity.
+- One shared table, filter, chart and query implementation supports the sections.
+  JavaScript only controls date-field visibility and the print-label command.
+  The old drawer fetching/focus/loading code and its unused styles are removed.
+- CSV export reuses the same filters and queue rules, streams rows in chunks,
+  and prefixes formula-like text for safer spreadsheet handling. Labels use
+  actual saved addresses/totals and support printing and SVG download. Staff
+  receipt download reuses the existing PDF generator under admin authorization.
 
-The user approved these forward-only transitions:
+## Approved writes and safeguards
 
-- Delivery: New → Processing → Shipped → Delivered → Complete.
-- Pickup: New → Processing → Ready for pickup → Collected → Complete.
-- Distance review → Processing requires the admin to explicitly confirm that
-  the address is inside the allowed driving distance. This is manual review,
-  not a routing-provider distance calculation.
+The existing forward-only workflow remains:
 
-Only the next step is offered and accepted by the server. Unknown statuses,
-skips, backward transitions, cancellation and returns are rejected. Stock,
-prices, payment status and order snapshots remain unchanged by fulfillment.
-Cancellation/restocking/refunds and payment reconciliation need separate rules.
+- Delivery: New -> Processing -> Shipped -> Delivered -> Complete.
+- Pickup: New -> Processing -> Ready for pickup -> Collected -> Complete.
+- Distance review -> Processing requires explicit manual distance verification.
 
-Status writes lock the order row and compare the submitted expected status with
-the current status. A stale update receives HTTP 409 and does not overwrite the
-other administrator's change. The order write and existing AuditEvent write
-share one transaction; an audit-write failure rolls back the status change.
-Events capture actor, time, old/new status and the distance-verification flag.
+The prototype's new cancellation, return, retry and failed-delivery transitions
+are not enabled without their stock/refund rules. Existing historical failed or
+cancelled records can be displayed and filtered without enabling those writes.
 
-## Permissions and setup
+The user also explicitly approved cash collection and internal notes:
 
-Active Super Admins can access Orders. Other workers require an assigned role
-with `checkout.view_order` or `checkout.change_order`; changes specifically
-require `checkout.change_order`. These two existing Django permissions are now
-available in the existing Roles editor. No order-add/delete grants are exposed.
-Navigation visibility and server endpoint checks use the same permissions.
-Requests retain the existing admin login gate, CSRF protection and private
-no-cache responses. Customer-facing receipt ownership checks are unchanged.
+- An order changer can mark an unpaid COD/cash-pickup order paid only after
+  confirming receipt of the money. Other payment methods, cancelled orders,
+  paid-to-unpaid changes and unconfirmed submissions are rejected. Payment and
+  fulfillment stay independent. Paid receipts acknowledge the recorded payment.
+- Private notes append to the existing immutable AuditEvent table; customer
+  delivery instructions are not overwritten. Notes and changes retain actor and
+  time. The detail page shows the latest 50 events for that order only.
+- Status and cash writes lock the order and reject stale expected values.
+  Audit writes share the transaction so a logging failure rolls back the change.
 
-No new dependency, model, migration or live configuration change is required.
+Order settings reuse the existing DeliveryPolicy singleton, model validation,
+checkout repricing and quote revision checks. They edit checkout/COD availability,
+delivery fee, minimum, free-delivery threshold, tax, pickup rules, cities, origin
+and manual driving-distance limit. Existing values are loaded; prototype prices
+are not seeded. Settings changes are audited and reject stale revisions. A save
+with no policy changes does not invalidate existing quotes. Previously placed
+orders retain their recorded policy and totals.
 
-## Developer validation and QA hold
+## Permissions and dependencies
 
-Before the user's request to pause QA:
+The existing admin login, CSRF and private no-cache behavior protect the routes.
+Order viewing needs checkout.view_order or checkout.change_order. Status, cash
+and private-note writes need checkout.change_order. Order settings use the
+separate checkout.view_deliverypolicy/change_deliverypolicy permissions, exposed
+in the existing Roles editor. No add/delete order grants are exposed. Customer
+receipt ownership checks are unchanged.
 
-- PASS: 106 Django tests covering Orders, existing admin pages, management,
-  roles/audit, checkout and receipts in `test_admin_orders_20261103`.
-- The 13 Orders tests exercise actual saved orders, immutable snapshots,
-  PKT dates, filtering/search/pagination, role permissions, delivery/pickup
-  transitions, manual distance review, stale and concurrent updates, CSRF,
-  escaping and rollback when the audit write fails.
-- PASS: JavaScript syntax, scoped Python lint and migration drift checks.
-- Browser automation could not complete: browser API access was unavailable,
-  and native Computer Use stopped because it could not verify the current
-  Chrome URL confidently enough. No responsive or interaction pass is claimed.
+No new model, schema migration or dependency is introduced. Notifications,
+online payments, Instant delivery, refunds and cancellation/restocking remain
+outside this increment. Their controls are not presented as configured services.
 
-QA is paused at the user's request. Desktop/tablet/mobile screenshots, reference
-comparison, drawer/keyboard/network interaction checks, independent PM review
-and QA signoff remain pending. The isolated synthetic preview database and
-ignored fixture/media files are available for resuming; its temporary server
-has been stopped. No live order was created or updated by these checks.
+## QA hold and reported error
 
-Pending viewports: 1440px desktop, 768px tablet and 390px mobile. No merge or
-deployment is performed by this implementation.
+QA is paused at the user's explicit request until the user reviews this revision.
+No broad tests, browser interactions, screenshots or responsive comparisons were
+run for this revised workspace. New/updated regression scenarios are written but
+unrun, including cash collection, notes, settings, exports and section navigation.
+The earlier 106-test pass belongs to commit 24d9e58 before this revision and must
+not be presented as validation of the current code.
+
+The user reported a FieldError at /admin/orders/: the order-count aggregate named
+total shadowed the Order.total price field used by Sum. The count now uses a
+separate alias internally. Only targeted diagnostics for that reported error were
+run: Python/template parsing and an aggregation assertion against the existing
+synthetic preview database. Count and money sums matched the saved synthetic
+orders; no live records or policies were written. Broader QA remains paused.
+
+The synthetic preview server is stopped. No merge or deployment is performed.
