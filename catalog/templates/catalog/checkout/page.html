@@ -1,0 +1,81 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — Zilly</title>
+  {% include 'catalog/home02/snapshot/styles.html' %}
+  <link rel="stylesheet" href="{% static 'catalog/home02/snapshot.css' %}?v=58">
+  <link rel="stylesheet" href="{% static 'catalog/checkout/checkout.css' %}?v=4">
+  <script defer src="{% static 'catalog/home02/snapshot.js' %}?v=49"></script>
+  <script defer src="{% static 'catalog/checkout/checkout.js' %}?v=5"></script>
+</head>
+{% include 'catalog/home02/snapshot/header.html' %}
+<main class="checkout-page">
+  <div class="container">
+    <nav class="checkout-breadcrumb" aria-label="Breadcrumb"><a href="{% url 'home' %}">Home</a><span aria-hidden="true">/</span><a href="{% url 'shop' %}">Shop</a><span aria-hidden="true">/</span><span>Checkout</span></nav>
+    <div class="checkout-heading"><div><p class="checkout-eyebrow">ALMOST THERE</p><h1>Checkout</h1><p>Review your groceries and delivery details.</p></div><a href="{% url 'shop' %}" class="checkout-back">Continue shopping</a></div>
+    <ol class="checkout-progress" aria-label="Checkout progress"><li>1 <span>Shopping cart</span></li><li aria-current="step">2 <span>Checkout details</span></li><li>3 <span>Order complete</span></li></ol>
+    <div id="checkout-feedback" role="alert" tabindex="-1" hidden></div>
+    <div class="checkout-delivery-progress" id="checkout-delivery-progress" hidden><p id="checkout-delivery-progress-label"></p><progress id="checkout-delivery-progress-bar" max="100" value="0" aria-labelledby="checkout-delivery-progress-label"></progress></div>
+    {% if not checkout_enabled %}<p class="checkout-policy-notice" role="status">Checkout is not available until delivery rules are configured. You can review your details below.</p>{% endif %}
+    <form id="checkout-form" method="post" class="checkout-layout" data-checkout-form data-quote-url="{% url 'checkout-quote' %}" data-order-url="{% url 'checkout-place' %}" data-enabled="{{ checkout_enabled|yesno:'true,false' }}">
+      {% csrf_token %}
+      {{ form.idempotency_key }}
+      <div class="checkout-sections">
+        <section class="checkout-section" aria-labelledby="checkout-contact-title">
+          <h2 id="checkout-contact-title"><span>1</span> Contact information</h2>
+          <div class="checkout-fields">
+            <div><label for="{{ form.email.id_for_label }}">Email address <span aria-hidden="true">*</span></label>{{ form.email }}{{ form.email.errors }}</div>
+            <div><label for="{{ form.phone.id_for_label }}">Phone number <span aria-hidden="true">*</span></label>{{ form.phone }}{{ form.phone.errors }}</div>
+          </div>
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-address-title">
+          <h2 id="checkout-address-title"><span>2</span> Delivery address</h2>
+          <div class="checkout-fields">
+            <div><label for="{{ form.first_name.id_for_label }}">First name <span aria-hidden="true">*</span></label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+            <div><label for="{{ form.last_name.id_for_label }}">Last name <span aria-hidden="true">*</span></label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+            <div class="checkout-field-wide checkout-delivery-only"><label for="{{ form.address.id_for_label }}">Street address / house number <span aria-hidden="true">*</span></label>{{ form.address }}{{ form.address.errors }}</div>
+            <div class="checkout-field-wide checkout-delivery-only"><label for="{{ form.landmark.id_for_label }}">Apartment or landmark <small>(optional)</small></label>{{ form.landmark }}{{ form.landmark.errors }}</div>
+            <div class="checkout-delivery-only"><label for="{{ form.city.id_for_label }}">City <span aria-hidden="true">*</span></label>{{ form.city }}{{ form.city.errors }}</div>
+            <div class="checkout-delivery-only"><label for="{{ form.postal_code.id_for_label }}">Postal code <small>(optional)</small></label>{{ form.postal_code }}{{ form.postal_code.errors }}</div>
+            <div class="checkout-field-wide"><label for="{{ form.notes.id_for_label }}">Delivery instructions <small>(optional)</small></label>{{ form.notes }}{{ form.notes.errors }}</div>
+          </div>
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-delivery-title">
+          <h2 id="checkout-delivery-title"><span>3</span> Preferred delivery slot</h2>
+          <div id="checkout-delivery-options" class="checkout-slot-grid">
+            {% for option in form.delivery_method %}{% if option.data.value == 'delivery' %}<label class="checkout-slot">{{ option.tag }}<span><strong>Standard</strong><small>Home delivery</small><b>{% if standard_fee != None %}PKR {{ standard_fee|floatformat:2 }}{% else %}Fee to be confirmed{% endif %}</b></span></label>{% endif %}{% endfor %}
+            <label class="checkout-slot checkout-option-unavailable"><input type="radio" disabled aria-label="Instant delivery unavailable"><span><strong>Instant</strong><small>Currently unavailable</small><b>Timing and fee to be confirmed</b></span></label>
+            {% for option in form.delivery_method %}{% if option.data.value == 'pickup' %}<label class="checkout-slot">{{ option.tag }}<span><strong>Store Pickup</strong><small>Collect from the store</small><b>{% if pickup_fee == 0 %}FREE{% else %}PKR {{ pickup_fee|floatformat:2 }}{% endif %}</b></span></label>{% endif %}{% endfor %}
+          </div>{{ form.delivery_method.errors }}
+          {% if delivery_radius_km %}<p class="checkout-total-note checkout-delivery-only">Delivery is limited to {{ delivery_radius_km|floatformat:0 }} km driving distance from the store. The store will verify your address and confirm delivery after receiving your order.</p>{% endif %}
+        </section>
+        <section class="checkout-section" aria-labelledby="checkout-payment-title">
+          <h2 id="checkout-payment-title"><span>4</span> Payment method</h2>
+          <div id="checkout-payment-options" class="checkout-payments">
+            {% for option in form.payment_method %}<label class="checkout-payment-option checkout-cash-option">{{ option.tag }}<span><strong>Cash on Delivery (COD) / Pickup</strong><small>Pay in cash when your groceries arrive or when you collect them.</small></span><i class="fas fa-money-bill-wave" aria-hidden="true"></i></label>{% endfor %}
+            <details class="checkout-payment-option checkout-online-preview"><summary><i class="far fa-credit-card" aria-hidden="true"></i><span><strong>Credit / Debit Card</strong><small>Visa, Mastercard and UnionPay · Coming soon</small></span><i class="fas fa-chevron-down checkout-payment-chevron" aria-hidden="true"></i></summary><p>Online card payments are not available yet. Choose cash to place your order.</p><fieldset disabled class="checkout-fields"><legend>Card details preview</legend><div class="checkout-field-wide"><label>Card number<input type="text" placeholder="Card number" autocomplete="off"></label></div><div><label>Expiry date<input type="text" placeholder="MM / YY" autocomplete="off"></label></div><div><label>CVV / CVC<input type="password" placeholder="CVV" autocomplete="off"></label></div></fieldset></details>
+            <details class="checkout-payment-option checkout-online-preview"><summary><i class="fas fa-mobile-alt" aria-hidden="true"></i><span><strong>JazzCash / Easypaisa / Raast</strong><small>Mobile wallet payments · Coming soon</small></span><i class="fas fa-chevron-down checkout-payment-chevron" aria-hidden="true"></i></summary><p>Pay through a supported wallet once online payments are connected. This option is not currently available.</p><div class="checkout-wallet-brands"><span>JazzCash</span><span>Easypaisa</span><span>Raast</span></div><fieldset disabled class="checkout-fields"><legend>Wallet details preview</legend><div class="checkout-field-wide"><label>Mobile wallet account number<input type="tel" placeholder="03XX XXXXXXX" autocomplete="off"></label></div></fieldset></details>
+          </div>{{ form.payment_method.errors }}
+        </section>
+      </div>
+      <aside class="checkout-summary" aria-labelledby="checkout-summary-title">
+        <div class="checkout-summary-heading"><div class="checkout-summary-title-copy"><h2 id="checkout-summary-title">Cart Item</h2><span id="checkout-item-count" aria-live="polite">Total items in cart: 0</span></div><button type="button" id="checkout-clear-cart">Clear All</button></div>
+        <div id="checkout-items" aria-live="polite"></div>
+        <div class="checkout-coupon"><p><i class="fas fa-ticket-alt" aria-hidden="true"></i> Click Here, <strong>Apply Coupon</strong></p><div><input type="text" placeholder="ENTER COUPON CODE" aria-label="Coupon code" disabled><button type="button" disabled>Apply</button></div><small>Coupons are not available yet.</small></div>
+        <dl class="checkout-totals"><div><dt>Subtotal</dt><dd id="checkout-subtotal"></dd></div><div><dt>Shipping Fee</dt><dd id="checkout-delivery-fee"></dd></div><div id="checkout-tax-row"><dt>Tax</dt><dd id="checkout-tax"></dd></div><div class="checkout-grand-total"><dt>Total</dt><dd id="checkout-total"></dd></div></dl>
+        <p class="checkout-total-note" id="checkout-total-note"></p>
+        <div class="checkout-summary-actions"><button type="button" id="checkout-view-cart">View cart</button><button type="submit" id="checkout-submit" disabled>Place order</button></div>
+        <p class="checkout-submit-note">Review your details and order total before placing your order.</p>
+      </aside>
+    </form>
+  </div>
+</main>
+{% include 'catalog/home02/snapshot/footer.html' %}
+{% include 'catalog/home02/snapshot/overlays.html' %}
+<dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title"><button class="snapshot-dialog-close" aria-label="Close">&times;</button><h2 id="snapshot-dialog-title"></h2><p id="snapshot-dialog-message"></p></dialog>
+<div id="snapshot-status" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

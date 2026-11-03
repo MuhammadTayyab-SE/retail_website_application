@@ -25,7 +25,7 @@ class Home02QARegressionTests(SimpleTestCase):
                 html = render_to_string(template, context)
                 self.assertEqual(html.count('id="rtsb-cart-float-menu"'), 1)
                 self.assertEqual(html.count('id="homepage-cart-drawer"'), 1)
-                self.assertIn('snapshot.js?v=47', html)
+                self.assertIn("snapshot.js?v=49", html)
 
     def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
         product = Product(
@@ -54,7 +54,8 @@ class Home02QARegressionTests(SimpleTestCase):
         self.assertIn("No products in the cart.", html)
         self.assertIn('href="/shop/"', html)
         self.assertIn("Go Shopping", html)
-        self.assertIn('class="homepage-cart-checkout" disabled', html)
+        self.assertIn('href="/checkout/"', html)
+        self.assertIn('aria-disabled="true"', html)
         self.assertNotIn("loading-cart", html)
 
     def test_preview_basket_keeps_count_without_an_unsupported_total(self):
@@ -75,7 +76,9 @@ class Home02QARegressionTests(SimpleTestCase):
                 self.assertIn('id="rtsb-container-138192095"', results)
                 if query:
                     self.assertIn('class="homepage-results"', results)
-                    self.assertIn("No matching products. Choose another category or search.", results)
+                    self.assertIn(
+                        "No matching products. Choose another category or search.", results
+                    )
                     self.assertIn("Show all products", results)
 
 
@@ -153,7 +156,11 @@ class Home02DatabaseTests(TestCase):
 
     def test_sale_section_never_fills_empty_slots_with_regular_products(self):
         sale = Product.objects.create(
-            name="Sale first", category=self.category, unit="each", is_on_sale=True
+            name="Sale first",
+            category=self.category,
+            unit="each",
+            is_on_sale=True,
+            discount_percentage=25,
         )
         for i in range(8):
             Product.objects.create(name=f"Regular {i}", category=self.category, unit="each")

@@ -22,6 +22,7 @@
   function saveBasket() {
     try { sessionStorage.setItem(basketStorageKey, JSON.stringify([...basket])); }
     catch { /* Keep the current-page basket usable when storage is unavailable. */ }
+    if (typeof CustomEvent !== 'undefined') document.dispatchEvent(new CustomEvent('snapshot:basket-changed'));
   }
   const favourites = new Map();
   const comparisons = new Map();
@@ -123,11 +124,36 @@
       counter.textContent = [...basket.values()].reduce((sum, item) => sum + item.quantity, 0);
     });
     cartDrawer.querySelector('.homepage-cart-clear').disabled = empty;
+    cartDrawer.querySelector('.homepage-cart-checkout')?.setAttribute('aria-disabled', String(empty));
     cartDrawer.querySelectorAll('[data-cart-subtotal], [data-cart-total]').forEach(amount => {
       amount.textContent = pricesKnown ? formatCartPrice(total) : 'Not calculated';
     });
   }
+  function editBasket(action, id, limit) {
+    if (action === 'clear') basket.clear();
+    else {
+      const item = basket.get(id);
+      if (!item) return;
+      if (action === 'remove') basket.delete(id);
+      else if (action === 'increase') {
+        const maximum = Math.min(item.stock ?? Number.MAX_SAFE_INTEGER,
+          Number.isSafeInteger(limit) ? limit : Number.MAX_SAFE_INTEGER);
+        if (item.quantity >= maximum) return;
+        item.quantity++;
+      } else if (action === 'decrease' && item.quantity > 1) item.quantity--;
+      else return;
+    }
+    saveBasket();
+    renderCartDrawer();
+  }
+  document.addEventListener('snapshot:edit-cart', event => {
+    const { action, id, limit } = event.detail || {};
+    editBasket(action, id, limit);
+  });
   if (cartDrawer && floatingCart) {
+    cartDrawer.querySelector('.homepage-cart-checkout')?.addEventListener('click', event => {
+      if (!basket.size) event.preventDefault();
+    });
     floatingCart.addEventListener('click', () => {
       if (cartDrawer.open) return;
       renderCartDrawer();
@@ -148,14 +174,8 @@
       const button = event.target.closest('[data-cart-action]');
       if (!button || button.disabled) return;
       const id = button.closest('[data-cart-id]').dataset.cartId;
-      const item = basket.get(id);
-      if (!item) return;
       const action = button.dataset.cartAction;
-      if (action === 'remove') basket.delete(id);
-      else if (action === 'increase' && item.quantity < (item.stock ?? Number.MAX_SAFE_INTEGER)) item.quantity++;
-      else if (action === 'decrease' && item.quantity > 1) item.quantity--;
-      saveBasket();
-      renderCartDrawer();
+      editBasket(action, id);
       const list = cartDrawer.querySelector('.homepage-cart-items');
       const updated = [...list.children].find(row => row.dataset.cartId === id);
       const focusTarget = updated?.querySelector(`[data-cart-action="${action}"]`);
@@ -177,10 +197,7 @@
       floatingCart.focus();
     });
     cartDrawer.querySelector('.homepage-cart-clear').addEventListener('click', () => {
-      basket.clear();
-      saveBasket();
-      document.querySelectorAll('.rtsb-cart-icon-num').forEach(counter => { counter.textContent = '0'; });
-      renderCartDrawer();
+      editBasket('clear');
       cartDrawer.querySelector('.homepage-cart-shopping').focus();
       status('Preview basket cleared');
     });
@@ -478,7 +495,7 @@
   });
 
   document.addEventListener('submit', event => {
-    if (event.target.hasAttribute('data-shop-filters')) return;
+    if (event.target.hasAttribute('data-shop-filters') || event.target.hasAttribute('data-checkout-form')) return;
     event.preventDefault();
     const search = event.target.querySelector('input[name="s"], input[name="q"]');
     if (search) {
