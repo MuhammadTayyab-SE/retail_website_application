@@ -120,7 +120,7 @@ class AdminOrdersTests(TestCase):
         )
 
     def test_pagination_preserves_filters_and_handles_invalid_page(self):
-        for index in range(26):
+        for index in range(20):
             Order.objects.create(
                 idempotency_key=uuid.uuid4(),
                 request_fingerprint="fixture",
@@ -129,7 +129,8 @@ class AdminOrdersTests(TestCase):
                 address={},
             )
         response = self.client.get(self.url, {"status": "placed", "page": "2"})
-        self.assertEqual(len(response.context["order_page"]), 2)
+        self.assertEqual(response.context["order_page"].paginator.per_page, 20)
+        self.assertEqual(len(response.context["order_page"]), 1)
         self.assertContains(response, "status=placed")
         self.assertEqual(
             self.client.get(self.url, {"page": "invalid"}).context["order_page"].number, 1

@@ -306,7 +306,7 @@ def orders_dashboard(request, section="all"):
     form, all_orders = _filtered_orders(request, section)
     counts = _order_summary(all_orders)
     orders = _order_queue(all_orders, section, form.cleaned_data.get("payment"))
-    page = Paginator(orders.prefetch_related("items"), 5 if section == "overview" else 25).get_page(
+    page = Paginator(orders.prefetch_related("items"), 5 if section == "overview" else 20).get_page(
         request.GET.get("page")
     )
     for order in page:

@@ -25,7 +25,8 @@ navigation item. The existing inventory and team pages remain available.
   appear on load or Refresh orders. There is no separate order import or copy.
 - Shared GET filters support reference/customer/email/phone/city searches,
   inclusive PKT date ranges, specific dates and All time/Today/7-day/30-day
-  presets. All orders and queues use 25-order pagination; overview shows five.
+  presets. All orders and queues show 20 orders per page; order 21 starts page 2.
+  Overview shows five recent orders.
 - Summary cards use the current search/date/status/payment filters across orders;
   queue restrictions apply to the table. Payments defaults to outstanding orders
   and can explicitly show recorded paid orders through its payment filter.
