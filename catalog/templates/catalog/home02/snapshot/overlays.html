@@ -29,7 +29,7 @@
   <footer class="homepage-cart-footer">
     <button type="button" class="homepage-cart-coupon" disabled title="Coupons are not available in the preview basket"><i class="fas fa-ticket-alt" aria-hidden="true"></i><span><strong>Click Here.</strong> Apply Coupon</span></button>
     <dl class="homepage-cart-totals"><div><dt>Subtotal</dt><dd data-cart-subtotal>PKR 0.00</dd></div><div><dt>Total</dt><dd data-cart-total>PKR 0.00</dd></div></dl>
-    <div class="homepage-cart-footer-actions"><button type="button" disabled>View cart</button><button type="button" class="homepage-cart-checkout" disabled>Checkout</button></div>
-    <p class="homepage-cart-note">Preview basket. Checkout is not available yet.</p>
+    <div class="homepage-cart-footer-actions"><a class="homepage-cart-checkout" href="{% url 'checkout' %}" data-live-shop aria-disabled="true">Proceed to checkout</a></div>
+    <p class="homepage-cart-note">Prices and stock are confirmed at checkout.</p>
   </footer>
 </dialog>

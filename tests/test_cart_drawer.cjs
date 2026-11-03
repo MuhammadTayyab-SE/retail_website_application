@@ -229,6 +229,19 @@ function tabStorage(initial = null) {
   return { getItem() { return value; }, setItem(key, next) { value = next; } };
 }
 
+test('shared preview form handler does not intercept real checkout submission', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../catalog/static/catalog/home02/snapshot.js'), 'utf8');
+  const registration = source.slice(source.indexOf("  document.addEventListener('submit'"), source.indexOf('  function closeCategoryMenus'));
+  let handler;
+  vm.runInNewContext(registration, { document: { addEventListener(type, callback) { handler = callback; } } });
+  let prevented = false;
+  handler({
+    target: { hasAttribute: name => name === 'data-checkout-form', querySelector() { throw Error('Checkout must not be treated as a demo form'); } },
+    preventDefault() { prevented = true; },
+  });
+  assert.equal(prevented, false);
+});
+
 test('cart details, quantities and deletion survive navigation between page instances', () => {
   const storage = tabStorage();
   const home = setup(storage);
@@ -311,4 +324,21 @@ test('product-page Add to Cart sends complete details and stable standard/varian
   const variants = setup(storage);
   assert.equal(variants.items.children.length, 2);
   assert.equal(variants.items.children[1].dataset.cartId, 'live-11:7');
+});
+
+test('checkout summary edits change the same basket and persist through navigation', () => {
+  const storage = tabStorage();
+  const ui = setup(storage);
+  ui.document.listeners['snapshot:add-items']({ detail: [{ id: 'live-11', name: 'Milk', price: 10000, quantity: 1, stock: 5 }] });
+  ui.document.listeners['snapshot:edit-cart']({ detail: { action: 'increase', id: 'live-11', limit: 2 } });
+  assert.equal(ui.counters[0].textContent, 2);
+  ui.document.listeners['snapshot:edit-cart']({ detail: { action: 'increase', id: 'live-11', limit: 2 } });
+  assert.equal(ui.counters[0].textContent, 2);
+  const next = setup(storage);
+  assert.equal(next.counters[0].textContent, 2);
+  next.document.listeners['snapshot:edit-cart']({ detail: { action: 'decrease', id: 'live-11' } });
+  assert.equal(next.counters[0].textContent, 1);
+  next.document.listeners['snapshot:edit-cart']({ detail: { action: 'remove', id: 'live-11' } });
+  assert.equal(next.empty.hidden, false);
+  assert.equal(setup(storage).counters[0].textContent, 0);
 });

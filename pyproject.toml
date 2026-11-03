@@ -7,10 +7,14 @@ dependencies = [
     "Django>=5.2,<5.3",
     "pillow>=12,<13",
     "psycopg[binary]>=3.2,<4",
+    "reportlab>=4,<5",
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.14,<1"]
+dev = [
+    "pypdf>=6,<7",
+    "ruff>=0.14,<1",
+]
 
 [tool.ruff]
 target-version = "py313"
