@@ -1,0 +1,5 @@
+.brand-logo { display:block; width:64px; height:48px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:var(--card-bg); padding:4px; }
+.brand-logo-clear { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.brand-logo-clear label { margin:0; padding:0; }
+.retail-admin.app-catalog.model-brand.change-form #content-main { max-width:960px; }
+@media(max-width:560px) { .retail-admin.model-brand .retail-page-heading { align-items:flex-start; flex-direction:column; } }

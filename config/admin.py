@@ -47,6 +47,9 @@ class RetailAdminSite(AdminSite):
         context["workspace_header"] = {
             "index": "Overview",
             "catalog_category_changelist": "Categories",
+            "catalog_brand_changelist": "Brands",
+            "catalog_brand_add": "Brands / Add brand",
+            "catalog_brand_change": "Brands / Details",
             "catalog_parent_categories": "Parent Categories",
             "settings": "Settings",
             "orders": "All orders",
@@ -80,6 +83,9 @@ class RetailAdminSite(AdminSite):
             "catalog.view_product"
         ) or request.user.has_perm("catalog.change_product")
         context["can_add_products"] = request.user.has_perm("catalog.add_product")
+        context["can_view_brands"] = request.user.has_perm(
+            "catalog.view_brand"
+        ) or request.user.has_perm("catalog.change_brand")
         context["can_view_orders"] = request.user.has_perm(
             "checkout.view_order"
         ) or request.user.has_perm("checkout.change_order")

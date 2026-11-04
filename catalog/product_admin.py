@@ -11,7 +11,7 @@ from django.utils.html import format_html
 from access.audit import record
 from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import ProductForm, ProductPhotoForm
-from catalog.models import Category, Product, ProductPhoto
+from catalog.models import Brand, Category, Product, ProductPhoto
 from config.admin import site
 
 
@@ -88,6 +88,13 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
                     "options": [("1", "On sale"), ("0", "Regular price")],
                     "selected": request.GET.get("is_on_sale__exact", ""),
                 },
+                {
+                    "label": "Brand",
+                    "name": "brand__id__exact",
+                    "empty_label": "All brands",
+                    "options": [(str(brand.pk), brand.name) for brand in Brand.objects.all()],
+                    "selected": request.GET.get("brand__id__exact", ""),
+                },
             ],
             **(extra_context or {}),
         }
@@ -104,8 +111,8 @@ class ProductAdmin(ProductAdminBase):
     form = ProductForm
     list_display = ["name", "sku", "category", "unit", "is_active"]
     search_fields = ["name", "description", "sku"]
-    list_filter = ["is_active", "is_on_sale", "category", "unit"]
-    list_select_related = ["category"]
+    list_filter = ["is_active", "is_on_sale", "category", "unit", "brand"]
+    list_select_related = ["category", "brand"]
     fieldsets = [
         (
             "Product details",
@@ -113,6 +120,7 @@ class ProductAdmin(ProductAdminBase):
                 "fields": [
                     "name",
                     ("category", "sku"),
+                    "brand",
                     ("price", "quantity"),
                     "unit",
                     "description",

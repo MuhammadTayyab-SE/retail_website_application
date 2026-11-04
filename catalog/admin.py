@@ -7,7 +7,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 
-from catalog import product_admin  # noqa: F401
+from catalog import brand_admin, product_admin  # noqa: F401
 from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import CategoryForm
 from catalog.models import Category, Product

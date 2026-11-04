@@ -1,0 +1,2 @@
+{% if widget.is_initial %}<div class="brand-logo-clear"><input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}"{% if widget.attrs.disabled %} disabled{% endif %}><label for="{{ widget.checkbox_id }}">Remove current logo</label></div>{% endif %}
+<input type="{{ widget.type }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
