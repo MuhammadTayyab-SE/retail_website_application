@@ -295,10 +295,10 @@
     "id": "CINV-01",
     "title": "CINV-01: Brand management and optional product association",
     "priority": "P1",
-    "status": "Ready",
-    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "status": "In Development",
+    "owner": "Developer role; claimed at user instruction 2026-11-04",
     "dependencies": "development f0567ea; historical #6/#7 closed",
-    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "description": "Implementation draft PR #66 at 8ae75bb; docs/tickets/CINV-01.md in implementation branch. 12 brand tests pass; 3 broader storefront failures reproduce on baseline. Independent review/browser QA pending; no merge.",
     "acceptanceCriteria": [
       "Normalize names using the existing trim/case convention; a database constraint rejects duplicate/racing names.",
       "Existing unbranded products remain valid. Inactive brands are unavailable for new assignments, but existing associations/products remain sellable and editable without forced unlinking.",

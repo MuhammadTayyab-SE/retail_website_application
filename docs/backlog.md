@@ -5,8 +5,8 @@
 Current planning baseline is development f0567ea, including merged PR #53.
 See [catalog-inventory-plan.md](catalog-inventory-plan.md) for current evidence,
 gap analysis, schema/migration/recovery strategy, decisions and the CINV issue DAG.
-Only CINV-01 Brands is Ready; remaining increments depend on the listed foundations
-and cutover gates. None is In Development in this planning assignment. Existing
+CINV-01 Brands is now In Development at the user instruction, in draft PR #66.
+Remaining increments stay Backlog with the listed dependencies and cutover gates. Existing
 historical statuses below are not evidence of the current branch or GitHub state.
 MVP-005/#6 and MVP-006/#7 are closed historical implementations, not missing models.
 New issues extend that code rather than recreating it. CATALOG-FLOW-003's old
@@ -17,7 +17,7 @@ QA scenarios are prepared; no QA run is started by this planning work.
 
 | Increment | Issue | State | Dependencies |
 |---|---|---|---|
-| CINV-01: Brand management and optional product association | [#54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Ready | Baseline |
+| CINV-01: Brand management and optional product association | [#54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | In Development | Baseline |
 | CINV-02: Durable SKU issuance and pre-order correction history | [#55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Backlog | Baseline |
 | CINV-03: Extend existing variants and safely create default variants | [#56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Backlog | #55 |
 | CINV-04: Variant-owned cost, regular and sale pricing with compatibility | [#57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Backlog | #56 |

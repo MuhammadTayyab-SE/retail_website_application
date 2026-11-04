@@ -166,7 +166,7 @@ order #12/#13/#52 are referenced without duplicating or claiming their status.
 
 | ID | Increment | Dependency / readiness |
 |---|---|---|
-| [CINV-01 / #54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Brand model, management and optional product association | Ready; brand behavior resolved |
+| [CINV-01 / #54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Brand model, management and optional product association | In Development; user started #54; draft PR #66 |
 | [CINV-02 / #55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Durable SKU issuance and pre-order correction rules | Backlog; foundational, no form rollout until CINV-03 |
 | [CINV-03 / #56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Extend ProductVariant; default mapping/data migration and legacy cart identity bridge | [CINV-02 / #55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) |
 | [CINV-04 / #57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Variant-owned cost/regular/sale pricing and compatibility readers/writers | CINV-03; coordinate existing merchandising issues |
@@ -213,3 +213,5 @@ gates, not permission to invent stock allocations or rewrite history.
   snapshots before/after. Test ambiguous legacy cases and failed/repeated runs.
 - PM review and independent QA use the exact candidate SHA; developer checks do
   not replace either. No test or visual verification is claimed by this plan.
+
+Implementation progress 2026-11-04: the user started CINV-01. It is now In Development in draft PR #66 (feature/cinv-01-brands, 8ae75bb). Other CINV increments remain Backlog. Independent review/browser QA are pending. This planning PR still changes documentation only.
