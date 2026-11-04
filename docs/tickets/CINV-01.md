@@ -17,9 +17,10 @@ No other CINV increment is included and no merge/deployment is performed.
   Active brands are selectable; an inactive brand can remain on its current
   product but cannot be newly assigned, including through model validation.
   Brand deactivation does not cascade product visibility or activity.
-- BrandAdmin reuses native Django search/status filter/pagination and the existing
-  navy/emerald admin shell. Its separate list/form templates load only brands.css,
-  with no new JavaScript or dependencies. The existing catalog navigation now
+- BrandAdmin reuses native Django search/status filtering/pagination and the existing
+  navy/emerald admin shell. Its separate list/form templates load brands.css;
+  only Add/Edit loads the small brands.js photo preview. No new dependencies.
+  The existing catalog navigation now
   includes Brands and a Catalog Management heading. Full stock-navigation
   restructuring remains CINV-10.
 - Associated product counts are annotated in the list. Users with product view
@@ -85,6 +86,39 @@ and back up any entered brands/logos before a rollback; never reset the database
 - Developer tests are not independent QA. Browser interactions, desktop/tablet/
   mobile screenshots, visual comparison and independent PM review remain pending.
   Do not advance to Awaiting My Review or Done based on these checks alone.
-- Final focused command `manage.py test tests.test_brands --noinput --verbosity 1`
-  passes all 12 brand checks after the last change. No application changes were
-  made after that pass other than documentation.
+- The initial implementation passed 12 focused brand checks. The following UI
+  revision expands that coverage; the wider 142-test result above predates it.
+
+## Reference-driven UI revision (2026-11-04)
+
+Approved source: `supporting docs/Templated/products/retail-admin-preview - varients.html`,
+Brands section, plus the user's explicit request to keep creation on Add brand.
+The reference's name/logo row, full-width description, active control, white card
+and emerald action inform the form; demo data and demo JavaScript are not used.
+
+- Main Brands page contains only the list and Add brand link. Search and status
+  move to a labeled top toolbar, with a submit button and conditional Clear filters
+  link. Native Django filtering and 25-row pagination remain in use. The default
+  right filter sidebar and its forced 400px minimum height are removed for Brands.
+- Logo and name sit together, with aligned status badges, linked product counts
+  and Edit (or View for read-only staff). A fallback initial handles missing logos.
+  The table can scroll horizontally on narrow screens; toolbar/form fields stack
+  at 760px/560px. Styling stays scoped to Brands and loads after the admin shell;
+  CSS URL v3 avoids stale cached assets. No global styling changes.
+- Separate Add/Edit pages share brand_editor and brand_field partials. Saved logos
+  are shown using the authenticated endpoint. Selected photos preview immediately;
+  replacing/removing a selection revokes its object URL. File persistence,
+  validation, CSRF, attribution and permissions still use the existing BrandForm
+  and ModelAdmin. Read-only staff see the saved image without editing controls.
+- Developer checks: all 15 `tests.test_brands` checks pass, including combined
+  search/status retention, separate list/add routes, existing/read-only photos,
+  duplicate errors and submitted text. `node --test tests/test_brand_photo_ui.cjs`
+  passes 2 selected/replaced/cleared-photo checks. Scoped Ruff lint/format and
+  `git diff --check` pass. The later CSS-only logo flex sizing adjustment does not
+  change tested logic.
+- Restarted only this feature's own `--noreload` preview on port 8001. The final
+  `brands.css?v=3` returns HTTP 200 with the new toolbar styles. Port 8000 was not
+  restarted. Browser connection reported "The browser access host is unavailable";
+  authenticated visual comparison, responsive screenshots and manual interaction
+  checks are therefore unverified. Independent QA remains paused as requested.
+  No visual signoff or workflow advance is claimed.

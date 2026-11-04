@@ -39,6 +39,15 @@ class BrandAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(associated_product_count=Count("products"))
 
+    def changelist_view(self, request, extra_context=None):
+        context = {
+            "can_edit_brands": self.has_change_permission(request),
+            "can_view_brand_products": request.user.has_perm("catalog.view_product")
+            or request.user.has_perm("catalog.change_product"),
+            **(extra_context or {}),
+        }
+        return super().changelist_view(request, context)
+
     def get_object(self, request, object_id, from_field=None):
         obj = super().get_object(request, object_id, from_field)
         if obj is not None and request.method == "POST":

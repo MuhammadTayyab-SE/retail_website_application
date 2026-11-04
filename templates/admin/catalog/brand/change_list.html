@@ -1,5 +1,16 @@
 {% extends "admin/change_list.html" %}
-{% load static admin_urls %}
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/brands.css' %}?v=1">{% endblock %}
+{% load static admin_urls admin_list %}
+{% block responsive %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/brands.css' %}?v=3">{% endblock %}
 {% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">CATALOG MANAGEMENT</span><h1>Brands</h1><p>Manage brand details and see their associated products.</p></div>{% if has_add_permission %}<a class="retail-button" href="{% url opts|admin_urlname:'add' %}">Add brand</a>{% endif %}</div>{% endblock %}
 {% block object-tools %}{% endblock %}
+{% block filters %}{% endblock %}
+{% block search %}
+<div class="brand-list-heading"><h2>Brand list <span class="brand-count">{{ cl.result_count }}</span></h2><span>Showing {{ cl.result_list|length }} of {{ cl.result_count }}</span></div>
+<form method="get" class="brand-filter-bar" role="search">
+  <div><label for="brand-search">Search brands</label><input id="brand-search" type="search" name="q" value="{{ cl.query }}" placeholder="Search name or description" autocomplete="off"></div>
+  <div><label for="brand-status">Status</label><select id="brand-status" name="is_active__exact"><option value="">All statuses</option><option value="1"{% if request.GET.is_active__exact == '1' %} selected{% endif %}>Active</option><option value="0"{% if request.GET.is_active__exact == '0' %} selected{% endif %}>Inactive</option></select></div>
+  <div class="brand-filter-actions"><button class="retail-button" type="submit">Search</button>{% if cl.query or cl.has_active_filters %}<a href="{% url opts|admin_urlname:'changelist' %}">Clear filters</a>{% endif %}</div>
+</form>
+{% endblock %}
+{% block result_list %}<div class="results"><table class="brand-table" id="result_list"><thead><tr><th scope="col">Brand</th><th scope="col">Status</th><th scope="col">Products</th><th scope="col">Actions</th></tr></thead><tbody>{% for brand in cl.result_list %}<tr><th scope="row"><div class="brand-list-identity">{% if brand.logo %}<img class="brand-logo" src="{% url 'admin:catalog_brand_logo' brand.pk %}" alt="">{% else %}<span class="brand-list-fallback" aria-hidden="true">{{ brand.name|first|upper }}</span>{% endif %}<strong>{{ brand.name }}</strong></div></th><td><span class="brand-status{% if not brand.is_active %} brand-status-inactive{% endif %}">{% if brand.is_active %}Active{% else %}Inactive{% endif %}</span></td><td>{% if can_view_brand_products %}<a href="{% url 'admin:catalog_product_changelist' %}?brand__id__exact={{ brand.pk }}">{{ brand.associated_product_count }} product{{ brand.associated_product_count|pluralize }}</a>{% else %}{{ brand.associated_product_count }} product{{ brand.associated_product_count|pluralize }}{% endif %}</td><td><a class="brand-edit-link" href="{% url opts|admin_urlname:'change' brand.pk %}">{% if can_edit_brands %}Edit{% else %}View{% endif %}<span class="visually-hidden"> {{ brand.name }}</span></a></td></tr>{% empty %}<tr><td colspan="4" class="brand-empty-list">No brands match these filters.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% block pagination %}{% pagination cl %}{% endblock %}

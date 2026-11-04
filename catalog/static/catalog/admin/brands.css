@@ -1,5 +1,61 @@
-.brand-logo { display:block; width:64px; height:48px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:var(--card-bg); padding:4px; }
-.brand-logo-clear { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
-.brand-logo-clear label { margin:0; padding:0; }
-.retail-admin.app-catalog.model-brand.change-form #content-main { max-width:960px; }
-@media(max-width:560px) { .retail-admin.model-brand .retail-page-heading { align-items:flex-start; flex-direction:column; } }
+.brand-editor { overflow:hidden; }
+.brand-editor .retail-card-heading { padding:22px 25px; }
+.brand-editor .retail-card-heading p { margin:7px 0 0; color:var(--muted); font-size:12px; }
+.brand-editor-body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; padding:25px; }
+.brand-editor-fields { display:grid; align-content:start; gap:20px; min-width:0; }
+.brand-editor-description,.brand-editor-status { grid-column:1/-1; min-width:0; }
+.brand-field { min-width:0; }
+.brand-field > label,.brand-field-label { display:block; margin-bottom:9px; color:#344a60; font-size:12px; font-weight:650; }
+.retail-admin .brand-field input:not([type=checkbox]),.retail-admin .brand-field textarea { width:100%; max-width:none; min-height:44px; padding:12px 13px; border:1px solid var(--border); border-radius:9px; background:var(--card-bg); color:var(--text); }
+.brand-field textarea { resize:vertical; }
+.brand-field .errorlist { margin:8px 0 0; padding:0; list-style:none; font-size:12px; }
+.retail-admin .brand-field-error input:not([type=checkbox]),.retail-admin .brand-field-error textarea { border-color:var(--error); }
+.brand-field-hint,.brand-upload-note { color:var(--muted); font-size:11px; line-height:1.6; margin:8px 0 0; }
+.brand-active-check { display:flex; align-items:center; gap:9px; }
+.brand-active-check label { color:#425b6e; font-size:12px; font-weight:600; }
+.brand-active-check input { accent-color:var(--accent); }
+.brand-logo-editor { min-width:0; }
+.brand-image-tile { max-width:180px; margin:0 0 14px; overflow:hidden; border:1px solid var(--border); border-radius:11px; background:var(--card-bg); }
+.brand-image-tile img { display:block; width:100%; height:130px; padding:12px; object-fit:contain; background:#f7f9fa; }
+.brand-image-tile figcaption { padding:9px 12px; border-top:1px solid var(--border); color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+.brand-image-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; min-height:130px; color:#168467; background:#f7fcf9; font-size:12px; }
+.brand-image-empty > span:first-child { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:var(--selected); font-size:22px; }
+.brand-photo-remove { display:block; margin-bottom:15px; border:0; padding:0; color:var(--error); background:none; font-size:11px; font-weight:650; }
+.brand-logo-clear { display:flex; align-items:center; gap:8px; margin:10px 0; }
+.brand-logo-clear label { margin:0; padding:0; font-size:11px; }
+.brand-form-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; align-items:center; gap:10px; margin:22px 0 0; }
+.retail-admin .brand-submit { min-height:42px; border:1px solid var(--accent); border-radius:9px; padding:11px 18px; background:var(--accent); color:#fff; font-weight:650; }
+.retail-admin .brand-submit:hover { background:var(--accent-hover); }
+.brand-history { margin-top:22px; }
+.brand-readonly { margin:0; }
+.brand-readonly dt { margin-bottom:7px; color:var(--muted); font-size:12px; }
+.brand-readonly dd { margin:0 0 20px; }
+.brand-logo { display:block; flex-shrink:0; width:48px; height:48px; object-fit:contain; border:1px solid var(--border); border-radius:8px; background:var(--card-bg); padding:4px; }
+.brand-list-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:20px 22px; border-bottom:1px solid var(--border); }
+.retail-admin #content .brand-list-heading h2 { margin:0; padding:0; color:var(--text); font-size:17px; background:none; }
+.brand-list-heading > span { color:var(--muted); font-size:12px; }
+.brand-count { display:inline-grid; place-items:center; min-width:26px; min-height:24px; margin-left:7px; padding:2px 7px; border-radius:6px; color:var(--accent); background:var(--selected); font-size:12px; vertical-align:middle; }
+.retail-admin.model-brand #changelist { display:block; min-height:0; }
+.retail-admin.model-brand #changelist .changelist-form-container { width:100%; }
+.brand-filter-bar { display:grid; grid-template-columns:minmax(0,2fr) minmax(140px,1fr) auto; gap:16px; align-items:end; padding:20px 22px; border-bottom:1px solid var(--border); background:#fbfcfd; }
+.brand-filter-bar > div { min-width:0; }
+.brand-filter-bar label { display:block; margin-bottom:8px; color:var(--muted); font-size:12px; font-weight:600; }
+.brand-filter-bar input,.brand-filter-bar select { width:100%; min-width:0; }
+.brand-filter-actions { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+.brand-filter-actions a { font-size:12px; font-weight:600; }
+.retail-admin .brand-table { width:100%; min-width:480px; }
+.retail-admin.model-brand #changelist .brand-table thead th { padding:14px 20px; color:var(--muted); font-size:11px; font-weight:650; letter-spacing:.04em; }
+.retail-admin.model-brand #changelist .brand-table tbody th,.retail-admin.model-brand #changelist .brand-table tbody td { padding:16px 20px; vertical-align:middle; border-bottom:1px solid #edf1f4; }
+.retail-admin.model-brand #changelist .brand-table th:first-child { width:45%; }
+.retail-admin.model-brand #changelist .brand-table th:last-child,.retail-admin.model-brand #changelist .brand-table td:last-child { text-align:right; }
+.retail-admin.model-brand #changelist .brand-table tbody tr:hover > * { background:#f8fbfa; }
+.retail-admin .brand-table a { text-decoration:none; font-weight:600; }
+.brand-list-identity { display:flex; align-items:center; gap:12px; }
+.brand-list-fallback { display:grid; place-items:center; flex-shrink:0; width:48px; height:48px; border:1px solid #dcefe5; border-radius:8px; background:#eaf8f2; color:var(--accent); font-weight:700; }
+.brand-status { display:inline-block; border-radius:20px; padding:6px 10px; background:#eaf8f2; color:var(--accent); font-size:11px; font-weight:650; }
+.brand-status-inactive { color:var(--muted); background:var(--page-bg); }
+.brand-edit-link { display:inline-block; padding:7px 12px; border:1px solid #c8e2d8; border-radius:8px; font-size:12px; font-weight:650; }
+.retail-admin.model-brand #changelist .brand-empty-list { padding:36px 20px; text-align:center; color:var(--muted); }
+.retail-admin.app-catalog.model-brand.change-form #content-main { max-width:1100px; }
+@media(max-width:760px) { .brand-editor-body { grid-template-columns:1fr; gap:24px; padding:18px; } .brand-editor .retail-card-heading { padding:18px; } .brand-filter-bar { grid-template-columns:minmax(0,1fr) minmax(130px,1fr); padding:16px; } .brand-filter-actions { grid-column:1/-1; } }
+@media(max-width:560px) { .brand-filter-bar { grid-template-columns:1fr; } .brand-list-heading { padding:18px 16px; } .retail-admin.model-brand .retail-page-heading { align-items:flex-start; flex-direction:column; } .brand-form-actions > a,.brand-form-actions > button { flex:1; text-align:center; } }

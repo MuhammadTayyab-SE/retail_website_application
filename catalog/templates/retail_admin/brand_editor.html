@@ -1,0 +1,17 @@
+<section class="retail-card brand-editor" data-brand-editor>
+  <div class="retail-card-heading"><div><h2>{% if original %}{% if editable %}Edit brand{% else %}Brand details{% endif %}{% else %}Create brand{% endif %}</h2><p>Brands can be used across any category.</p></div></div>
+  <div class="brand-editor-body">
+    <div class="brand-editor-fields">
+      {% if editable %}{{ brand_form.non_field_errors }}{% include "retail_admin/brand_field.html" with field=brand_form.name %}{% else %}<dl class="brand-readonly"><dt>Brand name</dt><dd>{{ original.name }}</dd></dl>{% endif %}
+    </div>
+    <div class="brand-logo-editor">
+      <strong class="brand-field-label">Brand photo</strong>
+      <figure class="brand-image-tile"><img data-brand-image{% if original.logo %} src="{% url 'admin:catalog_brand_logo' original.pk %}"{% else %} hidden{% endif %} alt="Brand logo preview"><div class="brand-image-empty" data-brand-image-empty{% if original.logo %} hidden{% endif %}><span aria-hidden="true">+</span><span>No photo selected</span></div><figcaption data-brand-image-name>{% if original.logo %}Current logo{% else %}Logo preview{% endif %}</figcaption></figure>
+      {% if editable %}<button class="brand-photo-remove" type="button" data-brand-image-remove{% if not original.logo %} hidden{% endif %}>Remove photo</button>{% endif %}
+      {% if editable %}{% include "retail_admin/brand_field.html" with field=brand_form.logo %}{% endif %}
+      <p class="brand-field-hint" data-brand-image-status role="status">{% if editable %}Select a photo to preview it before saving.{% endif %}</p>
+    </div>
+    <div class="brand-editor-description">{% if editable %}{% include "retail_admin/brand_field.html" with field=brand_form.description %}{% else %}<dl class="brand-readonly"><dt>Description</dt><dd>{{ original.description|default:"No description"|linebreaksbr }}</dd></dl>{% endif %}</div>
+    <div class="brand-editor-status">{% if editable %}<div class="brand-active-check">{{ brand_form.is_active }}<label for="{{ brand_form.is_active.id_for_label }}">Active brand</label></div><p class="brand-field-hint">Inactive brands stay on existing products and are unavailable for new assignments.</p>{% else %}<dl class="brand-readonly"><dt>Status</dt><dd>{% if original.is_active %}Active{% else %}Inactive{% endif %}</dd></dl>{% endif %}</div>
+  </div>
+</section>

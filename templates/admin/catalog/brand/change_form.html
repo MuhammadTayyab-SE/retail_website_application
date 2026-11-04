@@ -1,5 +1,12 @@
 {% extends "admin/change_form.html" %}
 {% load static admin_urls %}
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/brands.css' %}?v=1">{% endblock %}
-{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">CATALOG MANAGEMENT</span><h1>{{ title }}</h1><p>Inactive brands stay on existing products and are unavailable for new assignments.</p></div><a class="retail-button secondary" href="{% url opts|admin_urlname:'changelist' %}">Back to brands</a></div>{% endblock %}
+{% block responsive %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/brands.css' %}?v=3">{% endblock %}
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'catalog/admin/brands.js' %}?v=1"></script>{% endblock %}
+{% block content_title %}<div class="retail-page-heading"><div><span class="retail-eyebrow">CATALOG MANAGEMENT</span><h1>{{ title }}</h1><p>Manage brand information and its logo.</p></div><a class="retail-button secondary" href="{% url opts|admin_urlname:'changelist' %}">Back to brands</a></div>{% endblock %}
 {% block object-tools %}{% endblock %}
+{% block field_sets %}
+{% if has_change_permission or add %}{% include "retail_admin/brand_editor.html" with brand_form=adminform.form editable=True %}{% else %}{% include "retail_admin/brand_editor.html" with editable=False %}{% endif %}
+{% if adminform.form.errors %}<p class="brand-upload-note">Please choose the photo again after correcting form errors.</p>{% endif %}
+{% for fieldset in adminform %}{% if forloop.last and original %}<div class="brand-history">{% include "admin/includes/fieldset.html" %}</div>{% endif %}{% endfor %}
+{% endblock %}
+{% block submit_buttons_bottom %}<div class="brand-form-actions"><a class="retail-button secondary" href="{% url opts|admin_urlname:'changelist' %}">{% if has_change_permission or add %}Cancel{% else %}Back to brands{% endif %}</a>{% if has_change_permission or add %}<button type="submit" name="_save" class="button brand-submit">{% if add %}Add brand{% else %}Save changes{% endif %}</button>{% endif %}</div>{% endblock %}

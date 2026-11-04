@@ -258,10 +258,69 @@ class BrandTests(TestCase):
         response = self.client.get(self.list_url, {"is_active__exact": "0"})
         self.assertContains(response, self.brand.name)
         self.assertNotContains(response, "Visible active brand")
+        self.assertContains(response, '<option value="0" selected>Inactive</option>', html=True)
+        self.assertNotContains(response, 'id="changelist-filter"')
+        self.assertContains(response, "Clear filters")
+        response = self.client.get(self.list_url, {"q": "Visible", "is_active__exact": "1"})
+        self.assertContains(response, "Visible active brand")
+        self.assertNotContains(response, self.brand.name)
+        self.assertContains(response, 'value="Visible"')
+        self.assertContains(response, '<option value="1" selected>Active</option>', html=True)
         logo_url = reverse("admin:catalog_brand_logo", args=[self.brand.pk])
         self.assertEqual(self.client.get(logo_url).status_code, 404)
         self.client.force_login(self.worker("logo-denied", "view_product"))
         self.assertEqual(self.client.get(logo_url).status_code, 403)
+
+    def test_brand_list_links_to_separate_add_and_edit_forms(self):
+        response = self.client.get(self.list_url)
+        self.assertContains(response, f'href="{self.add_url}"')
+        self.assertContains(response, f'href="{self.change_url}"')
+        self.assertContains(response, 'class="brand-edit-link"')
+        self.assertContains(response, 'class="brand-filter-bar"')
+        self.assertNotContains(response, 'id="changelist-filter"')
+        self.assertNotContains(response, "data-brand-editor")
+        self.assertNotContains(response, "brands.js")
+        response = self.client.get(self.add_url)
+        self.assertContains(response, "data-brand-editor")
+        self.assertContains(response, "data-brand-image")
+        self.assertContains(response, "brands.js")
+        self.assertContains(response, 'name="logo"')
+        self.assertContains(response, 'name="_save"')
+        self.assertNotContains(response, 'class="brand-table"')
+        html = response.content.decode()
+        self.assertLess(html.index("brand-editor-fields"), html.index("brand-logo-editor"))
+        self.assertLess(html.index("brand-logo-editor"), html.index("brand-editor-description"))
+
+    def test_edit_and_read_only_views_show_the_existing_logo(self):
+        self.brand.logo = logo()
+        self.brand.save()
+        image_url = reverse("admin:catalog_brand_logo", args=[self.brand.pk])
+        response = self.client.get(self.change_url)
+        self.assertContains(response, f'src="{image_url}"')
+        self.assertContains(response, "Current logo")
+        self.assertContains(response, "data-brand-image-remove")
+        self.assertContains(response, 'name="logo-clear"')
+        self.client.force_login(self.worker("photo-reader", "view_brand"))
+        response = self.client.get(self.change_url)
+        self.assertContains(response, f'src="{image_url}"')
+        self.assertNotContains(response, 'type="file"')
+        self.assertNotContains(response, "data-brand-image-remove")
+        self.assertNotContains(response, 'name="_save"')
+
+    def test_template_form_keeps_duplicate_errors_and_submitted_values(self):
+        response = self.client.post(
+            self.add_url,
+            {
+                "name": self.brand.name,
+                "description": "Keep my text",
+                "is_active": "on",
+                "_save": "Save",
+            },
+        )
+        self.assertContains(response, "A brand with this name already exists.")
+        self.assertContains(response, "Keep my text")
+        self.assertContains(response, 'class="brand-field brand-field-error"')
+        self.assertEqual(Brand.objects.count(), 1)
 
 
 class BrandConcurrencyTests(TransactionTestCase):
