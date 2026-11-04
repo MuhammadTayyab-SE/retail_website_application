@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import connection, transaction
 from django.http import HttpResponseBadRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
@@ -12,6 +12,7 @@ from access.audit import record
 from catalog.admin_widgets import PlainRelatedChoicesMixin
 from catalog.forms import ProductForm, ProductPhotoForm
 from catalog.models import Brand, Category, Product, ProductPhoto
+from catalog.skus import SKU_LOCK
 from config.admin import site
 
 
@@ -132,6 +133,19 @@ class ProductAdmin(ProductAdminBase):
         )
     ]
     inlines = [PhotoInline]
+
+    def get_object(self, request, object_id, from_field=None):
+        obj = super().get_object(request, object_id, from_field)
+        if obj is not None and request.method == "POST":
+            return Product.objects.select_for_update().filter(pk=obj.pk).first()
+        return obj
+
+    def get_form(self, request, obj=None, **kwargs):
+        if request.method == "POST":
+            # Hold the SKU lock through validation/save so racing conflicts stay form errors.
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [SKU_LOCK])
+        return super().get_form(request, obj, **kwargs)
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("photos")

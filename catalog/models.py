@@ -1,14 +1,16 @@
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import uuid4
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import connection, models, transaction
 from django.db.models.functions import Cast, Lower, Round, Trim
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from django.utils import timezone
 
 from access.models import AttributedModel
+from catalog.skus import sku_write, validate_sku
 
 
 def category_photo_path(instance, filename):
@@ -294,6 +296,7 @@ class Product(AttributedModel):
 
     class Meta:
         ordering = ["name", "pk"]
+        permissions = [("override_sku", "Can override or correct a SKU before its first order")]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(price__gte=0), name="product_price_nonnegative"
@@ -369,6 +372,7 @@ class Product(AttributedModel):
             .exists()
         ):
             raise ValidationError({"sku": "This SKU is already used in the store."})
+        validate_sku(self)
         if not self.name:
             raise ValidationError({"name": "Enter a product name."})
         if self.category_id and Category.objects.parents().filter(pk=self.category_id).exists():
@@ -395,8 +399,9 @@ class Product(AttributedModel):
                         kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_active"}
                     break
                 category_id = category["parent_id"]
-        self.full_clean()
-        return super().save(*args, **kwargs)
+        with sku_write(self, kwargs.get("update_fields")):
+            self.full_clean()
+            return super().save(*args, **kwargs)
 
 
 class ProductVariant(AttributedModel):
@@ -456,6 +461,7 @@ class ProductVariant(AttributedModel):
             raise ValidationError({"sku": "Enter a non-empty printable SKU."})
         if ProductVariant.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists():
             raise ValidationError({"sku": "This SKU is already used in the store."})
+        validate_sku(self)
         if not isinstance(self.attributes, dict):
             raise ValidationError(
                 {"attributes": "Enter an object of attribute names and text values."}
@@ -480,8 +486,55 @@ class ProductVariant(AttributedModel):
         self.attributes = normalized
 
     def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
+        with sku_write(self, kwargs.get("update_fields")):
+            self.full_clean()
+            return super().save(*args, **kwargs)
+
+
+class SkuIdentifierQuerySet(models.QuerySet):
+    def delete(self):
+        raise PermissionDenied("Issued SKUs cannot be deleted or reused.")
+
+    def update(self, **kwargs):
+        # Django's deletion collector clears live owners; snapshots remain permanent.
+        if not kwargs or any(
+            key not in {"product", "variant"} or value is not None for key, value in kwargs.items()
+        ):
+            raise PermissionDenied("Issued SKU history cannot be changed.")
+        return super().update(**kwargs)
+
+
+class SkuIdentifier(models.Model):
+    code = models.CharField(max_length=200, unique=True)
+    product = models.ForeignKey(
+        Product, null=True, on_delete=models.SET_NULL, related_name="sku_identifiers"
+    )
+    variant = models.ForeignKey(
+        ProductVariant, null=True, on_delete=models.SET_NULL, related_name="sku_identifiers"
+    )
+    product_key = models.PositiveBigIntegerField(null=True)
+    variant_key = models.PositiveBigIntegerField(null=True)
+    issued_at = models.DateTimeField(default=timezone.now)
+    actor_id = models.PositiveBigIntegerField(null=True)
+    actor_name = models.CharField(max_length=150, blank=True)
+    source = models.CharField(max_length=16, default="legacy")
+    ordered_at = models.DateTimeField(null=True)
+    objects = SkuIdentifierQuerySet.as_manager()
+
+    class Meta:
+        default_permissions = ()
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(code=""), name="sku_identifier_not_empty"),
+            models.CheckConstraint(
+                condition=models.Q(code=Lower(Trim("code"))), name="sku_identifier_normalized"
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        raise PermissionDenied("Use the SKU assignment path; issued history is permanent.")
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Issued SKUs cannot be deleted or reused.")
 
 
 class ProductPhoto(AttributedModel):

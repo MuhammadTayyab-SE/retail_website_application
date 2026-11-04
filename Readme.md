@@ -21,7 +21,17 @@ With an installed project environment and configured local PostgreSQL:
 
 New feature worktrees receive a local copy of development's `.env` without replacing
 an existing file. `.env` remains ignored by Git; independent QA still needs separate
-database configuration. Never commit credentials.
+database configuration. Never commit credentials. When a worktree uses the existing
+development database, set its local `MEDIA_ROOT` to the absolute path of the
+development checkout's existing `media` directory. Git does not copy uploaded
+photos into worktrees. Restart the development server after changing `.env`;
+an autoreloader child can inherit older environment values from its parent.
+
+CINV-02 adds durable SKU reservations. Before applying catalog migration 0013,
+pause catalog/checkout writes, back up PostgreSQL and run `python manage.py check_skus`.
+It reports ambiguous ownership rather than renumbering data. See
+[CINV-02 setup and recovery](docs/tickets/CINV-02.md) before migrating. SKU overrides
+require the explicit role permission; automatic creation UI remains a later increment.
 
 Alternatively, configure explicit process variables from this checkout, with uv and Python 3.13 available:
 

@@ -508,6 +508,9 @@ class ProductTests(TestCase):
         self.role.permissions.add(
             Permission.objects.get(content_type__app_label="catalog", codename="change_product")
         )
+        self.role.permissions.add(
+            Permission.objects.get(content_type__app_label="catalog", codename="override_sku")
+        )
         data = self.product_data(
             name="Updated milk",
             sku="EDITED",
