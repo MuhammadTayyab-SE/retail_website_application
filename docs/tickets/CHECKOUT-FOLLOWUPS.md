@@ -3,11 +3,15 @@
 Date: 2026-11-01. User authorized real checkout, guests and existing signed-in
 accounts, cash on delivery now, and online payments later. Delivery charges,
 free-delivery unlock, eligibility, minimums and tax rules must be dynamic.
-Their management UI is explicitly deferred to these backlog items.
+Their initial management UI was deferred. The user subsequently authorized the
+existing-rule controls under Settings in Orders PR #53; remaining controls and
+integrations are tracked below.
 
 ## CHECKOUT-ADMIN-001 — Retailer delivery and tax settings
 
-State: Backlog. Owner: Admin developer role. Initial local rules approved on 2026-11-01.
+State: Existing-rule controls implemented in draft PR #53, awaiting user review;
+QA paused. Instant-delivery controls and a pre-save quote preview remain backlog.
+Owner: Admin developer role. Initial local rules approved on 2026-11-01.
 Tracker: https://github.com/MuhammadTayyab-SE/retail_website_application/issues/47
 
 - Permission-controlled admin management for the retailer-local DeliveryPolicy.
@@ -22,8 +26,10 @@ Tracker: https://github.com/MuhammadTayyab-SE/retail_website_application/issues/
 - Checkout quotes, free-delivery progress and order snapshots use the saved rules.
 - Revalidate final charges and eligibility at order placement; concurrent setting
   changes cannot silently change a customer-accepted quote.
-- Current change provides a validated management command for explicitly supplied
-  JSON rules. No admin screens, permissions or staff dashboards are modified yet.
+- The checkout command still accepts explicitly supplied JSON rules. PR #53 adds
+  Settings / Order settings for existing DeliveryPolicy fields, separate view/
+  change permissions, audit events and stale-revision protection. It does not
+  enable Instant delivery, notifications or an online payment provider.
 
 ## CHECKOUT-PAY-001 — Online payment provider integration
 
@@ -40,7 +46,9 @@ Tracker: https://github.com/MuhammadTayyab-SE/retail_website_application/issues/
 
 ## CHECKOUT-ADMIN-002 — Order processing
 
-State: Backlog. Depends on approved fulfillment/cancellation rules.
+State: Approved forward-only fulfillment, cash collection and private notes are
+implemented in draft PR #53. QA paused; not merged. Cancellation/restocking and
+refund rules remain deferred. See docs/admin-orders.md.
 
 - Authorized staff can view order snapshots and payment status.
 - Define processing/dispatch/completion/cancellation transitions and restocking.

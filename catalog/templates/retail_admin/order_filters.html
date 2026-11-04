@@ -1,0 +1,13 @@
+<form class="retail-card orders-filter-panel" method="get" aria-label="Order filters" data-order-filters>
+  <div class="orders-filter-heading"><span class="orders-filter-symbol" aria-hidden="true">☷</span><div><strong>Find your orders</strong><small>Choose a preset or refine orders by date, customer and status</small></div><a href="{{ request.path }}">Clear all</a></div>
+  <div class="orders-filter-pills"><span>QUICK RANGE</span>{% for preset in quick_ranges %}<a href="?{{ preset.query }}"{% if preset.active %} aria-current="true"{% endif %}>{{ preset.label }}</a>{% endfor %}</div>
+  <input type="hidden" name="quick" value="custom">
+  <div class="orders-filters">
+    <div class="orders-search"><label for="{{ filters.q.id_for_label }}">Search orders</label>{{ filters.q }}{{ filters.q.errors }}<small>Order number, customer, phone or city</small></div>
+    <div><label for="{{ filters.date_mode.id_for_label }}">Date selection</label>{{ filters.date_mode }}{{ filters.date_mode.errors }}</div>
+    <div data-date-range><label for="{{ filters.start.id_for_label }}">From date</label>{{ filters.start }}{{ filters.start.errors }}</div><div data-date-range><label for="{{ filters.end.id_for_label }}">To date</label>{{ filters.end }}{{ filters.end.errors }}</div>
+    <div data-single-date><label for="{{ filters.on.id_for_label }}">Specific date</label>{{ filters.on }}{{ filters.on.errors }}</div>
+    <div><label for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}{{ filters.status.errors }}</div><div><label for="{{ filters.fulfillment.id_for_label }}">Fulfillment</label>{{ filters.fulfillment }}{{ filters.fulfillment.errors }}</div><div><label for="{{ filters.payment.id_for_label }}">Payment</label>{{ filters.payment }}{{ filters.payment.errors }}</div>
+  </div>{{ filters.non_field_errors }}{{ filters.quick.errors }}
+  <div class="orders-filter-footer"><div><button type="submit" class="button">Apply filters</button><a class="retail-button secondary" href="{{ request.path }}">Clear all</a></div><a class="orders-refresh" href="{{ request.path }}{% if filter_query %}?{{ filter_query }}{% endif %}">↻ Refresh orders</a></div>
+</form>

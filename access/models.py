@@ -115,6 +115,8 @@ class AuditEvent(models.Model):
             "access.role": "Roles",
             "access.workerprofile": "Worker roles",
             "access.auditevent": "Activity log",
+            "checkout.order": "Orders",
+            "checkout.deliverypolicy": "Order settings",
             "authentication": "Authentication",
             "portal": "Dashboard",
         }.get(self.module, self.module)
@@ -140,6 +142,8 @@ class AuditEvent(models.Model):
             "access.role": "Role",
             "access.workerprofile": "Worker role",
             "access.auditevent": "Activity entry",
+            "checkout.order": "Order",
+            "checkout.deliverypolicy": "Order settings",
             "portal": "Dashboard",
         }.get(self.module, self.module_label)
 

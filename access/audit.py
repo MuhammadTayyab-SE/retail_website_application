@@ -65,6 +65,20 @@ class AuditMiddleware:
                         module = "access.role"
                     elif match.url_name.startswith("access_auditevent_"):
                         module = "access.auditevent"
+                    elif match.url_name in {
+                        "orders",
+                        "order-workspace",
+                        "order-detail",
+                        "order-status",
+                        "order-payment",
+                        "order-note",
+                        "orders-export",
+                        "order-label",
+                        "order-receipt",
+                    }:
+                        module = "checkout.order"
+                    elif match.url_name == "order-settings":
+                        module = "checkout.deliverypolicy"
                 outcome = (
                     "denied"
                     if response.status_code in (401, 403)

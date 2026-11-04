@@ -8,7 +8,7 @@ from django.db import models
 
 
 class DeliveryPolicy(models.Model):
-    """Retailer-local checkout rules; admin management is a separate backlog item."""
+    """Retailer-local checkout rules managed from admin Order settings."""
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     enabled = models.BooleanField(default=False)
@@ -58,6 +58,7 @@ class DeliveryPolicy(models.Model):
         choices=[("manual", "Manual distance review"), ("routing", "Routing provider")],
     )
     cash_on_delivery = models.BooleanField(default=True)
+    return_address = models.TextField(max_length=1000, blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
@@ -126,6 +127,8 @@ class Order(models.Model):
     tax = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))
     total = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))
     policy_snapshot = models.JSONField(default=dict)
+    shipping_details = models.JSONField(default=dict, blank=True)
+    shipping_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

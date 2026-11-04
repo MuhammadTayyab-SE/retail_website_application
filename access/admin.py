@@ -60,7 +60,19 @@ class PermissionChoices(forms.ModelMultipleChoiceField):
 
 class RoleForm(forms.ModelForm):
     permissions = PermissionChoices(
-        queryset=Permission.objects.filter(content_type__app_label="catalog")
+        queryset=Permission.objects.filter(
+            Q(content_type__app_label="catalog")
+            | Q(
+                content_type__app_label="checkout",
+                content_type__model="order",
+                codename__in=["view_order", "change_order"],
+            )
+            | Q(
+                content_type__app_label="checkout",
+                content_type__model="deliverypolicy",
+                codename__in=["view_deliverypolicy", "change_deliverypolicy"],
+            )
+        )
         .exclude(content_type__model__in=["productphoto", "productvariant"])
         .order_by("codename"),
         widget=forms.CheckboxSelectMultiple(attrs={"class": "permission-grid"}),
@@ -264,14 +276,6 @@ class RoleAdmin(SuperAdminOnly, admin.ModelAdmin):
                 **(extra_context or {}),
             },
         )
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "permissions":
-            # Account/role/audit administration is never delegated.
-            kwargs["queryset"] = Permission.objects.filter(
-                content_type__app_label="catalog"
-            ).order_by("content_type__model", "codename")
-        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
 
 @admin.register(AuditEvent, site=site)

@@ -43,7 +43,9 @@ def receipt_details(order):
         "payment": "Cash on collection" if pickup else "Cash on delivery",
         "payment_status": order.payment_status.replace("_", " ").capitalize(),
         "status": "Pending delivery-distance review" if pending else "Order received",
-        "message": (
+        "message": "Payment received. Keep this receipt for your records."
+        if order.payment_status == "paid"
+        else (
             "Your pickup order has been received. "
             "The store will confirm when it is ready for collection. Payment is due at pickup."
         )
@@ -57,9 +59,8 @@ def receipt_details(order):
     }
 
 
-def receipt_pdf(order):
-    """Generate a private downloadable PDF from saved order snapshots only."""
-    data = receipt_details(order)
+def receipt_font():
+    """Share the embedded font with delivery labels."""
     font_name = "ZillyReceipt"
     if font_name not in pdfmetrics.getRegisteredFontNames():
         font_dir = (
@@ -68,6 +69,13 @@ def receipt_pdf(order):
         )
         font_path = next(iter(sorted(font_dir.glob("*.ttf"))))
         pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
+    return font_name
+
+
+def receipt_pdf(order):
+    """Generate a private downloadable PDF from saved order snapshots only."""
+    data = receipt_details(order)
+    font_name = receipt_font()
     body = ParagraphStyle(
         "ReceiptBody",
         fontName=font_name,

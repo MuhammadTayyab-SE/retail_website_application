@@ -1,0 +1,8 @@
+{% include "retail_admin/labels/header.html" %}
+<div class="label-return"><strong>RETURN IF UNDELIVERED:</strong> {{ label.return_address|linebreaksbr }}</div>
+{% include "retail_admin/labels/ship_to.html" %}
+<div class="label-parcel"><div><small>DESTINATION CITY</small><strong>{{ label.city }}</strong></div><div><small>PARCEL SPECS</small><strong>{{ label.specs }}</strong></div></div>
+{% include "retail_admin/labels/payment.html" %}
+{% include "retail_admin/labels/barcode.html" %}
+<div class="label-metadata"><div><p><strong>ORDER ID:</strong> {{ label.order.number }}</p><p><strong>ORDER DATE:</strong> {{ label.receipt.date }}</p><p><strong>DIMENSIONS:</strong> {{ label.settings.dimensions|default:"Not set" }}</p><p><strong>NOTE:</strong> {{ label.settings.instructions|default:"None"|linebreaksbr }}</p></div><div class="label-qr"><img src="{{ label.qr_image }}" alt="Order reference QR code"><small>ORDER QR</small></div></div>
+{% include "retail_admin/labels/contents.html" %}

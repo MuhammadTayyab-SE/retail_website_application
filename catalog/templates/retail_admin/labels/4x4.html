@@ -1,0 +1,8 @@
+<header class="label-compact-header"><strong>retail.</strong><span>{{ label.service }} / HUB: {{ label.hub }}</span></header>
+{% include "retail_admin/labels/ship_to.html" with compact=True %}
+{% include "retail_admin/labels/payment.html" %}
+{% include "retail_admin/labels/barcode.html" %}
+<div class="label-parcel"><span>{{ label.order.number }}</span><span>{{ label.receipt.date }}</span></div>
+<div class="label-return"><strong>RETURN:</strong> {{ label.return_address|linebreaksbr }}</div>
+{% if label.settings.instructions %}<div class="label-return"><strong>NOTE:</strong> {{ label.settings.instructions|linebreaksbr }}</div>{% endif %}
+{% include "retail_admin/labels/contents.html" %}
