@@ -136,6 +136,49 @@ class AdminOrdersTests(TestCase):
             self.client.get(self.url, {"page": "invalid"}).context["order_page"].number, 1
         )
 
+    def test_overview_recent_orders_only_include_today_in_pakistan(self):
+        from datetime import datetime, timedelta, timezone
+        from zoneinfo import ZoneInfo
+
+        midnight = datetime(2026, 11, 4, tzinfo=ZoneInfo("Asia/Karachi"))
+        Order.objects.filter(pk=self.order.pk).update(created_at=midnight)
+        others = []
+        for created_at in (
+            midnight - timedelta(microseconds=1),
+            midnight + timedelta(days=1) - timedelta(microseconds=1),
+            midnight + timedelta(days=1),
+        ):
+            order = Order.objects.create(
+                idempotency_key=uuid.uuid4(),
+                request_fingerprint="fixture",
+                browser_owner=uuid.uuid4(),
+                contact={},
+                address={},
+            )
+            Order.objects.filter(pk=order.pk).update(created_at=created_at)
+            others.append(order)
+
+        overview = reverse("admin:order-workspace", args=["overview"])
+        with patch(
+            "checkout.admin_views.timezone.now",
+            return_value=datetime(2026, 11, 4, tzinfo=timezone.utc),
+        ):
+            response = self.client.get(overview)
+            self.assertEqual(
+                {order.pk for order in response.context["order_page"]},
+                {self.order.pk, others[1].pk},
+            )
+            self.assertEqual(response.context["order_page"].paginator.per_page, 5)
+            self.assertEqual(response.context["order_counts"]["total"], 4)
+            self.assertEqual(sum(day["total"] for day in response.context["activity"]), 3)
+            self.assertEqual(self.client.get(self.url).context["order_page"].paginator.count, 4)
+
+        with patch(
+            "checkout.admin_views.timezone.now",
+            return_value=datetime(2026, 11, 6, tzinfo=timezone.utc),
+        ):
+            self.assertEqual(self.client.get(overview).context["order_page"].paginator.count, 0)
+
     def test_permissions_hide_navigation_and_protect_all_order_endpoints(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code, 302)
@@ -348,12 +391,154 @@ class AdminOrdersTests(TestCase):
         label = reverse("admin:order-label", args=[self.order.public_id])
         response = self.client.get(receipt)
         self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF-"))
-        svg = self.client.get(label, {"download": "1"})
-        self.assertEqual(svg["Content-Type"], "image/svg+xml")
-        self.assertContains(svg, self.order.number)
+        pdf = self.client.get(label, {"download": "1"})
+        self.assertEqual(pdf["Content-Type"], "application/pdf")
+        self.assertTrue(b"".join(pdf.streaming_content).startswith(b"%PDF-"))
+        self.assertIn("attachment", pdf["Content-Disposition"])
+        preview = self.client.get(label, {"preview": "1"})
+        self.assertIn("inline", preview["Content-Disposition"])
+        self.assertEqual(preview["X-Frame-Options"], "SAMEORIGIN")
+        self.assertIn("no-store", preview["Cache-Control"])
         self.client.logout()
         self.assertEqual(self.client.get(receipt).status_code, 302)
         self.assertEqual(self.client.get(label).status_code, 302)
+
+    def test_label_saves_shipping_and_snapshots_return_address_without_changing_order(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        settings = self.settings_data()
+        settings["return_address"] = "Synthetic warehouse, Lahore"
+        self.client.post(reverse("admin:order-settings"), settings)
+        response = self.client.get(url)
+        data = dict(response.context["label_form"].initial)
+        self.assertEqual(data["return_address"], settings["return_address"])
+        self.assertEqual(self.order.shipping_details, {})
+        data.update(
+            action="save",
+            courier="Test courier",
+            tracking="ABC-123",
+            weight_kg="1.250",
+            pieces="2",
+            total="0.01",
+            contact="tampered",
+        )
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_details["weight_kg"], "1.250")
+        self.assertEqual(self.order.shipping_details["pieces"], 2)
+        self.assertEqual(self.order.shipping_details["tracking"], "ABC-123")
+        self.assertEqual(str(self.order.total), "307.50")
+        self.assertEqual(self.order.contact["first_name"], "Test")
+        self.assertEqual(AuditEvent.objects.filter(action="shipping_details_change").count(), 1)
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+        DeliveryPolicy.objects.filter(pk=1).update(return_address="Different warehouse")
+        self.assertEqual(
+            self.client.get(url).context["label_form"].initial["return_address"],
+            "Synthetic warehouse, Lahore",
+        )
+
+    def test_label_validation_permissions_and_audit_failure_preserve_saved_details(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        data = dict(self.client.get(url).context["label_form"].initial, action="save")
+        for invalid in (
+            {"tracking": "ABC<script>"},
+            {"weight_kg": "-1"},
+            {"pieces": "0"},
+            {"format": "unknown"},
+        ):
+            with self.subTest(invalid=invalid):
+                self.assertEqual(self.client.post(url, {**data, **invalid}).status_code, 400)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_details, {})
+        with patch("checkout.admin_views.record", side_effect=RuntimeError("audit unavailable")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(url, data)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_details, {})
+        self.assertIsNone(self.order.shipping_updated_at)
+        self.client.force_login(self.worker("label-reader", ["view_order"]))
+        self.assertNotContains(self.client.get(url), "Save &amp; preview")
+        self.assertEqual(self.client.post(url, data).status_code, 403)
+        self.client.force_login(self.worker("no-label-access", []))
+        for params in ({}, {"preview": "1"}, {"download": "1"}):
+            self.assertEqual(self.client.get(url, params).status_code, 403)
+
+    def test_label_assets_are_only_loaded_in_studio_and_download_uses_saved_options(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        self.assertNotContains(self.client.get(self.url), "catalog/admin/labels.css")
+        response = self.client.get(url)
+        self.assertContains(response, "catalog/admin/labels.css")
+        data = dict(response.context["label_form"].initial, action="download", format="a4")
+        self.assertRedirects(
+            self.client.post(url, data), url + "?download=1", fetch_redirect_response=False
+        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_details["format"], "a4")
+
+    def test_label_pdf_formats_contents_and_cash_due_use_order_snapshots(self):
+        from pypdf import PdfReader
+
+        from checkout.labels import LABEL_FORMATS, LabelForm, label_pdf
+
+        options = LabelForm(order=self.order).initial
+        self.product.name = "Changed catalog name"
+        self.product.save()
+        for format, size in LABEL_FORMATS.items():
+            for palette in ("branded", "thermal"):
+                with self.subTest(format=format, palette=palette):
+                    reader = PdfReader(
+                        label_pdf(self.order, {**options, "format": format, "palette": palette})
+                    )
+                    page = reader.pages[0]
+                    self.assertAlmostEqual(float(page.mediabox.width), size[0], places=3)
+                    self.assertAlmostEqual(float(page.mediabox.height), size[1], places=3)
+                    text = "\n".join(page.extract_text() for page in reader.pages)
+                    self.assertIn("CASH TO COLLECT: PKR 307.50", text)
+                    self.assertIn("Checkout milk", text)
+                    self.assertNotIn("Changed catalog name", text)
+        self.order.payment_status = "paid"
+        pdf = label_pdf(self.order, {**options, "contents": "hidden"})
+        text = "\n".join(page.extract_text() for page in PdfReader(pdf).pages)
+        self.assertIn("PAID - DO NOT COLLECT", text)
+        self.assertNotIn("CASH TO COLLECT", text)
+        self.assertNotIn("Checkout milk", text)
+        self.order.payment_status = "unpaid"
+        self.order.payment_method = "card"
+        reader = PdfReader(label_pdf(self.order, {**options, "contents": "summary"}))
+        text = "\n".join(page.extract_text() for page in reader.pages)
+        self.assertIn("PAYMENT NOT VERIFIED", text)
+        self.assertNotIn("CASH TO COLLECT", text)
+        self.assertIn("PACKAGE CONTENTS / 2 items", text)
+        self.assertNotIn("Checkout milk", text)
+
+    def test_long_labels_continue_without_losing_items_or_repeating_cash_collection(self):
+        from pypdf import PdfReader
+
+        from checkout.labels import LabelForm, label_pdf
+
+        source = self.order.items.get()
+        for index in range(15):
+            self.order.items.create(
+                product=self.product,
+                name=f"Parcel item {index:02d} " + "long name " * 30,
+                sku="SYNTHETIC",
+                description="",
+                quantity=1,
+                regular_price=source.regular_price,
+                unit_price=source.unit_price,
+                line_total=source.unit_price,
+            )
+        options = {
+            **LabelForm(order=self.order).initial,
+            "format": "4x4",
+            "show_prices": True,
+            "return_address": "Synthetic warehouse " * 40,
+        }
+        reader = PdfReader(label_pdf(self.order, options))
+        text = "\n".join(page.extract_text() for page in reader.pages)
+        self.assertGreater(len(reader.pages), 1)
+        self.assertIn("Parcel item 14", text)
+        self.assertEqual(text.count("CASH TO COLLECT"), 1)
+        self.assertIn("CONTINUATION - SAME PARCEL", text)
 
     def settings_data(self):
         policy = DeliveryPolicy.objects.get(pk=1)
@@ -369,6 +554,7 @@ class AdminOrdersTests(TestCase):
                 "origin_latitude",
                 "origin_longitude",
                 "delivery_radius_km",
+                "return_address",
             )
         }
         values.update(

@@ -59,9 +59,8 @@ def receipt_details(order):
     }
 
 
-def receipt_pdf(order):
-    """Generate a private downloadable PDF from saved order snapshots only."""
-    data = receipt_details(order)
+def receipt_font():
+    """Share the embedded font with delivery labels."""
     font_name = "ZillyReceipt"
     if font_name not in pdfmetrics.getRegisteredFontNames():
         font_dir = (
@@ -70,6 +69,13 @@ def receipt_pdf(order):
         )
         font_path = next(iter(sorted(font_dir.glob("*.ttf"))))
         pdfmetrics.registerFont(TTFont(font_name, str(font_path)))
+    return font_name
+
+
+def receipt_pdf(order):
+    """Generate a private downloadable PDF from saved order snapshots only."""
+    data = receipt_details(order)
+    font_name = receipt_font()
     body = ParagraphStyle(
         "ReceiptBody",
         fontName=font_name,

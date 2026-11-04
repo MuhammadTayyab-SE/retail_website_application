@@ -54,6 +54,7 @@ class RetailAdminSite(AdminSite):
             "order-status": "Orders / Update status",
             "order-payment": "Orders / Payment",
             "order-note": "Orders / Notes",
+            "order-label": "Orders / Delivery label",
             "order-settings": "Settings / Orders",
             "password_change": "Settings / Change password",
             "password_change_done": "Settings / Change password",
@@ -103,6 +104,7 @@ class RetailAdminSite(AdminSite):
                     "order-status",
                     "order-payment",
                     "order-note",
+                    "order-label",
                 },
             }
             for key, (title, _) in ORDER_SECTIONS.items()

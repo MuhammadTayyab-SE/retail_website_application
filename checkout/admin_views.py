@@ -4,7 +4,6 @@ import csv
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from io import StringIO
-from textwrap import wrap
 from zoneinfo import ZoneInfo
 
 from django import forms
@@ -21,10 +20,12 @@ from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from access.audit import record
 from access.models import AuditEvent
+from checkout.labels import LabelForm, label_pdf
 from checkout.models import DeliveryPolicy, Order
 from checkout.receipts import receipt_details, receipt_pdf
 from config.admin import site
@@ -166,6 +167,7 @@ class OrderSettingsForm(forms.ModelForm):
             "origin_latitude",
             "origin_longitude",
             "delivery_radius_km",
+            "return_address",
         ]
         labels = {
             "enabled": "Enable checkout",
@@ -177,11 +179,14 @@ class OrderSettingsForm(forms.ModelForm):
             "pickup_enabled": "Enable store pickup",
             "pickup_fee": "Pickup fee (PKR)",
             "pickup_minimum_order": "Minimum pickup order (PKR)",
+            "return_address": "Default return address",
         }
         help_texts = {
             "free_delivery_threshold": "Leave blank to disable the free-delivery promotion.",
             "delivery_radius_km": "Driving-distance limit in km. Addresses are checked manually until a routing provider is configured.",
+            "return_address": "Used for new delivery labels. Saved labels keep their own return address for reprints.",
         }
+        widgets = {"return_address": forms.Textarea(attrs={"rows": 3})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -306,9 +311,16 @@ def orders_dashboard(request, section="all"):
     form, all_orders = _filtered_orders(request, section)
     counts = _order_summary(all_orders)
     orders = _order_queue(all_orders, section, form.cleaned_data.get("payment"))
-    page = Paginator(orders.prefetch_related("items"), 5 if section == "overview" else 20).get_page(
-        request.GET.get("page")
-    )
+    table_orders = orders
+    if section == "overview":
+        today = timezone.localdate(timezone=STORE_TIMEZONE)
+        table_orders = orders.filter(
+            created_at__gte=datetime.combine(today, time.min, STORE_TIMEZONE),
+            created_at__lt=datetime.combine(today + timedelta(days=1), time.min, STORE_TIMEZONE),
+        )
+    page = Paginator(
+        table_orders.prefetch_related("items"), 5 if section == "overview" else 20
+    ).get_page(request.GET.get("page"))
     for order in page:
         order.status_label = ORDER_STATUSES.get(
             order.status, order.status.replace("_", " ").title()
@@ -417,7 +429,12 @@ def _detail_context(request, order, form=None, payment_form=None, note_form=None
         AuditEvent.objects.filter(
             module="checkout.order",
             target_id=str(order.pk),
-            action__in=["status_change", "cash_collected", "internal_note"],
+            action__in=[
+                "status_change",
+                "cash_collected",
+                "internal_note",
+                "shipping_details_change",
+            ],
         ).order_by("-occurred_at", "-pk")[:50]
     )
     for event in events:
@@ -429,6 +446,8 @@ def _detail_context(request, order, form=None, payment_form=None, note_form=None
             if event.action == "status_change"
             else "Cash payment collected"
             if event.action == "cash_collected"
+            else "Delivery label details updated"
+            if event.action == "shipping_details_change"
             else "Private note added"
         )
     return {
@@ -633,39 +652,98 @@ def order_receipt(request, object_id):
     )
 
 
-@require_GET
+@require_http_methods(["GET", "POST"])
+@xframe_options_sameorigin
 def order_label(request, object_id):
     if not _can_view(request.user):
         raise PermissionDenied
-    order = get_object_or_404(Order, public_id=object_id)
-    context = {"order": order, "receipt": receipt_details(order)}
-    destination = (
-        ["Collection from store"]
-        if order.delivery_method == "pickup"
-        else [
-            str(order.address.get(key, ""))
-            for key in ("address", "landmark", "city", "postal_code")
-        ]
+    can_change = request.user.has_perm("checkout.change_order")
+    if request.method == "POST" and not can_change:
+        raise PermissionDenied
+    default_return = (
+        DeliveryPolicy.objects.filter(pk=1).values_list("return_address", flat=True).first() or ""
     )
-    text_lines = [
-        f"{order.contact.get('first_name', '')} {order.contact.get('last_name', '')}",
-        str(order.contact.get("phone", "")),
-        *destination,
-    ]
-    lines = [line for value in text_lines if value.strip() for line in wrap(value, width=58)]
-    height = max(520, 280 + len(lines) * 24)
-    context.update(
-        label_lines=[{"text": line, "y": 180 + index * 24} for index, line in enumerate(lines)],
-        label_height=height,
-        label_footer=height - 55,
+    response_status = 200
+    if request.method == "POST":
+        with transaction.atomic():
+            order = get_object_or_404(Order.objects.select_for_update(), public_id=object_id)
+            form = LabelForm(request.POST, order=order, default_return_address=default_return)
+            valid = form.is_valid()
+            revision = order.shipping_updated_at.isoformat() if order.shipping_updated_at else ""
+            if form.cleaned_data.get("expected_revision", "") != revision:
+                form.add_error(
+                    None, "Label details changed while this page was open. Reload before saving."
+                )
+                response_status = 409
+            if request.POST.get("action") not in {"save", "download"}:
+                form.add_error(None, "Choose Save & preview or Save & download PDF.")
+            if valid and not form.errors:
+                shipping = form.shipping_data()
+                if shipping != order.shipping_details:
+                    before = order.shipping_details
+                    order.shipping_details = shipping
+                    order.shipping_updated_at = timezone.now()
+                    order.save(update_fields=["shipping_details", "shipping_updated_at"])
+                    record(
+                        "shipping_details_change",
+                        "checkout.order",
+                        order.pk,
+                        details={
+                            "changes": {
+                                key: {"from": before.get(key), "to": value}
+                                for key, value in shipping.items()
+                                if before.get(key) != value
+                            }
+                        },
+                        request=request,
+                    )
+                target = reverse("admin:order-label", args=[order.public_id])
+                if request.POST["action"] == "download":
+                    return redirect(target + "?download=1")
+                messages.success(request, "Delivery label details saved.")
+                return redirect(target)
+            if response_status == 200:
+                response_status = 400
+    else:
+        order = get_object_or_404(Order.objects.prefetch_related("items"), public_id=object_id)
+        form = LabelForm(order=order, default_return_address=default_return)
+        if request.GET.get("download") == "1" or request.GET.get("preview") == "1":
+            return FileResponse(
+                label_pdf(order, form.initial),
+                as_attachment=request.GET.get("download") == "1",
+                filename=f"{order.number}-label.pdf",
+                content_type="application/pdf",
+            )
+    return TemplateResponse(
+        request,
+        "retail_admin/order_label.html",
+        {
+            **site.each_context(request),
+            "title": "Delivery label studio",
+            "order": order,
+            "receipt": receipt_details(order),
+            "label_form": form,
+            "can_change_label": can_change,
+            "shipping_fields": [
+                form[name]
+                for name in (
+                    "courier",
+                    "service",
+                    "tracking",
+                    "hub_code",
+                    "weight_kg",
+                    "dimensions",
+                    "pieces",
+                    "instructions",
+                    "return_address",
+                )
+            ],
+            "layout_fields": [
+                form[name] for name in ("format", "palette", "contents", "show_skus", "show_prices")
+            ],
+        },
+        status=response_status,
     )
-    if request.GET.get("download") == "1":
-        response = TemplateResponse(
-            request, "retail_admin/order_label.svg", context, content_type="image/svg+xml"
-        )
-        response["Content-Disposition"] = f'attachment; filename="{order.number}-label.svg"'
-        return response
-    return TemplateResponse(request, "retail_admin/order_label.html", context)
 
 
 @require_http_methods(["GET", "POST"])

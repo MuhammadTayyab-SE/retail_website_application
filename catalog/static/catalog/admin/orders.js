@@ -14,5 +14,4 @@
     selection.addEventListener('change', updateDateFields);
     updateDateFields();
   }
-  document.querySelector('#orders-print')?.addEventListener('click', () => window.print());
 })();
