@@ -1,0 +1,8 @@
+<header class="label-manifest-header"><div><strong>retail.</strong><small>PACKING SLIP &amp; DISPATCH MANIFEST</small></div><div><strong>{{ label.order.number }}</strong><small>{{ label.receipt.date }}</small></div></header>
+<div class="label-manifest-grid"><div>{% include "retail_admin/labels/ship_to.html" %}</div><div class="label-shipment-meta"><strong>SHIPMENT METADATA</strong><p>{{ label.courier }} / {{ label.service }}</p><p>Tracking: {{ label.tracking }}</p><p>{{ label.specs }}</p><p>Dimensions: {{ label.settings.dimensions|default:"Not set" }}</p><p>Payment: {{ label.order.payment_status }}</p></div></div>
+{% include "retail_admin/labels/contents.html" %}
+<div class="label-packer">PACKER CHECK: [ ] Items verified &nbsp; [ ] Security seal applied <strong>{{ label.receipt.quantity }} units</strong></div>
+<div class="label-cut-line">DETACH ALONG DOTTED LINE &amp; AFFIX SHIPPING LABEL TO PARCEL EXTERIOR</div>
+<div class="label-detachable"><div>{% include "retail_admin/labels/header.html" %}{% include "retail_admin/labels/ship_to.html" %}{% include "retail_admin/labels/payment.html" %}</div><div>{% include "retail_admin/labels/barcode.html" %}<div class="label-qr"><img src="{{ label.qr_image }}" alt="Order reference QR code"><small>ORDER QR</small></div><p>{{ label.order.number }}</p><p>{{ label.specs }}</p></div></div>
+<div class="label-return"><strong>RETURN IF UNDELIVERED:</strong> {{ label.return_address|linebreaksbr }}</div>
+{% if label.settings.instructions %}<div class="label-return"><strong>INSTRUCTIONS:</strong> {{ label.settings.instructions|linebreaksbr }}</div>{% endif %}

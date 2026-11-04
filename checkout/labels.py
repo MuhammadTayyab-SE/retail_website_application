@@ -1,5 +1,6 @@
-"""Per-order label settings and a single renderer for preview and download."""
+"""Per-order label settings with shared data for HTML previews and PDF output."""
 
+from base64 import b64encode
 from decimal import Decimal
 from io import BytesIO
 from xml.sax.saxutils import escape
@@ -7,8 +8,8 @@ from xml.sax.saxutils import escape
 from django import forms
 from reportlab.graphics.barcode import createBarcodeDrawing
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
@@ -20,12 +21,19 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from checkout.forms import CheckoutForm
 from checkout.receipts import receipt_details, receipt_font
 
 LABEL_FORMATS = {"4x6": (4 * inch, 6 * inch), "4x4": (4 * inch, 4 * inch), "a4": A4}
+ADDRESS_FIELDS = ("address", "landmark", "city", "postal_code")
 
 
 class LabelForm(forms.Form):
+    correct_address = forms.BooleanField(required=False, label="Edit delivery address")
+    address = CheckoutForm.base_fields["address"]
+    landmark = CheckoutForm.base_fields["landmark"]
+    city = CheckoutForm.base_fields["city"]
+    postal_code = CheckoutForm.base_fields["postal_code"]
     courier = forms.CharField(required=False, max_length=80, label="Courier")
     service = forms.CharField(required=False, max_length=60, label="Booked service")
     tracking = forms.RegexField(
@@ -47,7 +55,7 @@ class LabelForm(forms.Form):
     pieces = forms.IntegerField(required=False, min_value=1, max_value=999, label="Parcel count")
     instructions = forms.CharField(
         required=False,
-        max_length=500,
+        max_length=2000,
         widget=forms.Textarea(attrs={"rows": 3}),
         label="Delivery instructions",
     )
@@ -99,68 +107,67 @@ class LabelForm(forms.Form):
             if order.shipping_updated_at
             else "",
         }
+        self.allowed_cities = order.policy_snapshot.get("allowed_cities", [])
+        self.fields["correct_address"].disabled = order.delivery_method == "pickup"
+        correcting = (
+            self.is_bound and self["correct_address"].value() and order.delivery_method != "pickup"
+        )
+        for name in ADDRESS_FIELDS:
+            self.initial[name] = order.address.get(name, "")
+            self.fields[name].disabled = not correcting
+            self.fields[name].required = correcting and name in {"address", "city"}
+
+    def clean_city(self):
+        city = self.cleaned_data["city"]
+        if (
+            self.cleaned_data.get("correct_address")
+            and self.allowed_cities
+            and city.casefold() not in {value.strip().casefold() for value in self.allowed_cities}
+        ):
+            raise forms.ValidationError("Use a city within this order's delivery area.")
+        return city
+
+    def corrected_address(self):
+        return (
+            {name: self.cleaned_data[name] for name in ADDRESS_FIELDS}
+            if self.cleaned_data.get("correct_address")
+            else {}
+        )
 
     def shipping_data(self):
         data = {
-            key: value for key, value in self.cleaned_data.items() if key != "expected_revision"
+            key: value
+            for key, value in self.cleaned_data.items()
+            if key not in {"expected_revision", "correct_address", *ADDRESS_FIELDS}
         }
         if data["weight_kg"] is not None:
             data["weight_kg"] = str(data["weight_kg"])
         return data
 
 
-def label_pdf(order, settings):
-    """Build the selected prototype layout, shared by preview and download."""
+def label_preview(order, settings):
+    data = label_details(order, settings)
+    barcode = createBarcodeDrawing(
+        "Code128", value=data["tracking"], barHeight=36, humanReadable=False
+    )
+    qr = createBarcodeDrawing("QR", value=order.number, width=64, height=64, barBorder=2)
+    data["barcode_image"] = "data:image/svg+xml;base64," + b64encode(
+        barcode.asString("svg").encode("utf-8")
+    ).decode("ascii")
+    data["qr_image"] = "data:image/svg+xml;base64," + b64encode(
+        qr.asString("svg").encode("utf-8")
+    ).decode("ascii")
+    data["template"] = {
+        "4x6": "retail_admin/labels/4x6.html",
+        "4x4": "retail_admin/labels/4x4.html",
+        "a4": "retail_admin/labels/a4.html",
+    }[settings["format"]]
+    return data
+
+
+def label_details(order, settings):
+    """Shared authoritative content for browser previews and PDF labels."""
     receipt = receipt_details(order)
-    selected = settings["format"]
-    compact = selected == "4x4"
-    thermal = settings["palette"] == "thermal"
-    paper = LABEL_FORMATS[selected]
-    margin = 8 if selected != "a4" else 28
-    width = paper[0] - 2 * margin - 12
-    font = receipt_font()
-    ink = colors.black
-    brand = ink if thermal else colors.HexColor("#064e3b")
-    accent = ink if thermal else colors.HexColor("#047857")
-    pale = colors.white if thermal else colors.HexColor("#ecfdf5")
-    body = ParagraphStyle(
-        "LabelBody",
-        fontName=font,
-        fontSize=7 if compact else 9 if selected == "a4" else 7.5,
-        leading=8 if compact else 12 if selected == "a4" else 10,
-        textColor=ink,
-    )
-    small = ParagraphStyle("LabelSmall", parent=body, fontSize=6, leading=7)
-    large = ParagraphStyle(
-        "LabelLarge", parent=body, fontSize=10 if compact else 12, leading=12 if compact else 14
-    )
-    white = ParagraphStyle("LabelWhite", parent=body, textColor=colors.white)
-    white_small = ParagraphStyle("LabelWhiteSmall", parent=small, textColor=colors.white)
-    white_large = ParagraphStyle("LabelWhiteLarge", parent=large, textColor=colors.white)
-    center = ParagraphStyle("LabelCenter", parent=body, alignment=TA_CENTER)
-    right = ParagraphStyle("LabelRight", parent=body, alignment=TA_RIGHT)
-
-    def paragraph(value, style=body):
-        return Paragraph(escape(str(value)).replace("\n", "<br/>"), style)
-
-    def panel(rows, columns, background=colors.white, commands=()):
-        table = LongTable(rows, colWidths=columns, hAlign="LEFT", splitInRow=1)
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BOX", (0, 0), (-1, -1), 1, ink),
-                    ("BACKGROUND", (0, 0), (-1, -1), background),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3 if not compact else 2),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3 if not compact else 2),
-                    *commands,
-                ]
-            )
-        )
-        return table
-
     customer = f"{order.contact.get('first_name', '')} {order.contact.get('last_name', '')}".strip()
     phone = str(order.contact.get("phone", ""))
     pickup = order.delivery_method == "pickup"
@@ -206,35 +213,122 @@ def label_pdf(order, settings):
         payment = "PAYMENT NOT VERIFIED - CHECK ORDER"
         payment_badge = "CHECK"
 
+    warning = ""
+    if order.status in {"cancelled", "failed"}:
+        warning = "DO NOT DISPATCH - " + order.status.upper()
+    elif order.status == "delivery_review":
+        warning = "ADDRESS / DISTANCE REVIEW REQUIRED"
+    return {
+        "order": order,
+        "settings": settings,
+        "receipt": receipt,
+        "customer": customer,
+        "phone": phone,
+        "pickup": pickup,
+        "destination": destination,
+        "city": city,
+        "postal": postal,
+        "ship_caption": ship_caption,
+        "tracking": tracking,
+        "tracking_caption": tracking_caption,
+        "service": service,
+        "courier": courier,
+        "hub": hub,
+        "specs": specs,
+        "return_address": return_address,
+        "cash_due": cash_due,
+        "payment": payment,
+        "payment_badge": payment_badge,
+        "warning": warning,
+    }
+
+
+def label_pdf(order, settings):
+    """Build the selected printable PDF from shared label data."""
+    data = label_details(order, settings)
+    selected = settings["format"]
+    compact = selected == "4x4"
+    thermal = settings["palette"] == "thermal"
+    paper = LABEL_FORMATS[selected]
+    margin = 8 if selected != "a4" else 28
+    width = paper[0] - 2 * margin - 12
+    font = receipt_font()
+    ink = colors.black
+    brand = ink if thermal else colors.HexColor("#064e3b")
+    pale = colors.white if thermal else colors.HexColor("#ecfdf5")
+    body = ParagraphStyle(
+        "LabelBody",
+        fontName=font,
+        fontSize=7 if compact else 9 if selected == "a4" else 7.5,
+        leading=8 if compact else 12 if selected == "a4" else 10,
+        textColor=ink,
+    )
+    small = ParagraphStyle("LabelSmall", parent=body, fontSize=6, leading=7)
+    large = ParagraphStyle(
+        "LabelLarge", parent=body, fontSize=10 if compact else 12, leading=12 if compact else 14
+    )
+    white = ParagraphStyle("LabelWhite", parent=body, textColor=colors.white)
+    white_small = ParagraphStyle("LabelWhiteSmall", parent=small, textColor=colors.white)
+    white_large = ParagraphStyle("LabelWhiteLarge", parent=large, textColor=colors.white)
+    center = ParagraphStyle("LabelCenter", parent=body, alignment=TA_CENTER)
+    right = ParagraphStyle("LabelRight", parent=body, alignment=TA_RIGHT)
+
+    def paragraph(value, style=body):
+        return Paragraph(escape(str(value)).replace("\n", "<br/>"), style)
+
+    def panel(rows, columns, background=colors.white, commands=()):
+        table = LongTable(rows, colWidths=columns, hAlign="LEFT", splitInRow=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 1, ink),
+                    ("BACKGROUND", (0, 0), (-1, -1), background),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3 if not compact else 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3 if not compact else 2),
+                    *commands,
+                ]
+            )
+        )
+        return table
+
     def payment_panel(panel_width):
         background = ink if thermal else colors.HexColor("#022c22")
-        style = white_large if cash_due else large
+        style = white_large if data["cash_due"] else large
         return panel(
             [
                 [
                     [
                         paragraph(
-                            "CASH ON COLLECTION" if pickup and cash_due else "PAYMENT STATUS",
-                            white_small if cash_due else small,
+                            "CASH ON COLLECTION"
+                            if data["pickup"] and data["cash_due"]
+                            else "PAYMENT STATUS",
+                            white_small if data["cash_due"] else small,
                         ),
-                        paragraph(payment, style),
+                        paragraph(data["payment"], style),
                     ],
-                    paragraph(payment_badge, white if cash_due else body),
+                    paragraph(data["payment_badge"], white if data["cash_due"] else body),
                 ]
             ],
             [panel_width - 42, 42],
-            background if cash_due else pale,
+            background if data["cash_due"] else pale,
         )
 
     def barcode_panel(panel_width):
         barcode = createBarcodeDrawing(
-            "Code128", value=tracking, barHeight=20 if compact else 28, humanReadable=False
+            "Code128", value=data["tracking"], barHeight=20 if compact else 28, humanReadable=False
         )
         scale = min(1, (panel_width - 20) / barcode.width)
         barcode.scale(scale, 1)
         barcode.width *= scale
         return panel(
-            [[paragraph(tracking_caption, small)], [barcode], [paragraph(tracking, center)]],
+            [
+                [paragraph(data["tracking_caption"], small)],
+                [barcode],
+                [paragraph(data["tracking"], center)],
+            ],
             [panel_width],
             commands=[
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
@@ -249,18 +343,29 @@ def label_pdf(order, settings):
 
     def ship_panel(panel_width, include_qr=False):
         lines = [
-            paragraph(ship_caption, small),
-            paragraph(customer, large),
-            paragraph("TEL: " + phone),
-            paragraph(destination),
+            paragraph(data["ship_caption"], small),
+            paragraph(data["customer"], large),
+            paragraph("TEL: " + data["phone"]),
+            paragraph(data["destination"]),
         ]
         if include_qr or selected == "a4":
-            lines.append(paragraph(city + (" / " + postal if postal else ""), large))
-        elif postal:
-            lines.append(paragraph("POSTAL: " + postal, small))
+            lines.append(
+                paragraph(data["city"] + (" / " + data["postal"] if data["postal"] else ""), large)
+            )
+        elif data["postal"]:
+            lines.append(paragraph("POSTAL: " + data["postal"], small))
         if include_qr:
             return panel(
-                [[lines, [qr_code(42), paragraph("ORDER QR", small), paragraph(specs, small)]]],
+                [
+                    [
+                        lines,
+                        [
+                            qr_code(42),
+                            paragraph("ORDER QR", small),
+                            paragraph(data["specs"], small),
+                        ],
+                    ]
+                ],
                 [panel_width - 66, 66],
             )
         return panel([[lines]], [panel_width])
@@ -273,8 +378,8 @@ def label_pdf(order, settings):
                         paragraph("retail.", white_large),
                         paragraph("ORDER FULFILLMENT", white_small),
                     ],
-                    [paragraph(courier, small), paragraph(service, right)],
-                    [paragraph("HUB", white), paragraph(hub, white_large)],
+                    [paragraph(data["courier"], small), paragraph(data["service"], right)],
+                    [paragraph("HUB", white), paragraph(data["hub"], white_large)],
                 ]
             ],
             [panel_width * 0.35, panel_width * 0.46, panel_width * 0.19],
@@ -286,7 +391,7 @@ def label_pdf(order, settings):
         )
 
     def contents_table(panel_width):
-        heading = f"PACKAGE CONTENTS / {receipt['quantity']} items"
+        heading = f"PACKAGE CONTENTS / {data['receipt']['quantity']} items"
         if settings["contents"] == "hidden":
             return [
                 panel([[paragraph("CONTENTS OMITTED / " + order.number, small)]], [panel_width])
@@ -297,7 +402,7 @@ def label_pdf(order, settings):
                     [
                         [
                             paragraph(heading),
-                            paragraph(f"{receipt['product_count']} products", right),
+                            paragraph(f"{data['receipt']['product_count']} products", right),
                         ]
                     ],
                     [panel_width * 0.68, panel_width * 0.32],
@@ -307,7 +412,7 @@ def label_pdf(order, settings):
         rows = [[paragraph(heading, white), paragraph("QTY", white)]]
         if settings["show_prices"]:
             rows[0].append(paragraph("LINE TOTAL", white))
-        for item in receipt["items"]:
+        for item in data["receipt"]["items"]:
             name = item.name + ("\nSKU: " + item.sku if settings["show_skus"] and item.sku else "")
             row = [paragraph(name), paragraph(item.quantity, center)]
             if settings["show_prices"]:
@@ -325,12 +430,7 @@ def label_pdf(order, settings):
         table.repeatRows = 1
         return [table]
 
-    warning = ""
-    if order.status in {"cancelled", "failed"}:
-        warning = "DO NOT DISPATCH - " + order.status.upper()
-    elif order.status == "delivery_review":
-        warning = "ADDRESS / DISTANCE REVIEW REQUIRED"
-    story = [panel([[paragraph(warning)]], [width], pale)] if warning else []
+    story = [panel([[paragraph(data["warning"])]], [width], pale)] if data["warning"] else []
     if selected == "a4":
         story.extend(
             [
@@ -341,7 +441,10 @@ def label_pdf(order, settings):
                                 paragraph("retail.", large),
                                 paragraph("PACKING SLIP & DISPATCH MANIFEST", small),
                             ],
-                            [paragraph(order.number, right), paragraph(receipt["date"], right)],
+                            [
+                                paragraph(order.number, right),
+                                paragraph(data["receipt"]["date"], right),
+                            ],
                         ]
                     ],
                     [width * 0.52, width * 0.48],
@@ -353,16 +456,16 @@ def label_pdf(order, settings):
                         [
                             [
                                 paragraph("DELIVER TO CUSTOMER", small),
-                                paragraph(customer, large),
-                                paragraph(phone),
-                                paragraph(destination),
-                                paragraph(city + " " + postal),
+                                paragraph(data["customer"], large),
+                                paragraph(data["phone"]),
+                                paragraph(data["destination"]),
+                                paragraph(data["city"] + " " + data["postal"]),
                             ],
                             [
                                 paragraph("SHIPMENT METADATA", small),
-                                paragraph(courier + " / " + service),
-                                paragraph("Tracking: " + tracking),
-                                paragraph(specs),
+                                paragraph(data["courier"] + " / " + data["service"]),
+                                paragraph("Tracking: " + data["tracking"]),
+                                paragraph(data["specs"]),
                                 paragraph(
                                     "Dimensions: " + (settings.get("dimensions") or "Not set")
                                 ),
@@ -383,7 +486,7 @@ def label_pdf(order, settings):
                                 "PACKER CHECK: [ ] Items verified   [ ] Security seal applied",
                                 small,
                             ),
-                            paragraph(f"Total units: {receipt['quantity']}", right),
+                            paragraph(f"Total units: {data['receipt']['quantity']}", right),
                         ]
                     ],
                     [width * 0.75, width * 0.25],
@@ -406,7 +509,9 @@ def label_pdf(order, settings):
                                 [
                                     [
                                         paragraph("retail.", white_large),
-                                        paragraph(service + " / HUB: " + hub, white),
+                                        paragraph(
+                                            data["service"] + " / HUB: " + data["hub"], white
+                                        ),
                                     ]
                                 ],
                                 [left_width * 0.35, left_width * 0.65],
@@ -420,8 +525,8 @@ def label_pdf(order, settings):
                             Spacer(1, 7),
                             qr_code(64),
                             paragraph("ORDER QR: " + order.number, small),
-                            paragraph(receipt["date"], small),
-                            paragraph(specs, small),
+                            paragraph(data["receipt"]["date"], small),
+                            paragraph(data["specs"], small),
                         ],
                     ]
                 ],
@@ -430,7 +535,11 @@ def label_pdf(order, settings):
             )
         )
         story.append(
-            panel([[paragraph("RETURN IF UNDELIVERED: " + return_address, small)]], [width], pale)
+            panel(
+                [[paragraph("RETURN IF UNDELIVERED: " + data["return_address"], small)]],
+                [width],
+                pale,
+            )
         )
         if settings.get("instructions"):
             story.append(
@@ -443,7 +552,7 @@ def label_pdf(order, settings):
                     [
                         [
                             paragraph("retail.", white_large),
-                            paragraph(service + " / HUB: " + hub, white),
+                            paragraph(data["service"] + " / HUB: " + data["hub"], white),
                         ]
                     ],
                     [width * 0.35, width * 0.65],
@@ -453,10 +562,10 @@ def label_pdf(order, settings):
                 payment_panel(width),
                 barcode_panel(width),
                 panel(
-                    [[paragraph(order.number, small), paragraph(receipt["date"], small)]],
+                    [[paragraph(order.number, small), paragraph(data["receipt"]["date"], small)]],
                     [width * 0.5, width * 0.5],
                 ),
-                panel([[paragraph("RETURN: " + return_address, small)]], [width], pale),
+                panel([[paragraph("RETURN: " + data["return_address"], small)]], [width], pale),
             ]
         )
         if settings.get("instructions"):
@@ -467,14 +576,16 @@ def label_pdf(order, settings):
             [
                 header(width),
                 panel(
-                    [[paragraph("RETURN IF UNDELIVERED: " + return_address, small)]], [width], pale
+                    [[paragraph("RETURN IF UNDELIVERED: " + data["return_address"], small)]],
+                    [width],
+                    pale,
                 ),
                 ship_panel(width),
                 panel(
                     [
                         [
-                            paragraph("DESTINATION CITY\n" + city),
-                            paragraph("PARCEL SPECS\n" + specs, right),
+                            paragraph("DESTINATION CITY\n" + data["city"]),
+                            paragraph("PARCEL SPECS\n" + data["specs"], right),
                         ]
                     ],
                     [width * 0.5, width * 0.5],
@@ -486,7 +597,7 @@ def label_pdf(order, settings):
                         [
                             [
                                 paragraph("ORDER ID: " + order.number),
-                                paragraph("ORDER DATE: " + receipt["date"], small),
+                                paragraph("ORDER DATE: " + data["receipt"]["date"], small),
                                 paragraph(
                                     "DIMENSIONS: " + (settings.get("dimensions") or "Not set"),
                                     small,

@@ -1,0 +1,4 @@
+<article class="label-paper label-paper--{{ label.settings.format }} label-paper--{{ label.settings.palette }}" data-format="{{ label.settings.format }}" data-palette="{{ label.settings.palette }}">
+{% if label.warning %}<div class="label-warning">{{ label.warning }}</div>{% endif %}
+{% include label.template %}
+</article>

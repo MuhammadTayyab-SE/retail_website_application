@@ -15,7 +15,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import CharField, Count, Q, Sum, Value, prefetch_related_objects
 from django.db.models.fields.json import KT
 from django.db.models.functions import Cast, Concat, Replace, TruncDate
-from django.http import FileResponse, Http404, StreamingHttpResponse
+from django.http import FileResponse, Http404, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -25,7 +25,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from access.audit import record
 from access.models import AuditEvent
-from checkout.labels import LabelForm, label_pdf
+from checkout.labels import ADDRESS_FIELDS, LabelForm, label_pdf, label_preview
 from checkout.models import DeliveryPolicy, Order
 from checkout.receipts import receipt_details, receipt_pdf
 from config.admin import site
@@ -446,7 +446,11 @@ def _detail_context(request, order, form=None, payment_form=None, note_form=None
             if event.action == "status_change"
             else "Cash payment collected"
             if event.action == "cash_collected"
-            else "Delivery label details updated"
+            else (
+                "Delivery address corrected"
+                if event.details.get("delivery_address")
+                else "Delivery label details updated"
+            )
             if event.action == "shipping_details_change"
             else "Private note added"
         )
@@ -658,12 +662,28 @@ def order_label(request, object_id):
     if not _can_view(request.user):
         raise PermissionDenied
     can_change = request.user.has_perm("checkout.change_order")
-    if request.method == "POST" and not can_change:
+    is_preview = request.method == "POST" and request.POST.get("action") == "preview"
+    if request.method == "POST" and not can_change and not is_preview:
         raise PermissionDenied
     default_return = (
         DeliveryPolicy.objects.filter(pk=1).values_list("return_address", flat=True).first() or ""
     )
     response_status = 200
+    if is_preview:
+        order = get_object_or_404(Order.objects.prefetch_related("items"), public_id=object_id)
+        form = LabelForm(request.POST, order=order, default_return_address=default_return)
+        if not form.is_valid():
+            return JsonResponse(
+                {"error": " ".join(" ".join(errors) for errors in form.errors.values())}, status=400
+            )
+        order.address = {**order.address, **form.corrected_address()}
+        return TemplateResponse(
+            request,
+            "retail_admin/labels/preview.html",
+            {
+                "label": label_preview(order, form.shipping_data()),
+            },
+        )
     if request.method == "POST":
         with transaction.atomic():
             order = get_object_or_404(Order.objects.select_for_update(), public_id=object_id)
@@ -676,14 +696,18 @@ def order_label(request, object_id):
                 )
                 response_status = 409
             if request.POST.get("action") not in {"save", "download"}:
-                form.add_error(None, "Choose Save & preview or Save & download PDF.")
+                form.add_error(None, "Choose Save changes or Save & download PDF.")
             if valid and not form.errors:
                 shipping = form.shipping_data()
-                if shipping != order.shipping_details:
+                corrected_address = {**order.address, **form.corrected_address()}
+                address_changed = corrected_address != order.address
+                if shipping != order.shipping_details or address_changed:
                     before = order.shipping_details
+                    before_address = order.address
+                    order.address = corrected_address
                     order.shipping_details = shipping
                     order.shipping_updated_at = timezone.now()
-                    order.save(update_fields=["shipping_details", "shipping_updated_at"])
+                    order.save(update_fields=["shipping_details", "shipping_updated_at", "address"])
                     record(
                         "shipping_details_change",
                         "checkout.order",
@@ -693,7 +717,17 @@ def order_label(request, object_id):
                                 key: {"from": before.get(key), "to": value}
                                 for key, value in shipping.items()
                                 if before.get(key) != value
-                            }
+                            },
+                            **(
+                                {
+                                    "delivery_address": {
+                                        "from": before_address,
+                                        "to": corrected_address,
+                                    }
+                                }
+                                if address_changed
+                                else {}
+                            ),
                         },
                         request=request,
                     )
@@ -707,13 +741,22 @@ def order_label(request, object_id):
     else:
         order = get_object_or_404(Order.objects.prefetch_related("items"), public_id=object_id)
         form = LabelForm(order=order, default_return_address=default_return)
-        if request.GET.get("download") == "1" or request.GET.get("preview") == "1":
+        if request.GET.get("download") == "1" or request.GET.get("pdf") == "1":
             return FileResponse(
                 label_pdf(order, form.initial),
                 as_attachment=request.GET.get("download") == "1",
                 filename=f"{order.number}-label.pdf",
                 content_type="application/pdf",
             )
+        if request.GET.get("preview") == "1":
+            return TemplateResponse(
+                request,
+                "retail_admin/labels/preview.html",
+                {
+                    "label": label_preview(order, form.initial),
+                },
+            )
+    preview = label_preview(order, form.initial)
     return TemplateResponse(
         request,
         "retail_admin/order_label.html",
@@ -721,8 +764,10 @@ def order_label(request, object_id):
             **site.each_context(request),
             "title": "Delivery label studio",
             "order": order,
-            "receipt": receipt_details(order),
+            "receipt": preview["receipt"],
             "label_form": form,
+            "label": preview,
+            "address_fields": [form[name] for name in ADDRESS_FIELDS],
             "can_change_label": can_change,
             "shipping_fields": [
                 form[name]
@@ -739,8 +784,6 @@ def order_label(request, object_id):
                 )
             ],
             "layout_fields": [form[name] for name in ("contents", "show_skus", "show_prices")],
-            "saved_format": form.initial["format"],
-            "saved_format_label": dict(form.fields["format"].choices)[form.initial["format"]],
         },
         status=response_status,
     )

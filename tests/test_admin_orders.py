@@ -396,7 +396,10 @@ class AdminOrdersTests(TestCase):
         self.assertTrue(b"".join(pdf.streaming_content).startswith(b"%PDF-"))
         self.assertIn("attachment", pdf["Content-Disposition"])
         preview = self.client.get(label, {"preview": "1"})
-        self.assertIn("inline", preview["Content-Disposition"])
+        self.assertTrue(preview["Content-Type"].startswith("text/html"))
+        self.assertNotIn("Content-Disposition", preview)
+        inline_pdf = self.client.get(label, {"pdf": "1"})
+        self.assertIn("inline", inline_pdf["Content-Disposition"])
         self.assertEqual(preview["X-Frame-Options"], "SAMEORIGIN")
         self.assertIn("no-store", preview["Cache-Control"])
         self.client.logout()
@@ -456,7 +459,7 @@ class AdminOrdersTests(TestCase):
         self.assertEqual(self.order.shipping_details, {})
         self.assertIsNone(self.order.shipping_updated_at)
         self.client.force_login(self.worker("label-reader", ["view_order"]))
-        self.assertNotContains(self.client.get(url), "Save &amp; preview")
+        self.assertNotContains(self.client.get(url), ">Save changes</button>")
         self.assertEqual(self.client.post(url, data).status_code, 403)
         self.client.force_login(self.worker("no-label-access", []))
         for params in ({}, {"preview": "1"}, {"download": "1"}):
@@ -478,6 +481,115 @@ class AdminOrdersTests(TestCase):
         )
         self.order.refresh_from_db()
         self.assertEqual(self.order.shipping_details["format"], "a4")
+
+    def test_studio_and_live_preview_never_generate_a_pdf_or_save_order_changes(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        with patch("checkout.admin_views.label_pdf") as pdf:
+            response = self.client.get(url)
+            self.assertNotContains(response, "<iframe")
+            self.assertNotIn("Content-Disposition", response)
+            self.assertContains(response, "catalog/admin/labels.js")
+            data = dict(response.context["label_form"].initial, action="preview")
+            for format in ("4x6", "4x4", "a4"):
+                for palette in ("branded", "thermal"):
+                    preview = self.client.post(url, {**data, "format": format, "palette": palette})
+                    self.assertContains(preview, f'data-format="{format}"')
+                    self.assertContains(preview, f'data-palette="{palette}"')
+                    self.assertNotIn("Content-Disposition", preview)
+                    if format == "a4":
+                        self.assertContains(preview, "DETACH ALONG DOTTED LINE")
+                    else:
+                        self.assertNotContains(preview, "DETACH ALONG DOTTED LINE")
+            pdf.assert_not_called()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.shipping_details, {})
+        self.assertIsNone(self.order.shipping_updated_at)
+        self.assertFalse(AuditEvent.objects.filter(action="shipping_details_change").exists())
+        invalid = self.client.post(url, {**data, "format": "unknown"})
+        self.assertEqual(invalid.status_code, 400)
+        self.assertIn("error", invalid.json())
+
+    def test_address_corrections_require_opt_in_and_preserve_prices_and_customer_notes(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        before = self.order.address.copy()
+        response = self.client.get(url)
+        for name in ("address", "landmark", "city", "postal_code"):
+            self.assertTrue(response.context["label_form"].fields[name].disabled)
+        data = dict(
+            response.context["label_form"].initial,
+            action="save",
+            address="Ignored address",
+            city="Karachi",
+        )
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.address, before)
+        data = dict(
+            self.client.get(url).context["label_form"].initial,
+            action="save",
+            correct_address="on",
+            address="99 Corrected Street",
+            city="Lahore",
+            landmark="Corrected landmark",
+            postal_code="54000",
+        )
+        self.assertEqual(self.client.post(url, data).status_code, 302)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.address["address"], "99 Corrected Street")
+        self.assertEqual(self.order.address["notes"], before["notes"])
+        self.assertEqual(str(self.order.total), "307.50")
+        self.assertNotIn("address", self.order.shipping_details)
+        self.assertNotIn("correct_address", self.order.shipping_details)
+        event = AuditEvent.objects.filter(action="shipping_details_change").latest("pk")
+        self.assertEqual(event.details["delivery_address"]["from"], before)
+        self.assertEqual(event.details["delivery_address"]["to"]["address"], "99 Corrected Street")
+        self.assertEqual(self.client.post(url, data).status_code, 409)
+
+    def test_address_preview_is_temporary_and_bad_city_or_audit_failure_cannot_save(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        before = self.order.address.copy()
+        data = dict(
+            self.client.get(url).context["label_form"].initial,
+            action="preview",
+            correct_address="on",
+            address="Temporary <script>address</script>",
+            city="Lahore",
+        )
+        preview = self.client.post(url, data)
+        self.assertContains(preview, "Temporary &lt;script&gt;address&lt;/script&gt;")
+        self.assertNotContains(preview, "<script>")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.address, before)
+        self.assertEqual(
+            self.client.post(url, {**data, "action": "save", "city": "Karachi"}).status_code, 400
+        )
+        with patch("checkout.admin_views.record", side_effect=RuntimeError("audit unavailable")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(url, {**data, "action": "save"})
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.address, before)
+        self.assertEqual(self.order.shipping_details, {})
+        self.client.force_login(self.worker("address-reader", ["view_order"]))
+        self.assertEqual(self.client.post(url, {**data, "action": "save"}).status_code, 403)
+        self.client.force_login(self.worker("address-no-access", []))
+        self.assertEqual(self.client.post(url, data).status_code, 403)
+
+    def test_item_list_only_scrolls_after_eight_product_lines(self):
+        url = reverse("admin:order-label", args=[self.order.public_id])
+        for index in range(8):
+            if index == 7:
+                self.assertNotContains(self.client.get(url), "label-item-list--scroll")
+            self.order.items.create(
+                product=self.product,
+                name=f"Extra item {index}",
+                quantity=1,
+                regular_price="1.00",
+                unit_price="1.00",
+                line_total="1.00",
+            )
+        response = self.client.get(url)
+        self.assertContains(response, "label-item-list--scroll")
+        self.assertContains(response, 'aria-label="Order items, scroll to see more"')
 
     def test_label_pdf_formats_contents_and_cash_due_use_order_snapshots(self):
         from pypdf import PdfReader

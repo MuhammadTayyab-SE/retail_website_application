@@ -120,23 +120,41 @@ order snapshots, not the prototype's sample orders or editable monetary fields.
   shipping label. Branding follows the current Retail admin instead of copying
   the prototype's demo company or false dispatch-verification claims.
 - Numbered studio sections and radio format/color selectors above the preview
-  follow the reference. Native form controls link to the settings form without
-  extra JavaScript. Save & preview applies the selected options. The embedded
-  PDF toolbar is suppressed where supported; Open PDF retains native printing.
-- checkout/labels.py owns the validated settings form and one ReportLab renderer.
-  The renderer builds only the selected layout/contents. The studio alone loads
-  labels.css; it adds no JavaScript, CDN assets or alternate hidden layouts.
-  Both the inline preview and download use that same PDF renderer. Native PDF
-  printing uses the selected paper size at 100% scale. The Open PDF link is also
-  a fallback for browsers without an inline PDF viewer.
-- Save & preview updates the saved settings; Save & download saves before
-  downloading. The preview/download links show the currently saved version
-  (or explicitly labelled defaults before the first save). GET does not write.
+  follow the reference. All controls are inside one settings form. A small
+  studio-only labels.js updates the HTML preview on selection/input changes,
+  cancels stale requests and reports validation/network errors. This preview
+  does not rely on an embedded PDF viewer and never starts a PDF download.
+- checkout/labels.py owns the validated form, shared authoritative label_details
+  and ReportLab PDF output. Browser preview templates reuse that same data and
+  real SVG barcode/QR generation. Only the selected layout is rendered; shared
+  header, customer, payment, barcode and contents partials avoid duplicate markup.
+  labels.css and labels.js load only in the studio; there are no CDN assets.
+- Save changes persists settings; Save & download saves before downloading.
+  Download saved PDF (?download=1) and Open saved PDF (?pdf=1) are explicit
+  actions. Native PDF printing uses the selected paper size at 100% scale.
+  GET ?preview=1 returns HTML; POST action=preview validates unsaved options and
+  returns updated HTML without order changes, shipping-change audit events or
+  revision changes. Normal admin request/access logging still applies.
+  Without JavaScript, Save changes refreshes the preview normally.
+- The item editor list becomes keyboard-scrollable only after eight product
+  lines. Themed green/neutral scrollbars match the admin. JavaScript measures
+  the first eight row heights on load/font readiness/resize to preserve the
+  eight-item window when names wrap. Printed/downloaded contents are not limited.
+- Edit delivery address is unchecked by default, and street/landmark/city/postal
+  fields stay disabled until enabled. CheckoutForm field definitions and the
+  order's saved allowed-city policy validate corrections. Unchecked/pickup
+  address inputs are ignored server-side. A change-order holder can save the
+  corrected address on Order under the same row lock/revision and audit
+  transaction as label settings, including the old/new address in history.
+  Notes, contact details, original idempotency fingerprint, order totals and
+  fulfillment/payment states are preserved. Staff must recheck driving distance
+  before dispatch; no routing provider or automatic repricing is introduced.
+  Previewing an address correction uses a temporary in-memory address only.
 - Edits need change_order; viewing/preview/download need view_order or
   change_order. CSRF, row locking, stale revision rejection and transactional
-  audit logging protect saves. Order customer details, totals, items and payment
-  status cannot be changed through this form. Preview PDFs allow same-origin
-  embedding only; the admin's private/no-cache behavior still applies.
+  audit logging protect saves. Customer contact, totals, items and payment
+  status cannot be changed through this form. Address changes need the explicit
+  checkbox and edit permission. The admin's private/no-cache behavior still applies.
 - A real Code128 barcode contains the manually supplied tracking number, falling
   back to the order reference with an accurate caption. Paid orders say not to
   collect cash; unpaid COD uses the saved total. Cancelled/failed orders warn
@@ -155,7 +173,9 @@ No broad tests, browser interactions, screenshots or responsive comparisons were
 run for this revised workspace. New/updated regression scenarios are written but
 unrun, including cash collection, notes, settings, exports, section navigation,
 PKT-today recent orders, label persistence/default addresses, stale revisions,
-label permissions, audit rollback, selected PDF page dimensions, prototype layout
+label permissions, audit rollback, preview-without-PDF/no-write behavior, live
+format/color choices, address opt-in/city/escaping/rollback, eight-item scrolling,
+selected PDF page dimensions, prototype layout
 sections, QR/barcode payloads, payment
 instructions and long-label continuation. Sidebar scrollbar styling and label
 responsive layouts have not been visually checked. No printer checks were run.
