@@ -383,4 +383,5 @@ class BrandMigrationTests(TransactionTestCase):
                 (restored.sku, str(restored.price), restored.quantity), ("KEEP-SKU", "25.50", 7)
             )
         finally:
-            MigrationExecutor(connection).migrate(after)
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())
