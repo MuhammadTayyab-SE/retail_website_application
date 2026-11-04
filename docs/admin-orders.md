@@ -190,3 +190,15 @@ synthetic preview database. Count and money sums matched the saved synthetic
 orders; no live records or policies were written. Broader QA remains paused.
 
 The synthetic preview server is stopped. No merge or deployment is performed.
+
+The user subsequently reported that live label format/color selection still
+failed. The submit buttons named action shadow HTMLFormElement.action, so the
+script constructed a preview URL ending in [object RadioNodeList]. Fetch now
+reads the literal action attribute (or current page URL), and the script asset
+version was bumped to avoid retaining the broken cached script. A narrow Node
+regression using the actual labels.js reproduced the wrong URL before the fix
+and passes after it: `node --test tests/test_admin_labels.cjs` (one test).
+It checks both format/color changes, CSRF/action payloads, preview replacement
+and no initial network request. A read-only HTTP check confirmed localhost:8000
+serves this worktree's script. No live orders were changed. This is targeted
+diagnosis of the reported bug; broader QA and browser/printer checks remain paused.

@@ -44,7 +44,8 @@
     preview.setAttribute('aria-busy', 'true');
     status.textContent = 'Updating preview...';
     try {
-      const response = await fetch(form.action, {
+      // The name="action" submit buttons shadow form.action in browsers.
+      const response = await fetch(form.getAttribute('action') || window.location.href, {
         method: 'POST', body: data, credentials: 'same-origin', signal: request.signal,
       });
       if (response.redirected) throw new Error('Reload the page and sign in again to preview the label.');
