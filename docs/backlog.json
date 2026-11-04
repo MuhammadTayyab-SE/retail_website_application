@@ -276,6 +276,223 @@
     "status": "Backlog",
     "priority": "P1",
     "dependencies": "CATALOG-UI-002",
-    "description": "User confirmed category photos and hierarchy first. Define brand/product relationships and required fields before implementation; intended flow is parent category -> category -> brand/product."
+    "description": "Historical placeholder superseded by CINV-01 through CINV-11. Brand is an optional independent Product entity, not an extra category level. See docs/catalog-inventory-plan.md; do not implement this duplicate placeholder.",
+    "supersededBy": [
+      "CINV-01",
+      "CINV-02",
+      "CINV-03",
+      "CINV-04",
+      "CINV-05",
+      "CINV-06",
+      "CINV-07",
+      "CINV-08",
+      "CINV-09",
+      "CINV-10",
+      "CINV-11"
+    ]
+  },
+  {
+    "id": "CINV-01",
+    "title": "CINV-01: Brand management and optional product association",
+    "priority": "P1",
+    "status": "Ready",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "development f0567ea; historical #6/#7 closed",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Normalize names using the existing trim/case convention; a database constraint rejects duplicate/racing names.",
+      "Existing unbranded products remain valid. Inactive brands are unavailable for new assignments, but existing associations/products remain sellable and editable without forced unlinking.",
+      "Reuse image format/8 MB/storage validation and commit-safe cleanup; no new dependency or external asset.",
+      "Enforce view/add/change permissions and CSRF server-side; brands remain independent of category hierarchy.",
+      "Provide a dedicated Brands page/template and a permission-gated Brands link in the existing Catalog navigation. Preserve product, Orders, Dashboard and View Catalog routes; final sidebar grouping belongs to CINV-10."
+    ],
+    "issueNumber": 54,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54"
+  },
+  {
+    "id": "CINV-02",
+    "title": "CINV-02: Durable SKU issuance and pre-order correction history",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "development f0567ea; historical #6/#7 closed",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Generate SKU-000001 style codes independently of database PKs; database uniqueness plus non-cycling sequence protects concurrent allocation and rollback gaps.",
+      "Reserve recoverable Product, ProductVariant, order-snapshot and audit-history codes; identify legitimate same-product aliases versus cross-product conflicts before constraints.",
+      "Never recycle an issued/retired/deleted code; seed above existing numeric codes and document incomplete deleted legacy history.",
+      "Explicit override permission; pre-first-order corrections retain old/new codes and actor/time history, including corrections after opening stock. Reject changes after an accepted order, including legacy product-only order lines.",
+      "No existing code is renumbered. Do not expose two writable SKU namespaces during rollout. Retain registry rows on product/variant deletion."
+    ],
+    "issueNumber": 55,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55"
+  },
+  {
+    "id": "CINV-03",
+    "title": "CINV-03: Extend existing variants and safely create default variants",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-02",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Every simple product receives one default without manual variant entry; at most one default per product is enforced in PostgreSQL and creation is atomic.",
+      "Preserve Product and existing Variant IDs, SKUs, attributes, active states, photos and OrderItem relationships. Reuse an unambiguous existing matching variant; stop for reviewed mapping when ambiguous.",
+      "Keep package content (500 ml/1 kg) separate from stock units (bottle/pack/each/kg); preserve ambiguous legacy litre/ml meanings rather than guessing conversions.",
+      "Preflight cross-product SKU collisions, missing codes and multiple variants sharing positive product stock. Generate only missing identifiers through CINV-02.",
+      "Existing live-product cart IDs resolve to defaults; explicit live-product:variant IDs stay valid. Do not clear stored carts or rewrite historical line snapshots.",
+      "Additive, repeat-safe migration with reconciliation/recovery instructions; no stock copying to every variant and no second variant table."
+    ],
+    "issueNumber": 56,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56"
+  },
+  {
+    "id": "CINV-04",
+    "title": "CINV-04: Variant-owned cost, regular and sale pricing with compatibility",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-03",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Cost/regular/sale prices are nonnegative; active sale price is strictly below regular price. Historical unknown cost is NULL, never fabricated zero.",
+      "Backfill each variant from its current effective regular/percentage-discount price using the existing PKR ROUND_HALF_UP behavior. Report zero-price/sale and other constraint exceptions without silent edits.",
+      "Update homepage/shop filtering/sorting, product view, cart quote/place, receipts/labels and current admin save paths together; cost never appears publicly.",
+      "Preserve original order line/price/tax/discount snapshots. Keep legacy columns during expansion, but remove duplicate writable price authorities at cutover.",
+      "Price schedule/timer implementation stays outside scope; existing promotional displays remain functional using authoritative prices."
+    ],
+    "issueNumber": 57,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57"
+  },
+  {
+    "id": "CINV-05",
+    "title": "CINV-05: Inventory balance and immutable movement foundation",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-03",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Balance has decimal on_hand/reserved and configurable threshold; available is derived, not a separately writable total; DB rejects negative values and reserved > on_hand.",
+      "Preserve immutable opening/adjustment/order movement records with reason, signed quantity, timestamp, administrator, before/after values and SKU/item/unit snapshots.",
+      "Locks and unique operation keys prevent duplicate opening, adjustments or order deductions; deterministic lock order avoids deadlocks.",
+      "Retain archived balances and movement snapshots when Product/Variant is deleted. Use view-only default permissions plus explicit stock-adjust permission; do not expose generic movement/balance add/edit/delete operations in Roles/admin. Keep historical issued SKUs; both deactivation and deletion remain supported without automatic write-off/restock.",
+      "All stock is tracked. Reserved remains zero until separately approved lifecycle rules; do not implement reservations, expiry, refunds or universal conversion.",
+      "New tables/operations remain staged until the migration/cutover in CINV-06; no second live stock source."
+    ],
+    "issueNumber": 58,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/58"
+  },
+  {
+    "id": "CINV-06",
+    "title": "CINV-06: Opening-stock migration and single-writer checkout stock cutover",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-04, CINV-05",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Rehearse backup/restore, mapping and stock reconciliation; pause checkout/catalog stock writes during opening backfill and cutover. Do not infer pre-migration sales as new movements.",
+      "Copy current simple-product stock ONCE to its default balance and record one migration-opening movement. Require verified allocation for legacy multiple-variant shared positive stock; never duplicate it.",
+      "Switch checkout, +Stock, product creation and normal product editing together. Opening stock is allowed only at creation; remove arbitrary quantity overwrite on normal edits. Any compatibility mirror is read-only, not another authority.",
+      "Keep immediate deduction on successful placement. Movement, balance update, order snapshots and idempotency commit/rollback together; fulfillment/payment changes never deduct again.",
+      "Old integer cart identities remain accepted and aggregate correctly. No reservation expiry/cancel/refund/restock rule is introduced; reserved stays zero.",
+      "Preserve IDs, images, existing orders and amounts. Explicit recovery after live ledger writes must reconcile forward or account for post-backup orders, never blindly reverse migration/sequence state."
+    ],
+    "issueNumber": 59,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59"
+  },
+  {
+    "id": "CINV-07",
+    "title": "CINV-07: Stock overview, recorded adjustments and stock history",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-06",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Show live and archived variant identity/unit, on_hand/reserved/available and threshold-driven stock status; pagination/search/filter are bounded and preserve query state.",
+      "Increases and decreases require nonzero valid amounts, a reason and a unique operation key; show actionable validation and actor/time history.",
+      "Concurrent writes use the shared locked operation; reject stock below zero/available reservations and duplicate submissions.",
+      "Retain view/adjust permission separation and server checks; history cannot be edited/deleted, including by direct admin URLs or generic model permissions. AuditEvent read-only patterns should be reused. Map old +Stock behavior to the same ledger rather than keeping a parallel writer.",
+      "Each route loads only its relevant HTML/assets, with common table/filter components reused. Opening stock is not silently reissued by editing a product."
+    ],
+    "issueNumber": 60,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/60"
+  },
+  {
+    "id": "CINV-08",
+    "title": "CINV-08: 0.1 kg quantities across cart, checkout and order outputs",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-04, CINV-06",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Accept exact decimal 0.1 kg steps and whole counts only for count units; reject unsupported steps, bool/NaN/infinity/exponent abuse, excessive precision and overflow server-side.",
+      "Migrate OrderItem quantity to decimal without changing historical quantities, line totals or printed prices. Define bounded decimal serialization compatible with old integer cart entries.",
+      "Update snapshot cart, shop/product quantity controls, quote/place validation, stock bounds and counts consistently; avoid binary-float price drift and retain PKR line rounding.",
+      "Product IDs, explicit variant IDs, browser/account cart ownership, repeat submissions and stock deduction semantics remain compatible.",
+      "Receipt/PDF/label/admin quantity formatting is correct; no universal ml/litre/kg conversion or reservation redesign."
+    ],
+    "issueNumber": 61,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/61"
+  },
+  {
+    "id": "CINV-09",
+    "title": "CINV-09: Modular Add/Edit Product form using existing gallery",
+    "priority": "P1",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-01, CINV-04, CINV-06, CINV-07, CINV-08",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Basic fields: name, optional parent selector, validated filtered category, optional brand and description. Parent changes filter available categories; server rejects mismatched/parent categories.",
+      "Simple entry uses the automatic default; optional additional variants reveal their controls only when requested. Include generated/authorized SKU, barcode, package/unit and cost/regular/sale fields.",
+      "Opening stock is create-only and creates a movement; edits use stock adjustments. Threshold is configurable; tracking is checked/disabled because all items track stock.",
+      "Reuse existing multiple-image picker, preview/showcase selection, ordering, variant-photo association, deletion and upload validation; preserve stored paths/IDs.",
+      "Active and featured flags exist. Do not silently redefine homepage collections; coordinate #42 for merchandising.",
+      "Each selected submodule uses only its required template/assets. Native formset empty_form/template can create optional variant rows on demand; no pre-rendered collection of hidden module screens.",
+      "Inline errors, role-specific read-only fields, keyboard access and responsive layout remain usable."
+    ],
+    "issueNumber": 62,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/62"
+  },
+  {
+    "id": "CINV-10",
+    "title": "CINV-10: Catalog and Inventory navigation with module-scoped rendering",
+    "priority": "P1",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-01, CINV-07, CINV-09",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Keep Dashboard, View Catalog, existing Orders below Inventory, Team, Security and Settings links and active states.",
+      "Preserve existing product/category/admin URLs and module permission checks; do not infer access from navigation visibility alone.",
+      "A selected module renders only its own template and CSS/JS, extending the shared shell and reusable partials. No one-page hidden-tab admin application.",
+      "Retain themed scrolling, mobile navigation, focus and direct-link behavior; labels distinguish catalog editing from stock operations.",
+      "Test route/asset isolation and worker role navigation for every new module."
+    ],
+    "issueNumber": 63,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/63"
+  },
+  {
+    "id": "CINV-11",
+    "title": "CINV-11: Independent inventory/catalog migration and integration regression",
+    "priority": "P0",
+    "status": "Backlog",
+    "owner": "Developer (unclaimed); prepared by PM/TL",
+    "dependencies": "CINV-01, CINV-02, CINV-03, CINV-04, CINV-05, CINV-06, CINV-07, CINV-08, CINV-09, CINV-10",
+    "description": "Planning only. Scope, migration/recovery gates and QA scenarios: docs/catalog-inventory-plan.md and linked GitHub issue. Do not start development in this assignment.",
+    "acceptanceCriteria": [
+      "Separate disposable PostgreSQL database and synthetic media/records; migration fixtures cover simple, preexisting variant, duplicated-alias, shared-stock and deleted-history cases.",
+      "Reconcile IDs/SKUs/prices/stock totals/media/order snapshots before and after migration and after a recovery rehearsal; no destructive reset of retailer data.",
+      "Exercise SKU/stock/order concurrency, retries, rollback, permissions/CSRF and decimal quantities end to end, with no double deduction/reservation.",
+      "Check module-only rendering, category filters, gallery actions and responsive/keyboard behavior at approximately 1440/768/390 px; record browser/console/screenshot evidence when QA is authorized.",
+      "Link defects to their originating issue/PR, record retest and PM review, and disclose any blocked check. No old test result counts as validation of a new SHA.",
+      "Only recommend Awaiting My Review with evidence; user approval is still required to merge. No production rollout or new inventory lifecycle in this ticket."
+    ],
+    "issueNumber": 64,
+    "issueUrl": "https://github.com/MuhammadTayyab-SE/retail_website_application/issues/64"
   }
 ]

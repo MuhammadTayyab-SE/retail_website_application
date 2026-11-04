@@ -1,5 +1,29 @@
 # Product requirements
 
+## Current planning increment - 2026-11-04
+
+The existing Django catalog/checkout/admin is implemented; the early setup-only
+statements below are historical. The approved next increment is specified in
+[catalog-inventory-plan.md](catalog-inventory-plan.md), based on development
+f0567ea. This assignment is PM/TL documentation and issue preparation only.
+Do not start application implementation as part of this assignment.
+
+Retain Parent Category -> Category -> Product and introduce optional independent
+brands. Extend existing variants with automatic defaults, durable generated
+SKUs, variant pricing and separate inventory balances/movements. Preserve product
+IDs, old codes/prices/stock/media and order snapshots during incremental migration.
+Inactive brands do not hide their products. Kg products are priced per kg in
+0.1 kg customer steps; count units stay whole. All products track stock initially.
+Both deactivation and deletion remain available with retained movement/order/SKU
+history. SKU corrections are permitted before the first order, with history,
+and are blocked afterward. Module-specific routes/templates/assets reuse the
+existing shell; do not render all modules in one hidden-tab HTML page.
+
+Existing immediate deduction on successful order placement is preserved until a
+separate reservation lifecycle is agreed. No reservation expiry, refund/restock,
+unit-conversion engine, new application or dependency is authorized by this plan.
+Detailed migration gates, acceptance criteria and QA expectations are in the plan.
+
 ## Agreed scope
 Reusable grocery ecommerce for multiple retailers using one shared codebase. Each retailer has an independent domain, hosting server, database, credentials and image storage. Currency is PKR, as confirmed by the user; launch country and payment method remain unresolved. A responsive customer website supports mobile and desktop. A retailer admin panel manages categories, products, variants, prices, stock, orders, branding, banners and delivery settings. Categories and products are dynamic and database-driven.
 

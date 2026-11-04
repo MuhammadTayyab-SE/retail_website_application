@@ -1,5 +1,26 @@
 # Decision register
 
+## Catalog/inventory decisions - 2026-11-04
+
+These current user decisions supersede the earlier single-unit/product-owned-SKU
+restriction for this new increment; historical entries remain below. Planning
+and migration detail: [catalog-inventory-plan.md](catalog-inventory-plan.md).
+
+| ID | Status | Decision | Consequence |
+|---|---|---|---|
+| CINV-D1 | Agreed | Extend existing variants; simple products get automatic defaults; Brand is independent and optional | No replacement application or taxonomy level; preserve current IDs/data |
+| CINV-D2 | Agreed user reply | Inactive brands leave products sellable but cannot be newly selected | No product visibility cascade; retain current associations on edit |
+| CINV-D3 | Agreed user reply | Kg price is per kg; customers buy in 0.1 kg (100 gram) steps | Decimal change must reach cart/order/receipts/labels and stock together |
+| CINV-D4 | Agreed user reply | Keep untracked-inventory option unavailable initially | All stock is tracked; no unused unlimited-sales mode |
+| CINV-D5 | Agreed user reply plus required history preservation | Keep both deactivate and delete options | Retain archived balances, movement/order snapshots and issued SKU identifiers after deletion; no silent stock write-off |
+| CINV-D6 | Agreed user reply | Lock SKU only after first accepted order; earlier corrections retain history | Opening stock alone does not freeze a SKU; retired codes remain unavailable |
+| CINV-D7 | Agreed later user instruction | Only load selected module HTML/assets; reuse useful components and logic | Dedicated routes/templates, no monolithic hidden module page or new framework |
+
+Immediate stock deduction at placement is existing behavior to preserve, not an
+approval for reservation, expiry, cancellation, refund or restocking semantics.
+Unknown historical costs, SKU collisions and ambiguous shared variant stock need
+preflight/reconciliation; never manufacture values or reset a database.
+
 Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled local choice; "production deferred" and "cloud deferred" preserve future decisions without blocking local implementation. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-10.
 
 | ID | Status | Decision / question | Impact / blocking tickets |
