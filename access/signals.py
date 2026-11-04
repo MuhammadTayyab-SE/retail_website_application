@@ -23,6 +23,8 @@ AUDITED_FIELDS = {
     "photo_y",
     "photo_zoom",
     "photo",
+    "logo",
+    "brand",
     "sku",
     "unit",
     "price",

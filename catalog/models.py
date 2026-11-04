@@ -150,6 +150,62 @@ def product_photo_path(instance, filename):
     return f"products/{uuid4().hex}.{extension}"
 
 
+def brand_logo_path(instance, filename):
+    extension = filename.rsplit(".", 1)[-1].lower()
+    return f"brands/{uuid4().hex}.{extension}"
+
+
+class Brand(AttributedModel):
+    name = models.CharField(max_length=100)
+    logo = models.ImageField(upload_to=brand_logo_path, blank=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name", "pk"]
+        default_permissions = ("add", "change", "view")
+        constraints = [
+            models.UniqueConstraint(Lower(Trim("name")), name="brand_name_normalized_unique"),
+            models.CheckConstraint(condition=~models.Q(name=""), name="brand_name_not_empty"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Enter a brand name."})
+        if Brand.objects.filter(name__iexact=self.name).exclude(pk=self.pk).exists():
+            raise ValidationError({"name": "A brand with this name already exists."})
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            previous = (
+                Brand.objects.filter(pk=self.pk).values_list("logo", flat=True).first()
+                if self.pk
+                else ""
+            )
+            self.full_clean()
+            result = super().save(*args, **kwargs)
+            if (
+                previous
+                and previous != self.logo.name
+                and (kwargs.get("update_fields") is None or "logo" in kwargs["update_fields"])
+            ):
+                storage = self.logo.storage
+                transaction.on_commit(lambda: storage.delete(previous))
+            return result
+
+
+@receiver(post_delete, sender=Brand)
+def delete_brand_logo(sender, instance, using, **kwargs):
+    if instance.logo:
+        storage, name = instance.logo.storage, instance.logo.name
+        transaction.on_commit(lambda: storage.delete(name), using=using)
+
+
 def discount_multiplier(percentage):
     """Shared arithmetic for Python prices and PostgreSQL price expressions."""
     return (Decimal(100) - percentage) / Decimal(100)
@@ -230,6 +286,9 @@ class Product(AttributedModel):
     )
     description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name="products")
+    brand = models.ForeignKey(
+        Brand, on_delete=models.PROTECT, related_name="products", null=True, blank=True
+    )
     is_active = models.BooleanField(default=True)
     objects = ProductQuerySet.as_manager()
 
@@ -288,6 +347,19 @@ class Product(AttributedModel):
         super().clean()
         self.name = self.name.strip()
         self.sku = self.sku.strip().upper()
+        if self.brand_id:
+            previous_brand = (
+                Product.objects.filter(pk=self.pk).values_list("brand_id", flat=True).first()
+                if self.pk
+                else None
+            )
+            if (
+                previous_brand != self.brand_id
+                and not Brand.objects.filter(pk=self.brand_id, is_active=True).exists()
+            ):
+                raise ValidationError(
+                    {"brand": "Choose an active brand, or leave the product unbranded."}
+                )
         if self.sku and not self.sku.isprintable():
             raise ValidationError({"sku": "Enter a printable SKU."})
         if self.sku and (

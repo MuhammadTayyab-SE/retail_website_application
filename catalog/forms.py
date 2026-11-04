@@ -1,7 +1,37 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
-from catalog.models import Category, Product, ProductPhoto
+from catalog.models import Brand, Category, Product, ProductPhoto
+
+
+def validate_photo_upload(image):
+    if image and hasattr(image, "content_type"):
+        if image.size > 8 * 1024 * 1024:
+            raise ValidationError("Choose a photo smaller than 8 MB.")
+        if image.image.format not in {"JPEG", "PNG", "WEBP"}:
+            raise ValidationError("Choose a JPEG, PNG or WebP photo.")
+        extension = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image.image.format]
+        image.name = f"photo.{extension}"
+    return image
+
+
+class BrandLogoInput(forms.ClearableFileInput):
+    template_name = "catalog/widgets/brand_logo.html"
+
+
+class BrandForm(forms.ModelForm):
+    class Meta:
+        model = Brand
+        fields = ["name", "description", "is_active", "logo"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "logo": BrandLogoInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+        }
+        help_texts = {"logo": "Optional JPEG, PNG or WebP, up to 8 MB."}
+
+    def clean_logo(self):
+        return validate_photo_upload(self.cleaned_data.get("logo"))
 
 
 class CategoryPhotoInput(forms.ClearableFileInput):
@@ -43,15 +73,7 @@ class CategoryForm(forms.ModelForm):
         return cleaned
 
     def clean_photo(self):
-        photo = self.cleaned_data.get("photo")
-        if photo and hasattr(photo, "content_type"):
-            if photo.size > 8 * 1024 * 1024:
-                raise ValidationError("Choose a photo smaller than 8 MB.")
-            if photo.image.format not in {"JPEG", "PNG", "WEBP"}:
-                raise ValidationError("Choose a JPEG, PNG or WebP photo.")
-            extension = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[photo.image.format]
-            photo.name = f"photo.{extension}"
-        return photo
+        return validate_photo_upload(self.cleaned_data.get("photo"))
 
 
 class ProductForm(forms.ModelForm):
@@ -70,6 +92,7 @@ class ProductForm(forms.ModelForm):
             "discount_percentage",
             "description",
             "category",
+            "brand",
             "is_active",
         ]
         labels = {"name": "Product name", "unit": "Selling unit"}
@@ -88,6 +111,13 @@ class ProductForm(forms.ModelForm):
             self.fields["category"].queryset = Category.objects.exclude(
                 pk__in=Category.objects.parents()
             ).order_by("name")
+        if "brand" in self.fields:
+            self.fields["brand"].queryset = Brand.objects.filter(
+                Q(is_active=True) | Q(pk=self.instance.brand_id)
+            )
+            self.fields[
+                "brand"
+            ].help_text = "Optional. Existing products may keep an inactive brand."
 
     def clean(self):
         cleaned = super().clean()
@@ -124,12 +154,4 @@ class ProductPhotoForm(forms.ModelForm):
         }
 
     def clean_image(self):
-        image = self.cleaned_data["image"]
-        if hasattr(image, "content_type"):
-            if image.size > 8 * 1024 * 1024:
-                raise ValidationError("Choose a photo smaller than 8 MB.")
-            if image.image.format not in {"JPEG", "PNG", "WEBP"}:
-                raise ValidationError("Choose a JPEG, PNG or WebP photo.")
-            extension = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}[image.image.format]
-            image.name = f"photo.{extension}"
-        return image
+        return validate_photo_upload(self.cleaned_data["image"])

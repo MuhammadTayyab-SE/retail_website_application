@@ -108,6 +108,7 @@ class AuditEvent(models.Model):
     def module_label(self):
         return {
             "catalog.category": "Categories",
+            "catalog.brand": "Brands",
             "catalog.product": "Products",
             "catalog.productvariant": "Product variants",
             "catalog.productphoto": "Product photos",
@@ -135,6 +136,7 @@ class AuditEvent(models.Model):
     def target_type(self):
         return self.details.get("target_type") or {
             "catalog.category": "Category",
+            "catalog.brand": "Brand",
             "catalog.product": "Product",
             "catalog.productvariant": "Product variant",
             "catalog.productphoto": "Product photo",

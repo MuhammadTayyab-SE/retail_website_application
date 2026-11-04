@@ -54,7 +54,9 @@ class AuditMiddleware:
                         else "catalog.product"
                     )
                 elif match and match.url_name:
-                    if match.url_name.startswith("catalog_") or match.url_name in {
+                    if match.url_name.startswith("catalog_brand_"):
+                        module = "catalog.brand"
+                    elif match.url_name.startswith("catalog_") or match.url_name in {
                         "category-photo",
                         "category-list",
                     }:
