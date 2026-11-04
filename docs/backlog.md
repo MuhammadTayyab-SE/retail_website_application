@@ -1,37 +1,48 @@
 # Project backlog
 
-## Catalog/inventory enhancement - 2026-11-04
+## Catalog/inventory MVP strategy - 2026-11-04
 
-Current planning baseline is development f0567ea, including merged PR #53.
-See [catalog-inventory-plan.md](catalog-inventory-plan.md) for current evidence,
-gap analysis, schema/migration/recovery strategy, decisions and the CINV issue DAG.
-CINV-01 Brands is now In Development at the user instruction, in draft PR #66.
-Remaining increments stay Backlog with the listed dependencies and cutover gates. Existing
-historical statuses below are not evidence of the current branch or GitHub state.
-MVP-005/#6 and MVP-006/#7 are closed historical implementations, not missing models.
-New issues extend that code rather than recreating it. CATALOG-FLOW-003's old
-brand-in-taxonomy idea is superseded: Brand is independent of the category tree.
-QA scenarios are prepared; no QA run is started by this planning work.
+Reviewed baseline: development **88c7536**, with planning PR #65 and completed
+Brand/SKU PRs #66/#67 merged. See [the current plan](catalog-inventory-plan.md)
+for actual implementation/test coverage, schema gaps, four-tab UI, ownership of
+remaining work and integration tests. Historical entries below are not current
+GitHub status evidence.
 
-### Prepared implementation issues
+Disposable development/test catalog and transaction data need not be preserved.
+No legacy backfill/mapping engine is required. This is not permission to delete
+data: confirm the isolated target and exact scope and obtain explicit approval
+before any destructive DB/schema/data action. Never reset shared/staging/production
+databases or remove unrelated data/code/completed functionality. Preserve the
+migration chain with forward changes. No feature or QA run starts in this review.
+
+### Current CINV issues and dependencies
 
 | Increment | Issue | State | Dependencies |
 |---|---|---|---|
-| CINV-01: Brand management and optional product association | [#54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | In Development | Baseline |
-| CINV-02: Durable SKU issuance and pre-order correction history | [#55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Backlog | Baseline |
-| CINV-03: Extend existing variants and safely create default variants | [#56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Backlog | #55 |
-| CINV-04: Variant-owned cost, regular and sale pricing with compatibility | [#57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Backlog | #56 |
-| CINV-05: Inventory balance and immutable movement foundation | [#58](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/58) | Backlog | #56 |
-| CINV-06: Opening-stock migration and single-writer checkout stock cutover | [#59](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59) | Backlog | #57, #58 |
-| CINV-07: Stock overview, recorded adjustments and stock history | [#60](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/60) | Backlog | #59 |
-| CINV-08: 0.1 kg quantities across cart, checkout and order outputs | [#61](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/61) | Backlog | #57, #59 |
-| CINV-09: Modular Add/Edit Product form using existing gallery | [#62](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/62) | Backlog | #54, #57, #59, #60, #61 |
-| CINV-10: Catalog and Inventory navigation with module-scoped rendering | [#63](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/63) | Backlog | #54, #60, #62 |
-| CINV-11: Independent inventory/catalog migration and integration regression | [#64](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/64) | Backlog | #54, #55, #56, #57, #58, #59, #60, #61, #62, #63 |
+| CINV-01: Brand management and optional product association | [#54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Done | development f0567ea; historical #6/#7 closed |
+| CINV-02: Durable SKU issuance and pre-order correction history | [#55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Done | development f0567ea; historical #6/#7 closed |
+| CINV-03: Variant identity, automatic defaults and variant photo ownership | [#56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Ready | CINV-01, CINV-02 |
+| CINV-04: Canonical variant cost, regular and sale pricing | [#57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Backlog | CINV-03 |
+| CINV-05: Variant inventory balance and immutable movement foundation | [#58](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/58) | Backlog | CINV-03 |
+| CINV-06: New opening stock and single-writer checkout inventory integration | [#59](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59) | Backlog | CINV-04, CINV-05 |
+| CINV-07: Stock overview, recorded adjustments and stock history | [#60](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/60) | Backlog | CINV-06 |
+| CINV-08: Exact variant quantities across cart, checkout and order outputs | [#61](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/61) | Backlog | CINV-04, CINV-06 |
+| CINV-09: Four-tab product workflow with per-variant galleries | [#62](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/62) | Backlog | CINV-01, CINV-03, CINV-04, CINV-06, CINV-07, CINV-08 |
+| CINV-10: Finish Catalog/Inventory navigation and module-scoped rendering | [#63](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/63) | Backlog | CINV-01, CINV-07, CINV-09 |
+| CINV-11: Independent clean-install and catalog/inventory integration QA | [#64](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/64) | Backlog | CINV-01, CINV-02, CINV-03, CINV-04, CINV-05, CINV-06, CINV-07, CINV-08, CINV-09, CINV-10 |
 
-GitHub authenticated REST access is verified; CLI is absent. PM created the 15 GitHub Issues listed below; docs/github-issues.json records returned links. Ownership identifies roles through labels/comments, not invented GitHub accounts.
+Recommended one-ticket order: **03 -> 04 -> 05 -> 06 -> 07 -> 08 -> 09 -> 10 -> 11**.
+CINV-03 is Ready/unclaimed; future destructive operations still have separate
+target/approval gates. CINV-01/02 are Done by merge, with fresh integration QA still
+required. Reuse their code and the current gallery/checkout/admin, not new copies.
+Exactly four product tabs: **Basic Info, Variants, Photos, Availability**.
+Variant-image schema/operations belong to #56; tab composition to #62; pricing to
+#57; ledger operations to #58/59 and stock views to #60. No duplicate responsibilities.
 
-Workflow: Backlog -> Ready -> In Development -> In QA -> Awaiting My Review -> Done. Use Changes Required or Blocked with a reason and next action. Done requires merge. Only one implementation ticket may be active initially.
+GitHub issue links remain in docs/github-issues.json. PM -> Developer -> QA -> My
+Review uses one active implementation, isolated branch/draft PR and exact-SHA
+evidence. QA execution follows an authorized handoff/environment; prior hold is
+not silently lifted. Merge/deployment still require explicit approval.
 
 ## SETUP-001 - Establish team and project baseline
 - Priority: P0. State: Done (merged PR16). Owner: Developer subagent. Reviewer: PM / Technical Lead. Validator: QA subagent.

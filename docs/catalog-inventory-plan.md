@@ -1,217 +1,214 @@
-# Catalog and inventory enhancement plan
+# Catalog and inventory MVP plan
 
-PM/TL planning only, 2026-11-04 (Asia/Karachi). Baseline: development f0567ea,
-including merged Orders PR #53. No application code, schema, stock or orders
-changed in this assignment. Existing implementation is extended incrementally;
-this is not a new application. GitHub links are listed under Implementation issues.
+PM review and backlog revision, 2026-11-04 (Asia/Karachi). Reviewed development
+**88c7536**, including merged planning PR #65, Brand PR #66 and SKU PR #67.
+This revision supersedes the earlier requirement to preserve disposable catalog
+and transaction data. It changes documentation/tickets only, not application
+code, migrations, files in media storage or database contents.
 
-## Confirmed requirements and decisions
+## 1. What is implemented and integrated
 
-- Parent Category -> Category -> Product remains the taxonomy. Brand is an
-  optional independent Product relationship, never a category level.
-- Inactive brands disappear from new selections; their existing products remain
-  sellable. Editing an existing association must not silently remove it.
-- Simple products automatically receive a default sellable variant. Additional
-  variants stay optional and collapsed until needed.
-- Prices for weighed kg products are per kg; customer increments are 0.1 kg.
-  Packaged items retain whole-unit quantities. Existing money is PKR with two
-  decimal places and ROUND_HALF_UP; no unit-conversion engine is introduced.
-- All products track stock initially. Show the tracking control checked and
-  disabled with an explanation; do not add an unused untracked-sales mode.
-- Both deactivate and delete remain available. Deletion retains order snapshots,
-  stock movement history, archived balances and permanently reserved SKU codes.
-- Authorized SKU corrections are allowed before the first order, even after
-  opening stock. Retain the old identifier and change history. Once ordered,
-  freeze the SKU; legacy product-only order lines count as transactional use.
-- Each selected module gets its own route/template and page assets. Do not build
-  one HTML page containing every module behind hidden tabs. Shared shell,
-  repeated form sections and Python validation/stock operations are reused.
-- This assignment stops at documentation and prepared issues. No development,
-  merge or deployment is authorized by completion of this plan. Prior QA hold
-  remains in effect; future QA scenarios below are requirements, not results.
+Both GitHub issues and their original acceptance criteria were read, then compared
+with the actual merged code and tests. Closed issues alone were not taken as proof.
 
-## Current implementation and gap analysis
-
-| Area | Existing evidence | Required increment |
+| Completed scope | Actual evidence in development | Assessment / remaining boundary |
 |---|---|---|
-| Categories | Category self-FK, parent flag, cycle protection, effective active visibility, normalized names; Product.category PROTECT | Retain hierarchy; add optional parent selector to filter child category choices, with server validation |
-| Brands | No Brand model, permission, form or navigation | Brand name/logo/description/active state, optional Product.brand, associated-products view |
-| Variants | Existing ProductVariant has unique normalized SKU, active flag, attributes JSON, optional price and description; photos may target a variant | Extend this model; add default marker, barcode, explicit inventory unit/package content and variant-owned prices; do not create another variant model |
-| SKU | Product.sku and ProductVariant.sku each have normalized DB uniqueness; only application checks cross the two namespaces | Durable issuance registry, independent PostgreSQL sequence, overrides with permission/history, no reuse, transactional-use freeze |
-| Pricing | Product.price plus percent discount; variants optionally override regular price and inherit product promotion; SQL selling-price annotation used for shop filters/sorting | Nullable historical cost, explicit regular/sale prices and sale active flag per variant; update Python and SQL readers together |
-| Stock | Product.quantity is PositiveIntegerField; Add/Edit Product can replace it; +Stock locks and increments it, with stock_received audit but no balance/movement ledger | Variant inventory balance, opening/adjustment/order movements, reserved/available quantities, configurable low-stock threshold |
-| Orders | place_order locks products/variants, checks shared Product stock, immediately deducts it once inside the order transaction, and snapshots order lines | Preserve this lifecycle while moving its single deduction into the ledger; never add a second fulfillment deduction |
-| Quantities | Cart validation, browser cart state and OrderItem.quantity require integers, including kg products | Coordinated decimal protocol, UI, stock validation, order quantities and receipt/label formatting for 0.1 kg |
-| Photos | Multiple uploads, first-position showcase, ordering, removal, format/size validation, configured storage and variant-specific photos already exist | Reuse these components and paths; extend controls to the improved form, not a replacement gallery |
-| Admin UI | Existing navy/emerald shell, product form/list, +Stock form, roles and immutable audit history | Separate Brands/Products/Stock Overview/Adjustments/History pages; conditional variants UI; preserve Dashboard, View Catalog, Orders, Team and Settings |
-| Featured | Homepage collections exist but Product has no persistent featured flag | Add flag; keep current collections working until their existing merchandising ticket defines how to consume it |
+| CINV-01 / #54: independent Brand | `catalog/models.py` Brand and optional Product.brand; migration 0012; `brand_admin.py`, BrandForm, separate list/add/edit templates and scoped CSS/preview JS | Name constraints, inactive-selection rules, linked products, uploads/cleanup, permissions, CSRF and audit are implemented. Retain them; no new Brand model/page is needed. |
+| CINV-02 / #55: durable SKU issuance | SkuIdentifier, `catalog/skus.py`, migration 0013 and `_sku_registry_sql.py`, `check_skus`, ProductAdmin locking and override permission | Registry, independent sequence, reservation/history/deletion rules, concurrency, overrides and first-order freeze are implemented. Retain them; variant-only ownership and automatic creation integration remain #56's work. |
+| Existing variants | ProductVariant with required normalized SKU, optional price/description, attributes and activity | Extend this model. It has no default marker, barcode or explicit inventory unit/package fields yet; prices still inherit Product promotion. |
+| Existing gallery | ProductPhoto, upload validation/storage/cleanup, picker/previews, individual removal, position controls and Make showcase | Reuse the implementation. Variant FK is optional; Product FK owns the admin inline; the first image is the product-wide showcase. PhotoInline does not expose variant assignment. This is not complete per-variant gallery management. |
+| Existing checkout/admin | Product/variant row locks, quote validation, atomic placement and shared Product.quantity deduction; order snapshots, receipts/PDFs, labels, fulfillment, cash collection/notes and roles/audit | Preserve functionality, routes and access rules while updating its data sources. Do not rebuild checkout or Orders. |
 
-Inspected: catalog models/forms/product_admin/views/product_views/shop_views/shop_forms,
-catalog migrations 0001-0011, product/editor/gallery/cart scripts and templates,
-checkout services/models/forms/receipts/labels/admin status actions, role permission
-choices/audit, and product/shop/storefront/checkout/receipt/order regression sources.
-Existing tests cover normalized SKUs, gallery behavior, price sorting, stock
-locking, duplicate submissions and overselling; they do not establish the new
-inventory/fractional requirements. No test pass is claimed for this planning work.
+### Acceptance coverage for completed tickets
 
-### Read-only local data evidence
+- **CINV-01:** all five original acceptance areas have implementation: normalized
+  name constraints; optional/inactive associations; validated logos and commit-safe
+  cleanup; independent taxonomy and authorization; dedicated route/templates/nav.
+  `tests/test_brands.py` has 15 tests spanning those rules, permission/CSRF,
+  concurrency, linked lists and migration. Two Node photo-preview checks also exist.
+- **CINV-02:** all six original areas have implementation: independent formatted
+  sequence; recoverable-code reservation/conflict preflight; permanent issued
+  history; permissioned actor/time corrections and order lock; no renumbering;
+  retained owners/history after deletion. `tests/test_skus.py` has 20 checks,
+  including real competing admin POSTs and order/correction contention.
+- **Important integration boundary:** Product.sku and ProductVariant.sku still
+  coexist behind alias-sync guards; `assign_sku` currently accepts saved records.
+  ProductForm still requires a manual SKU. Automatic default creation and an
+  add-only worker's generated SKU flow are not delivered by #55. #56 must extend
+  the existing allocation path and retire the Product SKU authority/alias bridge.
+- These are source/merge findings, not fresh test or independent QA results. Prior
+  developer evidence reports 15 Brand and 20 SKU passes. The prior full run had
+  five baseline failures (two storefront query budgets, two old UI strings and
+  an Orders multipart `pieces=None` fixture). #64 must disposition them on its
+  actual candidate, not call that suite green or automatically rewrite assertions.
 
-An aggregate-only query in a PostgreSQL READ ONLY transaction found 10 Products,
-0 ProductVariants, 17 ProductPhotos, 9 products with positive stock, 7 each-unit
-and 3 kg-unit products, 4 active sales and no blank product SKUs. There are 35
-OrderItem rows, all without variant references and all retaining live product
-references. No customer information or individual product values were exported.
-These counts describe this local database only, not other retailer deployments.
+## 2. What remains incomplete
 
-Migration 0007 copied an existing variant SKU onto Product, so same-product
-Product/Variant aliases can be legitimate in other databases. Migration 0011
-already added variant prices/descriptions/photos. Checkout deliberately aggregates
-different variant lines against one Product.quantity balance today.
+1. Atomic default-variant creation, barcode and explicit unit/package metadata;
+   one canonical variant SKU source using the completed registry.
+2. Required variant-owned photos with independent primary selection per variant;
+   remove/reorder/upload operations scoped and authorized to that variant.
+3. Explicit variant cost/regular/sale prices and all public/admin price readers.
+4. Variant inventory balances, immutable movements, create-only opening stock,
+   adjustments, low-stock status and one checkout deduction path.
+5. Exact 0.1 kg cart/order/output quantities; whole counts for packaged units.
+6. The required four-tab Add/Edit workflow. The current template is a details
+   fieldset plus product-wide uploader, not these four tabs. The user instruction
+   is authoritative over the older five-section ticket description.
+7. Stock overview/history screens and final sidebar grouping; do not duplicate
+   completed Brand navigation, shell, themed scrolling or Orders placement.
 
-## Proposed database changes
+## 3. Approved MVP data policy and safety gate
 
-Keep these in catalog and checkout; no new Django app or dependency is needed.
-Use one inventory location per independent retailer deployment. No warehouse,
-transfer or universal conversion models are needed for this increment.
+- Existing development/test products, variants, identifiers, inventory and test
+  transactions may be discarded and recreated **after separate explicit approval**.
+  This statement is not approval to execute a reset, purge, truncate, flush,
+  sequence restart, destructive schema migration or automated cleanup now.
+- Do not reset shared, staging or production databases. The previously used local
+  `pg_retail_dev` is shared by worktrees and is **not an approved reset target**.
+  No target environment is selected/confirmed by this planning review.
+- Prefer a dedicated, confirmed isolated development/test environment. Before any
+  destructive action, present its environment, host/port, DB name, ownership/use,
+  exact tables/rows/schema/media/sequence scope, dependencies, expected counts,
+  preserved records and recovery plan; obtain explicit approval for that action.
+  Test-runner create/drop/flush operations must be covered by that scoped approval.
+- Preserve application code and completed functionality. Exclude unrelated users,
+  roles, categories, Brands, retailer/delivery settings, audit records and unrelated
+  uploads unless separately identified as disposable and explicitly approved.
+  Do not treat "other disposable records" as blanket permission to remove them.
+- No reset command, automatic data purge or database operation is implemented here.
+  If new constraints encounter incompatible data, stop and request the scoped
+  operation; do not hide destructive cleanup inside a migration or post_migrate.
+- Keep committed migration history reproducible. Leave 0001-0013 intact; use forward
+  schema/guard migrations. Fresh install must run the whole chain. No migration
+  fake/reset, deletion of migration records or unreviewed squash is planned.
+- Remove future legacy backfills, alias mapping files, shared-stock apportionment
+  and old-cart compatibility as acceptance requirements. New synthetic fixtures
+  express the new model directly. This does not authorize breaking completed
+  routes or leaving two writable SKU/price/stock authorities in the running app.
+- CINV-02's normal lifecycle rule still reserves issued codes after correction or
+  deletion. Any disposable-environment reinitialization that includes the registry
+  or counter needs its own explicit scope/approval; never rewind them incidentally.
 
-| Model | Change and invariant |
+## 4. Clean target schema and responsibilities
+
+Reuse catalog/checkout/access and existing services; no new app/framework or
+generic repository, migration engine, wizard engine or conversion service.
+
+| Model | Required change / owning ticket |
 |---|---|
-| Brand (new) | Attributed name, logo, description, active state; normalized unique name using the existing trim/case convention; validated local image upload |
-| Product | Nullable Brand FK; featured flag; retain PK/category/legacy SKU/unit/price/quantity columns during expansion and compatibility transition |
-| ProductVariant (existing) | is_default with at most one default per product at DB level; required canonical SKU; optional barcode; package-content text (e.g. 500 ml) separate from inventory unit; nonnegative regular price, nullable historical cost/sale price, sale flag; creation service ensures a default exists |
-| SkuIdentifier (new) | Permanently unique normalized issued code, issuance metadata and nullable variant owner; retained on variant deletion and code correction; independent non-cycling PostgreSQL numeric sequence, not variant PK |
-| InventoryBalance (new) | One current balance per live variant; decimal on_hand/reserved, low-stock threshold, unit/name/SKU snapshots; available is on_hand minus reserved; nonnegative values and reserved <= on_hand; retain an archived row when its variant is deleted |
-| StockMovement (new) | Immutable balance reference, signed quantity, type, reason, timestamp, administrator attribution, before/after balances and item/SKU/unit snapshots; nullable order reference plus retained order identifier; unique opening/order/adjustment operation keys |
-| OrderItem (existing, later) | Decimal quantity at fractional cutover; preserve integer historical values numerically and existing item/SKU/pricing snapshots; do not rewrite old order amounts or guess variant FKs |
+| Brand / Product.brand | Already implemented; retain and regression-test (#54). |
+| Product | Product identity/category/optional Brand/description/activity plus featured flag. Retire product-level SKU/unit (#56), price/promotion authority (#57) and quantity authority (#59), with all callers switched in their owning release. |
+| ProductVariant | Extend existing model with `is_default`, optional barcode, inventory unit and separate package-content label (#56); canonical SKU uses #55. Partial unique default constraint plus an atomic creation/save path ensures one default on creation and prevents losing it. No second variant table. |
+| ProductVariant pricing | Explicit nonnegative regular price; nullable cost (unknown is not zero); nullable sale price and sale-active flag with valid lower active sale price (#57). Rename/extend the existing variant price field rather than add parallel writable price columns. |
+| ProductPhoto | Reuse this table/file pipeline. Require variant FK, use variant-owned deletion/cleanup, retire redundant product FK, retain alt text/position and add `is_primary` (#56). DB allows at most one primary per variant; locked save operations ensure one if photos exist. No cross-variant attachment/reorder/primary changes. Images remain optional. |
+| SkuIdentifier / sequence | Already implemented (#55). Keep reservations/sequence/audit and refactor only obsolete Product-column/alias dependencies through forward migrations (#56). Do not replace the registry or introduce a second allocator. |
+| InventoryBalance | New one-to-one live variant balance, decimal on_hand/reserved and configurable threshold; available is derived; nonnegative and reserved <= on_hand; identity/unit snapshots and archived retention (#58). |
+| StockMovement | New immutable opening/adjustment/order movement with signed amount, reason, actor/time, before/after values, variant/SKU/unit snapshots and unique operation key (#58). No generic editable ledger admin. |
+| OrderItem | Continue snapshots and authorized lookup. New writes use the selected variant; decimal quantity and consistent serializers/formatting land in #61. Test records may be recreated after approval; no historical quantity-conversion/backfill engine. |
 
-Quantity precision proposed: one decimal place, supporting 0.1 kg; reject
-fractions for count units and preserve existing bounds. Package content remains
-a simple explicit label, not automatic conversion into stock units. Barcode
-uniqueness is not assumed because only optional barcode support was requested.
-Costs stay NULL where unknown; zero is a real cost, not a migration placeholder.
-Historical sale prices are backfilled using existing rounded effective prices.
-Preflight zero-price/active-sale and other constraint exceptions instead of
-silently changing prices or promotion state.
+Default uniqueness alone is not proof every Product has a default. The atomic
+creation path and validation must cover create, edit/default change, removal and
+concurrent submissions. Generated creation must honor add_product permission
+without requiring a manual override/change grant; manual overrides retain #55 rules.
 
-SKU allocation uses nextval, never MAX(id)+1. Sequence gaps after rollback are
-expected and must not be reclaimed. Seed above existing SKU-number identifiers
-and reserve recoverable current, order-snapshot and audit-history codes. Resolve
-same-product aliases once; cross-product collisions block migration instead of
-renumbering records. A new manual code retires the previous code permanently.
-Historical codes deleted before any retained evidence cannot be reconstructed;
-that limitation must be disclosed, not replaced by a claim of complete history.
+### Application integration ownership
 
-Delete behavior must preserve history without inventing refunds/write-offs:
-OrderItem's current SET_NULL relationships remain. Balance.variant becomes null
-on deletion, identifying an archived balance retained in inventory history;
-movements retain their balance and snapshots, and SKU identifiers remain issued.
-Do not silently erase positive stock, create stock adjustments or restore stock
-when a product is deleted. Explain retained stock/history on confirmation.
+- **#56 identity/photos:** update existing model/form/admin save paths, SKU display
+  and image readers, ProductPhoto formsets and CINV-02 SQL helpers/guards when
+  dropping Product.sku/ProductPhoto.product. Bind images to the real default or
+  selected variant in the same atomic save. Reuse the current gallery components;
+  do not leave completed product creation broken until the four-tab visual pass.
+- **#57 prices:** move homepage/shop SQL sorting/filtering, product detail, cart,
+  quotes/place, admin, receipts and labels to the same variant pricing rules.
+  Cost is private. Card presentation must have a defined default/selected variant.
+- **#58/#59 stock:** stage the ledger foundation then switch every writer together:
+  new-variant opening, edit restrictions, existing +Stock, adjustments and checkout.
+  Multiple variants require explicit selection; never duplicate shared stock or
+  aggregate unrelated variants into a writable Product quantity. Opening records
+  reflect newly entered stock, not fabricated legacy sales/migration history.
+- Preserve immediate, once-only deduction at successful placement. Fulfillment
+  and cash collection do not deduct again. Reserved remains zero; cancellations,
+  returns, refunds, expiry and reservation lifecycles are not added by this plan.
+- **#61 quantities:** canonical variant line identity and bounded decimal protocol.
+  Disposable legacy carts can be clearly invalidated/versioned; reject stale IDs
+  with a useful message rather than infer old product/variant mappings. Current
+  cart ownership, server pricing, idempotency and privacy remain required.
 
-## Safe migration and compatibility strategy
+## 5. Product UI: exactly four tabs
 
-1. Prepare backups of PostgreSQL plus media; record/rehearse restore in a
-   disposable database. Capture counts, IDs, SKU ownership, price/stock sums,
-   gallery ordering/paths and order relationships before changing anything.
-   Reconcile stock by SKU/unit; do not sum kilograms and pieces as one balance.
-2. Expand schema first. Preserve old columns and APIs; reuse existing variant
-   records and photo IDs. SKU/default backfill needs a short catalog-write pause
-   so product creation or SKU edits cannot race the migration.
-3. Create default variants for simple products using existing SKUs. Reuse an
-   unambiguous matching variant in legacy data. Generate only genuinely missing
-   identifiers. Keep existing variant PKs and explicit prices/attributes/photos.
-   Ambiguous mappings require a reviewed mapping file, never first-row guesses.
-4. Backfill variant pricing with exact effective-price parity and retain unknown
-   costs. Switch price readers AND current admin save paths together so there
-   is one authoritative price, including SQL sorting/filtering and promotions.
-5. Add inventory schema/operations without exposing stale shadow balances. Do
-   not copy current stock early while old checkout continues writing Product.
-6. In one controlled cutover release, pause checkout/product/stock writes,
-   backfill opening balances/movements from current balances, reconcile, then
-   switch ALL writers: new-product opening stock, legacy +Stock, product editing
-   restrictions and checkout placement. Inventory becomes the single source.
-   Read adapters may preserve Product.quantity contracts; never keep two writable
-   stock authorities or calculate it by summing unrelated sellable alternatives.
-7. For simple products allocate stock once to their default variant. Other
-   retailer databases with multiple variants and shared positive stock require
-   actual per-variant counts before cutover. Do not duplicate shared stock onto
-   each variant or assume all stock belongs to the first variant. This local
-   database has no such ambiguous variants, but the migration must detect them.
-8. Preserve immediate deduction at successful order placement. Record one sale
-   movement in that transaction, keyed to prevent retries/duplicate deductions.
-   Reserved starts at zero; do not activate reservation/expiry semantics. Status
-   advancement and cash collection continue without additional stock effects.
-9. Enable fractional sales only after cart identity/serialization, stock bounds,
-   order quantity, receipt, label and all related readers are changed together.
-   Accept existing integer cart entries and live-product/live-product:variant
-   identities; legacy simple IDs resolve to defaults. Do not clear saved carts.
-10. Verify migration idempotency, reconciliation, image presence, old order
-    receipts and negative/concurrent scenarios before tightening constraints.
-    Retire legacy writable columns only in a separate later reviewed ticket.
+| Tab | Responsibility |
+|---|---|
+| Basic Info | Product name, description, independent optional Brand, parent selector/category validation. |
+| Variants | Default variant without extra setup; optional additional variants; generated/authorized SKU, barcode, unit/package and cost/regular/sale fields. |
+| Photos | Selected variant's multi-image gallery; upload, preview, remove individual images, reorder and choose its primary image. A single-default product opens its gallery directly. |
+| Availability | Product/variant active state and featured flag; checked/disabled stock tracking, per-variant opening stock on create, thresholds and links to authorized adjustments on edit. |
 
-Recovery before cutover can revert additive application changes while retaining
-new tables/issued identifiers. After ledger writes begin, do not blindly reverse
-migrations or rewind the SKU sequence. Pause writes, take a current backup,
-reconcile forward or restore DB+media together with an explicit treatment of any
-orders accepted since the backup. A versioned migration marker prevents replaying
-opening-stock movements. Never reset the retailer database.
+Use four reusable partials and existing Django form/formset/gallery code. Load a
+tab's additional markup/assets when selected, retain unsaved input across switches
+and submit one server-validated atomic operation. Do not create persisted draft
+orders/products or a generic wizard solely to implement tabs. Errors must identify
+and open the affected tab. Preserve keyboard/focus and read-only roles. Dedicated
+Brands/Products/Stock/Orders pages remain separate modules; no hidden unrelated
+module screens. #62 owns UI composition, not duplicate schema/stock/SKU logic.
 
-## Implementation issues and dependency order
+## 6. Updated existing tickets, overlaps and order
 
-Each implementation gets its own scoped feature branch/worktree and PR targeting
-development. Only one starts at a time. Ready is not permission to bypass user
-review or the current planning-only assignment. Completed historical #6/#7 are
-not reopened; new increments link them. Existing merchandising #42/#45 and
-order #12/#13/#52 are referenced without duplicating or claiming their status.
+| Ticket | State | Dependencies | Revised ownership / removed duplication |
+|---|---|---|---|
+| CINV-01 / #54 | Done (merged #66) | Baseline | Keep Brand model/pages/permissions/uploads; later tasks only integrate them. |
+| CINV-02 / #55 | Done (merged #67) | Baseline | Keep allocator/registry/sequence/history; #56 replaces only legacy Product alias coupling. |
+| CINV-03 / #56 | Ready, unclaimed | #54, #55 | Variant identity/defaults, variant-specific photo schema/operations and necessary current-route integration. Remove legacy mapping/backfill/cart bridge scope. |
+| CINV-04 / #57 | Backlog | #56 | Variant price authority and all readers/writers; remove old-price parity/backfill requirements. |
+| CINV-05 / #58 | Backlog | #56 | Balance/movement foundation and validated operations; no copied disposable stock. |
+| CINV-06 / #59 | Backlog | #57, #58 | New opening stock and single-writer checkout/admin integration; remove legacy shared-stock allocation/reconciliation. |
+| CINV-07 / #60 | Backlog | #59 | Stock screens use #58/59 operations and existing shell; no second +Stock writer. |
+| CINV-08 / #61 | Backlog | #57, #59 | Decimal quantity protocol and outputs; replace old-cart/history preservation with clear stale-cart handling and fresh fixtures. |
+| CINV-09 / #62 | Backlog | #54, #56, #57, #59, #60, #61 | Four-tab composition; reuse Brand/SKU/gallery/ledger operations, replacing the old five-section scope. |
+| CINV-10 / #63 | Backlog | #54, #60, #62 | Finish navigation/asset isolation; do not recreate Brand links, sidebar scroll or module views. |
+| CINV-11 / #64 | Backlog | #54-#63 | Fresh-install/forward-migration/integration QA and regression; replace legacy data-parity testing with approved target/scope isolation and synthetic fixtures. |
 
-| ID | Increment | Dependency / readiness |
-|---|---|---|
-| [CINV-01 / #54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Brand model, management and optional product association | In Development; user started #54; draft PR #66 |
-| [CINV-02 / #55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Durable SKU issuance and pre-order correction rules | Backlog; foundational, no form rollout until CINV-03 |
-| [CINV-03 / #56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Extend ProductVariant; default mapping/data migration and legacy cart identity bridge | [CINV-02 / #55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) |
-| [CINV-04 / #57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Variant-owned cost/regular/sale pricing and compatibility readers/writers | CINV-03; coordinate existing merchandising issues |
-| [CINV-05 / #58](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/58) | Inventory balances, movement schema and validated stock operations | CINV-03; staged only, balances not exposed before CINV-06 |
-| [CINV-06 / #59](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59) | Opening-stock migration and single-writer order/stock cutover | CINV-04/05; all stock writers switch together; migration rehearsal required |
-| [CINV-07 / #60](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/60) | Stock overview, adjustments and history in admin | [CINV-06 / #59](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59) |
-| [CINV-08 / #61](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/61) | 0.1 kg quantity support across cart, order, receipts and labels | CINV-04/06; no lifecycle/reservation change |
-| [CINV-09 / #62](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/62) | Modular Add/Edit Product form, variants, parent filter, existing gallery | CINV-01/04/06/07/08; initial stock only on create |
-| [CINV-10 / #63](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/63) | Catalog/Inventory navigation and module-only assets/templates | CINV-01/07/09; preserve existing routes and Orders placement |
-| [CINV-11 / #64](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/64) | Independent integration, concurrency, migration/recovery and responsive regression | All above; QA execution awaits authorization |
+Recommended single-ticket order: **03 -> 04 -> 05 -> 06 -> 07 -> 08 -> 09 -> 10 -> 11**.
+04/05 share dependency 03; 07/08 follow stock integration. This is an ordering,
+not permission to claim multiple tasks or start implementation in this review.
+No extra feature ticket is needed merely to repeat completed Brand/SKU work.
 
-Reservations, expiry, cancellations/refunds/restocking and supplier/purchase
-accounting are excluded. Their lifecycle rules require separate user decisions.
-Migration failures/collisions/shared-stock exceptions are operational preflight
-gates, not permission to invent stock allocations or rewrite history.
+## 7. Integration tests required
 
-## Acceptance and QA expectations
+| Area | Required evidence on the new candidate |
+|---|---|
+| Existing foundations | Brand optional/inactive/permissions/logo/audit regressions; SKU allocation, no reuse, override/revocation, history and first-order lock after variant-only refactor. |
+| Schema/install | Entire migration chain on an approved fresh disposable PostgreSQL target; forward removal of old trigger/column dependencies; DB constraints and seed fixtures; no hidden destructive hooks, registry rewind or unrelated-table/media deletion. |
+| Product creation | Simple product atomically creates its one default and SKU; multiple variants/default switching; add-only worker auto-generation; duplicate submission, invalid fields, rollback and concurrent default/SKU changes. |
+| Variant photos | Multiple uploads per variant, isolated ordering and primary selection, at most one DB primary and a selected primary when nonempty, primary removal/reselection, empty gallery, cross-product/variant forged IDs, role/CSRF, replacement rollback and commit-safe cleanup; card/detail/cart image matches selected/default variant. |
+| Pricing | Decimal Python/SQL parity, filters/sort, invalid sales, rounding, promotion presentation and no cost leakage in any public HTML/JSON/receipt. |
+| Stock/order | Exactly one opening/deduction per operation; adjustment reason/permissions; rollback; checkout versus adjustment/receipt/correction; competing last item, retry/idempotency and fulfillment/payment without second deduction. |
+| Quantities | 0.1/0.3/1.2 kg; reject 0.05 kg, fractional counts, bool/NaN/infinity, overflow; correct line rounding, stock bounds and HTML/PDF receipt/label/admin quantities. |
+| UI/modules | Four tabs, state/error navigation and simple-default experience; per-variant gallery; keyboard/read-only roles; roughly 1440/768/390px; module/tab assets and existing Orders/Settings/Catalog/navigation regression. |
 
-- Brand names normalize consistently; duplicate/racing creates cannot persist;
-  inactive associations do not remove products; unbranded products still work.
-- Default variants and SKU issuance survive retries/concurrent creates without
-  duplicate IDs/codes; codes are never derived from mutable names or reused after
-  deletion/correction. Editing after the first order is rejected server-side.
-- Price cutover preserves Python/SQL effective prices and money rounding;
-  invalid/negative prices and non-lower active sale prices fail clearly. Cost
-  data never enters public product/cart/receipt responses.
-- Opening stock occurs once; adjustments require reasons/permissions; checkout,
-  receive-stock and adjustments contend safely under locks; insufficient stock,
-  failures and duplicate submissions leave consistent balances and movements.
-- Customer weight steps 0.1/0.3/1.2 kg price correctly; 0.05 kg, fractional count
-  units, booleans, NaN/infinity, excess precision and overflow fail without writes.
-  Existing whole-number saved carts and orders still work.
-- Product deletion retains immutable orders/stock/SKU history and archived
-  balances; deactivation stops sales without erasing data; deleting/replacing
-  images still follows successful-commit cleanup and storage validation.
-- Admin tests cover role grants/revocation, direct URLs, CSRF, double submission,
-  stale state, read-only controls and concurrent mutations, not just HTTP 200.
-- Each module request renders its own templates and assets, with no hidden
-  unrelated module panels. Desktop/tablet/mobile widths around 1440/768/390 px
-  require keyboard/error/empty/gallery/filter checks and screenshots when QA is
-  resumed. Existing navy/emerald components are the visual reference.
-- Rehearse migrations on disposable legacy fixtures and a sanitized schema/data
-  copy; compare IDs, amounts, quantity totals, SKU aliases, media paths and order
-  snapshots before/after. Test ambiguous legacy cases and failed/repeated runs.
-- PM review and independent QA use the exact candidate SHA; developer checks do
-  not replace either. No test or visual verification is claimed by this plan.
+Existing tests also encode superseded contracts: Product creation currently
+asserts no variants, gallery showcase is position zero for the whole product,
+SKU tests exercise a Product/Variant alias, and Checkout tests aggregate variant
+lines against one Product quantity. Their owning tickets must replace those
+assertions with automatic defaults, per-variant galleries, canonical variant SKU
+and independent variant balances, while retaining permissions/atomicity coverage.
+Historical migration tests should use the historical model state; they must not
+force current models to keep retired fields. Do not delete entire suites or
+silently weaken unaffected assertions to obtain a green result.
 
-Implementation progress 2026-11-04: the user started CINV-01. It is now In Development in draft PR #66 (feature/cinv-01-brands, 8ae75bb). Other CINV increments remain Backlog. Independent review/browser QA are pending. This planning PR still changes documentation only.
+No application/QA test execution or database connection was needed for this
+documentation review. Test counts above are prior developer evidence/source
+coverage, not rerun results. QA resumes through an approved handoff/environment;
+this review does not silently lift the previous execution hold.
+
+## 8. PM -> Developer -> QA -> My Review
+
+PM establishes this updated backlog and makes #56 Ready, without a developer claim.
+The next Developer claims only that Ready ticket, prepares concrete forward schema
+changes and any required target-specific destructive proposal, then implements on
+an isolated branch and opens a draft PR. PM reviews the actual candidate and QA
+plans/executes authorized checks against that exact SHA in an approved isolated
+environment. Defects return to the same ticket; every new commit renews affected
+checks/review. My Review follows evidence and disclosed limitations; merge and
+deployment still require explicit approval. This assignment stops at the updated
+plan/tickets. **No additional application feature or destructive operation starts.**

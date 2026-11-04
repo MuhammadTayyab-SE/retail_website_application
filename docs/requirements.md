@@ -1,28 +1,41 @@
 # Product requirements
 
-## Current planning increment - 2026-11-04
+## Current MVP strategy - 2026-11-04
 
 The existing Django catalog/checkout/admin is implemented; the early setup-only
 statements below are historical. The approved next increment is specified in
 [catalog-inventory-plan.md](catalog-inventory-plan.md), based on development
-f0567ea. This assignment is PM/TL documentation and issue preparation only.
+88c7536, with CINV-01/02 merged and reviewed in source. This assignment is PM/TL
+documentation and backlog revision only.
 Do not start application implementation as part of this assignment.
 
 Retain Parent Category -> Category -> Product and introduce optional independent
-brands. Extend existing variants with automatic defaults, durable generated
-SKUs, variant pricing and separate inventory balances/movements. Preserve product
-IDs, old codes/prices/stock/media and order snapshots during incremental migration.
+brands (already implemented). Reuse the implemented SKU registry/sequence/history.
+Extend existing variants with automatic defaults, variant-owned SKU/pricing/unit
+and required variant-specific photo ownership, plus inventory balances/movements.
+Disposable development/test catalog and transaction data need not be preserved.
+Do not add legacy backfills/mapping or duplicate writable authorities for those
+records. Preserve application code/functionality and unrelated data. No shared,
+staging or production reset is permitted; any destructive database/schema/data
+operation requires a confirmed isolated target and separate explicit approval.
+This planning update authorizes no destructive operation. Keep the existing
+migration chain coherent and add forward migrations, not a database/migration reset.
 Inactive brands do not hide their products. Kg products are priced per kg in
 0.1 kg customer steps; count units stay whole. All products track stock initially.
 Both deactivation and deletion remain available with retained movement/order/SKU
 history. SKU corrections are permitted before the first order, with history,
 and are blocked afterward. Module-specific routes/templates/assets reuse the
-existing shell; do not render all modules in one hidden-tab HTML page.
+existing shell; do not render all modules in one hidden-tab HTML page. Product
+creation/editing retains exactly Basic Info, Variants, Photos and Availability.
+Each variant supports multiple images, individual removal, ordering and its own
+primary image. A single default variant must remain a simple creation flow.
 
 Existing immediate deduction on successful order placement is preserved until a
 separate reservation lifecycle is agreed. No reservation expiry, refund/restock,
 unit-conversion engine, new application or dependency is authorized by this plan.
-Detailed migration gates, acceptance criteria and QA expectations are in the plan.
+Detailed schema ownership, updated dependencies, destructive-operation gates and
+integration test requirements are in the plan. Completed #54/#55 are reused;
+#56 is the next Ready ticket, unclaimed. No further feature starts in this review.
 
 ## Agreed scope
 Reusable grocery ecommerce for multiple retailers using one shared codebase. Each retailer has an independent domain, hosting server, database, credentials and image storage. Currency is PKR, as confirmed by the user; launch country and payment method remain unresolved. A responsive customer website supports mobile and desktop. A retailer admin panel manages categories, products, variants, prices, stock, orders, branding, banners and delivery settings. Categories and products are dynamic and database-driven.

@@ -5,6 +5,19 @@ Maintain one reusable grocery ecommerce codebase with an independent deployment,
 
 Treat approved requirements, architecture decisions, ticket acceptance criteria and existing application behavior as constraints. Do not invent new product requirements, workflows, APIs, visual designs, data models or dependencies merely to complete a task. If sources conflict, identify the conflict and ask PM to resolve it; PM escalates material business decisions to the user. A design reference is authoritative only for the specific page/component and scope approved in its ticket, not for the entire application.
 
+## Current MVP data policy (user update, 2026-11-04)
+
+Disposable development/test catalog and transactional records need not be preserved.
+Favor clean variant-owned SKU/pricing/images/inventory over new legacy backfills or
+compatibility layers. Reuse completed CINV-01/02 and the existing application code.
+Keep migration history reproducible through forward migrations. This policy does
+not authorize a reset/purge/flush/sequence restart/destructive schema change.
+Before any destructive database operation, confirm the exact isolated environment,
+scope and preserved unrelated records, then obtain the user's explicit approval.
+Never reset shared, staging or production databases. Unrelated development data,
+application code and completed functionality remain protected. See the current
+docs/catalog-inventory-plan.md and CINV-D8 through D11 before claiming remaining work.
+
 ## Roles and workflow
 PM / Technical Lead owns requirements, decisions, dependency ordering, ticket readiness, coordination and independent technical review. Developer owns scoped implementation and fixes. QA owns independent scenarios, execution evidence, bug reports and retests; QA never silently fixes application code. Role details live in `docs/roles/`.
 
