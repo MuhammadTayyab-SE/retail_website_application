@@ -738,9 +738,9 @@ def order_label(request, object_id):
                     "return_address",
                 )
             ],
-            "layout_fields": [
-                form[name] for name in ("format", "palette", "contents", "show_skus", "show_prices")
-            ],
+            "layout_fields": [form[name] for name in ("contents", "show_skus", "show_prices")],
+            "saved_format": form.initial["format"],
+            "saved_format_label": dict(form.fields["format"].choices)[form.initial["format"]],
         },
         status=response_status,
     )

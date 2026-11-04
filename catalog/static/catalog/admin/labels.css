@@ -29,5 +29,22 @@
 .label-preview-toolbar small,.label-preview-note { font-size:11px; line-height:1.6; color:var(--muted); }
 .label-preview-note { margin:12px 20px 18px; }
 .label-pdf { display:block; width:100%; height:700px; border:0; background:#e2e8f0; }
+.label-step { display:inline-grid; place-items:center; width:24px; height:24px; margin-right:7px; border-radius:7px; background:var(--selected); color:var(--accent); font-size:12px; }
+.label-preview-controls { display:grid; gap:14px; padding:18px 20px; border-bottom:1px solid var(--border); background:#fbfcfd; }
+.label-choice-group { padding:0; margin:0; border:0; min-width:0; }
+.label-choice-group legend { margin-bottom:8px; color:var(--muted); font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; }
+.label-choice-group > div { display:flex; flex-wrap:wrap; gap:7px; }
+.label-choice-group label { display:flex; align-items:center; gap:7px; padding:9px 11px; border:1px solid var(--border); border-radius:8px; color:var(--muted); background:var(--card-bg); font-size:11px; font-weight:600; cursor:pointer; }
+.label-choice-group label:has(input:checked) { border-color:var(--accent); color:var(--accent-hover); background:var(--selected); }
+.label-choice-group input { margin:0; accent-color:var(--accent); }
+.label-item-list { list-style:none; margin:0; padding:0; border-top:1px solid var(--border); }
+.label-item-list li { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px 0; border-bottom:1px solid var(--border); font-size:11px; }
+.label-item-list strong { display:block; overflow-wrap:anywhere; }
+.label-item-list small { display:block; margin-top:4px; }
+.label-item-list li > span { flex-shrink:0; padding:5px 8px; background:var(--page-bg); border-radius:5px; font-weight:600; }
+.label-print-stage { padding:18px; background:#dfe7eb; border-top:1px solid #cbd5e1; }
+.label-print-stage .label-pdf { box-shadow:0 12px 28px rgb(2 44 34 / 12%); background:#fff; }
+.label-preview--4x4 .label-pdf { height:510px; }
+.label-preview--a4 .label-pdf { height:800px; }
 @media(max-width:1100px) { .label-studio { grid-template-columns:1fr; } .label-preview { position:static; } }
 @media(max-width:560px) { .label-fields,.label-facts { grid-template-columns:1fr; } .label-card-body { padding:16px; } .label-preview-toolbar { padding-inline:16px; } .label-pdf { height:520px; } }

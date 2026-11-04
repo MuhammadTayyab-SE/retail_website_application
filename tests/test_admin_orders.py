@@ -467,6 +467,11 @@ class AdminOrdersTests(TestCase):
         self.assertNotContains(self.client.get(self.url), "catalog/admin/labels.css")
         response = self.client.get(url)
         self.assertContains(response, "catalog/admin/labels.css")
+        self.assertContains(response, 'id="label-settings-form"')
+        self.assertContains(response, 'form="label-settings-form"')
+        self.assertContains(response, 'name="format"')
+        self.assertContains(response, 'name="palette"')
+        self.assertContains(response, "Line items &amp; SKUs")
         data = dict(response.context["label_form"].initial, action="download", format="a4")
         self.assertRedirects(
             self.client.post(url, data), url + "?download=1", fetch_redirect_response=False
@@ -539,6 +544,36 @@ class AdminOrdersTests(TestCase):
         self.assertIn("Parcel item 14", text)
         self.assertEqual(text.count("CASH TO COLLECT"), 1)
         self.assertIn("CONTINUATION - SAME PARCEL", text)
+
+    def test_prototype_label_layouts_include_real_order_qr_and_detachable_a4_label(self):
+        from pypdf import PdfReader
+        from reportlab.graphics.barcode import createBarcodeDrawing
+
+        from checkout.labels import LabelForm, label_pdf
+
+        options = {**LabelForm(order=self.order).initial, "tracking": "SYNTHETIC-AWB-123"}
+        for format in ("4x6", "4x4", "a4"):
+            with self.subTest(format=format):
+                with patch(
+                    "checkout.labels.createBarcodeDrawing", wraps=createBarcodeDrawing
+                ) as codes:
+                    reader = PdfReader(label_pdf(self.order, {**options, "format": format}))
+                text = "\n".join(page.extract_text() for page in reader.pages)
+                qr = [call for call in codes.call_args_list if call.args[0] == "QR"]
+                self.assertEqual(len(qr), 1)
+                self.assertEqual(qr[0].kwargs["value"], self.order.number)
+                barcode = [call for call in codes.call_args_list if call.args[0] == "Code128"]
+                self.assertEqual(barcode[0].kwargs["value"], "SYNTHETIC-AWB-123")
+                self.assertIn("SHIP TO / CONSIGNEE", text)
+                self.assertIn("AWB / TRACKING NUMBER", text)
+                if format == "a4":
+                    self.assertIn("PACKING SLIP & DISPATCH MANIFEST", text)
+                    self.assertIn("DETACH ALONG DOTTED LINE", text)
+                    self.assertIn("PACKER CHECK", text)
+                else:
+                    self.assertNotIn("PACKING SLIP & DISPATCH MANIFEST", text)
+                if format == "4x6":
+                    self.assertIn("DESTINATION CITY", text)
 
     def settings_data(self):
         policy = DeliveryPolicy.objects.get(pk=1)

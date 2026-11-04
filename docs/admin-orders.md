@@ -111,6 +111,18 @@ order snapshots, not the prototype's sample orders or editable monetary fields.
   thermal black/white. Contents can be full, a quantity summary or hidden, with
   optional SKU codes and item prices. Long contents continue on extra pages;
   those pages carry the order reference and a same-parcel continuation marker.
+- The label artwork now follows the supplied prototype's distinct layouts,
+  replacing the initial plain text layout. The 4x6 design has a dark brand/service
+  header, hub box, return strip, bordered consignee/city/parcel blocks, highlighted
+  payment panel, barcode, metadata/QR row and contents footer. The 4x4 uses the
+  compact brand bar, consignee/QR row, payment band and barcode. A4 adds the
+  packing manifest, unchecked packer checklist, dotted cut line and detachable
+  shipping label. Branding follows the current Retail admin instead of copying
+  the prototype's demo company or false dispatch-verification claims.
+- Numbered studio sections and radio format/color selectors above the preview
+  follow the reference. Native form controls link to the settings form without
+  extra JavaScript. Save & preview applies the selected options. The embedded
+  PDF toolbar is suppressed where supported; Open PDF retains native printing.
 - checkout/labels.py owns the validated settings form and one ReportLab renderer.
   The renderer builds only the selected layout/contents. The studio alone loads
   labels.css; it adds no JavaScript, CDN assets or alternate hidden layouts.
@@ -129,6 +141,8 @@ order snapshots, not the prototype's sample orders or editable monetary fields.
   back to the order reference with an accurate caption. Paid orders say not to
   collect cash; unpaid COD uses the saved total. Cancelled/failed orders warn
   against dispatch, and distance-review orders retain their warning.
+  The real QR code contains only the order reference; it does not expose customer
+  contact details or pretend that a courier tracking service has been configured.
 - The legacy ?download=1 URL now returns PDF instead of SVG. The obsolete SVG
   template and unused JavaScript print handler were removed. Courier booking,
   random tracking numbers, fake barcode/QR shapes and sample products were not
@@ -141,7 +155,8 @@ No broad tests, browser interactions, screenshots or responsive comparisons were
 run for this revised workspace. New/updated regression scenarios are written but
 unrun, including cash collection, notes, settings, exports, section navigation,
 PKT-today recent orders, label persistence/default addresses, stale revisions,
-label permissions, audit rollback, selected PDF page dimensions, payment
+label permissions, audit rollback, selected PDF page dimensions, prototype layout
+sections, QR/barcode payloads, payment
 instructions and long-label continuation. Sidebar scrollbar styling and label
 responsive layouts have not been visually checked. No printer checks were run.
 The earlier 106-test pass belongs to commit 24d9e58 before this revision and must
