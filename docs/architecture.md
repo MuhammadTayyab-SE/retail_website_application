@@ -2,10 +2,14 @@
 
 ## Repository evidence and proposed stack
 The initial setup found an empty repository and adopted Django/PostgreSQL (D-001).
-That finding is historical. At development f0567ea the application contains
+That finding is historical. At reviewed development 88c7536 the application contains
 catalog models/admin/forms/gallery, a server-rendered storefront with native
 JavaScript, transactional checkout, order snapshots/receipts/labels, and role/audit
-modules. Existing behavior and stored data now require preservation and migration.
+modules, merged Brand management and durable SKU issuance. Existing application
+functionality remains a constraint. Disposable development/test catalog and order
+data no longer require legacy preservation/backfill; destructive operations remain
+explicitly approval-gated on a confirmed isolated target. Never reset shared,
+staging or production databases or delete unrelated development data.
 
 ## Shared source and eventual production deployments
 The following deployment requirements describe eventual production; the current local development exception is defined below. One repository and versioned release artifact supply every retailer. Each retailer runs its own Django application on its own hosting server, behind HTTPS at its own domain. Each deployment connects only to that retailer's PostgreSQL database using dedicated credentials and to independent image storage using dedicated credentials. Isolation must also cover caches, background jobs, backups and logs if introduced. Do not introduce a shared tenant database or trust a client-supplied retailer ID for isolation.
@@ -20,17 +24,26 @@ assigned worker roles enforce module/action permissions; the initial single-admi
 proposal was superseded. Separate module routes/templates/assets extend the
 existing navy/emerald shell and share useful form/table/gallery components.
 
-Current relationships are Category.parent, Product.category, ProductVariant.product,
-and optional variant-specific ProductPhoto. Price/stock authority is still partly
+Current relationships are Category.parent, Product.category, optional Product.brand,
+ProductVariant.product and optional variant-specific ProductPhoto. Brand and the
+SkuIdentifier registry/sequence already exist; do not recreate them. Price/stock authority is still partly
 on Product; checkout deducts shared Product.quantity immediately at successful
 order placement and keeps snapshots. The approved target is optional Brand ->
-Product (outside taxonomy), default/optional variants -> canonical price and
+Product (outside taxonomy), default/optional variants -> canonical SKU/price/unit and
 inventory balance -> immutable stock movements. A durable SKU registry plus
 independent sequence prevents reuse. Deletion retains archived balances/movement
-and order snapshots. Existing category/product/variant IDs and media paths stay
-unchanged. See catalog-inventory-plan.md for the expand/backfill/cutover stages.
+and order snapshots during normal application operations. For the new MVP schema,
+reuse ProductPhoto with a required variant owner, per-variant order/primary flag
+and existing upload/cleanup pipeline; retire its redundant product FK. Retire
+Product SKU/unit/price/promotion/quantity authority as their callers switch in the
+owning tickets. No new legacy identity adapters or data backfill engine are planned.
+See catalog-inventory-plan.md for current evidence, ticket ownership and schema gates.
 Never activate a second writable stock/price source; migrate every existing writer
-and reader in a controlled cutover. Reservations remain inactive until separately
+and reader in its owning release. Retain 0001-0013 and use forward migrations that
+remove obsolete CINV-02 alias-trigger dependencies before dropping old columns.
+Apply destructive schema changes only within explicit target-specific approval.
+Product UI uses the four Basic Info / Variants / Photos / Availability partials;
+additional variants and their photo groups appear when needed. Reservations remain inactive until separately
 defined. Server-side authorization, Decimal arithmetic, row locking and idempotency
 remain mandatory across checkout and inventory.
 

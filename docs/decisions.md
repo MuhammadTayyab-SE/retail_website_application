@@ -1,5 +1,23 @@
 # Decision register
 
+## Current MVP strategy revision - 2026-11-04
+
+Reviewed against development 88c7536 and issues #54-#64. The user's latest strategy
+supersedes earlier disposable-data preservation/backfill instructions below;
+completed application functionality and unrelated data remain protected.
+
+| ID | Status | Decision | Consequence |
+|---|---|---|---|
+| CINV-D8 | Agreed user instruction | Development/test catalog, identifiers, stock and test transactions may be recreated; clean architecture takes priority over compatibility with disposable records | Remove future legacy mapping, price/stock backfills and old-cart bridges from #56-#64. This is not permission to perform a destructive operation. |
+| CINV-D9 | Mandatory user approval gate | Confirm environment and exact scope before any destructive DB/schema/data action; obtain separate explicit approval. Never reset shared/staging/production DBs or remove unrelated development data | No target is approved by this planning pass. Keep migration history coherent; no automatic purge/reset hooks, sequence rewind or broad flush. Test-runner destruction needs approved isolated scope too. |
+| CINV-D10 | Agreed user instruction | Reuse merged Brand and SKU implementations; retain four product tabs: Basic Info, Variants, Photos, Availability | #56 integrates default creation/variant ownership using existing foundations; #62 composes the four-tab UI rather than recreate models/services. |
+| CINV-D11 | Agreed user instruction; technical constraint chosen by PM | Every photo belongs to one variant, with multiple images, ordering and a selected primary per variant | Reuse ProductPhoto/upload/gallery code; required variant FK, no redundant product owner, per-variant primary uniqueness and locked validation. Schema/operations #56; UI #62. |
+
+Normal-operation no-reuse SKU and immutable stock/order/audit rules stay in force.
+Any disposable reset including issued-history/sequence requires explicit scope.
+The plan/tickets document completion evidence and boundaries; they do not claim
+fresh independent QA. This review starts no additional application implementation.
+
 ## Catalog/inventory decisions - 2026-11-04
 
 These current user decisions supersede the earlier single-unit/product-owned-SKU
@@ -18,8 +36,10 @@ and migration detail: [catalog-inventory-plan.md](catalog-inventory-plan.md).
 
 Immediate stock deduction at placement is existing behavior to preserve, not an
 approval for reservation, expiry, cancellation, refund or restocking semantics.
-Unknown historical costs, SKU collisions and ambiguous shared variant stock need
-preflight/reconciliation; never manufacture values or reset a database.
+The earlier historical-cost/SKU/shared-stock preservation strategy is superseded
+for disposable MVP records by D8-D11 above. Never manufacture operational stock
+or perform an unapproved destructive reset. Previously committed migrations and
+the completed Brand/SKU functionality are retained.
 
 Statuses: Agreed, Proposed, Unresolved. "Agreed current scope" records a settled local choice; "production deferred" and "cloud deferred" preserve future decisions without blocking local implementation. PM owns this register; record date, user answer and consequences when resolving an entry. Current date: 2026-10-10.
 
