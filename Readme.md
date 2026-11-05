@@ -169,16 +169,18 @@ created/updated the entry and when; legacy creation values remain unknown.
 Product persistence is a later MVP-005 feature and must inherit the provided
 attribution foundation. No Product CRUD is introduced by MVP-003.
 
-## Products (current MVP-005 branch)
+## Products (CINV-03 feature branch)
 
-Run `python manage.py migrate` to apply catalog migration 0007, then restart the
-local server. Products have one unique SKU and one selling unit: kg, litre, ml
-or each. Manage details, category, visibility and photos from Products. There is
-no separate variants page. Product action permissions govern this workflow.
+Use the approved isolated setup described above before migrating. Product creation
+automatically creates one default variant and generates its SKU. Products retains
+the simple details/default-gallery form; its variant cards open a scoped editor
+for additional packages, barcodes, units and separate galleries. Inventory units
+are kg or each; package content such as 500 ml is a separate label. Each gallery
+supports multiple uploads, individual removal, ordering and a primary image.
+Product action permissions govern this workflow. The full four-tab layout remains
+CINV-09. Existing product pricing/shared stock remain until CINV-04/06.
+
 The dashboard includes product counts and recent products; lists paginate at
-25 rows with search and status/category/unit filters.
-
-Migration preserves previous option records and copies a primary SKU. Review
-existing products displaying "Choose unit" and select their unit before saving.
-Unknown units are not inferred from arbitrary size descriptions. Prices/stock
-remain MVP-006; see docs/tickets/MVP-005.md for migration details and QA scope.
+25 rows with search and status/category/unit filters. See
+[CINV-03 evidence](docs/tickets/CINV-03.md) for current checks and limitations;
+older MVP ticket evidence describes those earlier revisions only.
