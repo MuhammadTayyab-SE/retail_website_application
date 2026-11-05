@@ -9,19 +9,20 @@ from catalog.views import storefront_categories
 @require_safe
 def product_detail(request, pk):
     product = get_object_or_404(
-        Product.objects.visible().select_related("category").prefetch_related("photos", "variants"),
+        Product.objects.visible().select_related("category").prefetch_related("variants__photos"),
         pk=pk,
     )
     variants = [variant for variant in product.variants.all() if variant.is_active]
-    active_ids = {variant.pk for variant in variants}
     photos = [
         {
             "src": reverse("public-product-photo", args=[photo.pk]),
             "alt": photo.alt_text or product.name,
-            "variant": str(photo.variant_id or ""),
+            "variant": str(photo.variant_id),
         }
-        for photo in product.photos.all()
-        if photo.variant_id is None or photo.variant_id in active_ids
+        for variant in variants
+        for photo in sorted(
+            variant.photos.all(), key=lambda photo: (not photo.is_primary, photo.position, photo.pk)
+        )
     ]
     options = []
     for variant in variants:
@@ -30,33 +31,17 @@ def product_detail(request, pk):
             {
                 "id": str(variant.pk),
                 "sku": variant.sku,
-                "label": " / ".join(
-                    f"{key.title()}: {value}" for key, value in sorted(variant.attributes.items())
-                )
-                or variant.sku,
+                "label": variant.label,
+                "unit": variant.get_inventory_unit_display(),
                 "price": str(variant.sale_price),
                 "regular_price": str(product.price if variant.price is None else variant.price),
                 "description": variant.description or product.description,
             }
         )
-    if not options:
-        options = [
-            {
-                "id": "",
-                "sku": product.sku,
-                "label": "Standard",
-                "price": str(product.sale_price),
-                "regular_price": str(product.price),
-                "description": product.description,
-            }
-        ]
     selected = next(
         (option for option in options if option["id"] == request.GET.get("variant")), options[0]
     )
     selected_photos = [photo for photo in photos if photo["variant"] == selected["id"]]
-    selected_photos += [
-        photo for photo in photos if not photo["variant"] and photo not in selected_photos
-    ]
     categories = storefront_categories()
     return render(
         request,
@@ -66,7 +51,7 @@ def product_detail(request, pk):
             "options": options,
             "selected_option": selected,
             "selected_photos": selected_photos,
-            "has_variants": bool(variants),
+            "has_variants": len(variants) > 1,
             "homepage_categories": [
                 entry for entry in categories if entry["category"].parent_id is None
             ],

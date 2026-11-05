@@ -1,0 +1,15 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block bodyclass %}{{ block.super }} app-catalog model-product retail-product-form{% endblock %}
+{% block responsive %}{{ block.super }}<link rel="stylesheet" href="{% static 'catalog/admin/variants.css' %}?v=1">{% endblock %}
+{% block extrahead %}{{ block.super }}<script src="{% url 'admin:jsi18n' %}"></script>{{ media }}{% endblock %}
+{% block content_title %}<div class="retail-page-heading"><div><h1>{{ title }}</h1><p>{{ product.name }} · Each variant has its own identity and photo gallery.</p></div><a class="retail-button secondary" href="{% url 'admin:catalog_product_change' product.pk %}">Back to product</a></div>{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+  <section class="retail-card variant-section"><div class="retail-card-heading"><div><h2>Variant details</h2><p>Configure this sellable size or package.</p></div>{% if variant.is_default %}<span class="variant-status">Default</span>{% endif %}</div><div class="variant-fields">{{ form.non_field_errors }}{% for field in form %}<div class="variant-field{% if field.name == 'attributes' or field.name == 'description' %} variant-field-wide{% endif %}{% if field.errors %} variant-field-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}</div>{% endfor %}</div></section>
+  {% include 'catalog/variant_gallery_heading.html' %}
+  {% include 'admin/edit_inline/stacked.html' with inline_admin_formset=gallery %}
+  <div class="product-form-actions"><a class="retail-button secondary" href="{% url 'admin:catalog_product_change' product.pk %}">Back to product</a>{% if editable %}{% if variant.pk and not variant.is_default %}<button class="retail-button secondary" type="submit" name="_delete" value="1">Delete variant</button>{% endif %}<button class="retail-button" type="submit">Save variant</button>{% endif %}</div>
+</form>
+{% endblock %}
+{% block extrabody %}{{ block.super }}<script>{% include 'catalog/product_photo_script.html' %}</script>{% endblock %}

@@ -3,7 +3,7 @@ from django.db.models import Count, F, Q
 from django.shortcuts import render
 from django.views.decorators.http import require_safe
 
-from catalog.models import Product
+from catalog.models import Product, ProductVariant
 from catalog.shop_forms import ShopFilterForm
 from catalog.views import storefront_categories
 
@@ -21,7 +21,7 @@ def shop(request):
         .filter(category_id__in=roots)
         .with_selling_price()
         .select_related("category")
-        .prefetch_related("photos")
+        .prefetch_related("variants__photos")
     )
     counts = {}
     for row in products.order_by().values("category_id").annotate(total=Count("pk", distinct=True)):
@@ -36,7 +36,7 @@ def shop(request):
     else:
         if values["q"]:
             products = products.filter(
-                Q(name__icontains=values["q"]) | Q(sku__icontains=values["q"])
+                Q(name__icontains=values["q"]) | Q(variants__sku__icontains=values["q"])
             )
         if values["category"]:
             selected = set(values["category"])
@@ -47,7 +47,9 @@ def shop(request):
                     category_ids.add(category.pk)
             products = products.filter(category_id__in=category_ids)
         if values["unit"]:
-            products = products.filter(unit__in=values["unit"])
+            products = products.filter(
+                variants__inventory_unit__in=values["unit"], variants__is_active=True
+            )
         if values["min_price"] is not None:
             products = products.filter(selling_price__gte=values["min_price"])
         if values["max_price"] is not None:
@@ -86,7 +88,7 @@ def shop(request):
             and str(entry["category"].pk) in values.get("category", [])
         ],
         "selected_units": request.GET.getlist("unit"),
-        "unit_choices": Product.Unit.choices,
+        "unit_choices": ProductVariant.Unit.choices,
         "query": request.GET.get("q", "")[:200],
         "selected": next(iter(values.get("category", [])), ""),
         "filters_query": parameters.urlencode(),

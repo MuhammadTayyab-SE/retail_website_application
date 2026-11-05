@@ -158,7 +158,7 @@ module screens. #62 owns UI composition, not duplicate schema/stock/SKU logic.
 |---|---|---|---|
 | CINV-01 / #54 | Done (merged #66) | Baseline | Keep Brand model/pages/permissions/uploads; later tasks only integrate them. |
 | CINV-02 / #55 | Done (merged #67) | Baseline | Keep allocator/registry/sequence/history; #56 replaces only legacy Product alias coupling. |
-| CINV-03 / #56 | Ready, unclaimed | #54, #55 | Variant identity/defaults, variant-specific photo schema/operations and necessary current-route integration. Remove legacy mapping/backfill/cart bridge scope. |
+| CINV-03 / #56 | In Development (user started 2026-11-05) | #54, #55 | Variant identity/defaults, variant-specific photo schema/operations and necessary current-route integration. Remove legacy mapping/backfill/cart bridge scope. |
 | CINV-04 / #57 | Backlog | #56 | Variant price authority and all readers/writers; remove old-price parity/backfill requirements. |
 | CINV-05 / #58 | Backlog | #56 | Balance/movement foundation and validated operations; no copied disposable stock. |
 | CINV-06 / #59 | Backlog | #57, #58 | New opening stock and single-writer checkout/admin integration; remove legacy shared-stock allocation/reconciliation. |
@@ -212,3 +212,5 @@ environment. Defects return to the same ticket; every new commit renews affected
 checks/review. My Review follows evidence and disclosed limitations; merge and
 deployment still require explicit approval. This assignment stops at the updated
 plan/tickets. **No additional application feature or destructive operation starts.**
+
+Implementation progress 2026-11-05: the user started #56. It is In Development on feature/cinv-03-variants; database/migration/test execution awaits scoped approval. No other CINV increment was started. See docs/tickets/CINV-03.md.

@@ -5,7 +5,8 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from access.models import AuditEvent
-from catalog.models import Category, Product
+from catalog.models import Category
+from tests.catalog_fixtures import create_product
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -102,7 +103,7 @@ class CategoryTests(TestCase):
     def test_category_with_products_is_deactivated_after_confirmation(self):
         root = Category.objects.create(name="Dairy", is_parent_category=True)
         child = Category.objects.create(name="Milk", parent=root)
-        product = Product.objects.create(name="Fresh milk", category=child, sku="MILK-1")
+        product = create_product(name="Fresh milk", category=child, sku="MILK-1")
         self.client.force_login(self.owner)
         url = reverse("admin:catalog_category_delete", args=[root.pk])
 

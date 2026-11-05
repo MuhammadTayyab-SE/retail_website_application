@@ -26,6 +26,12 @@ AUDITED_FIELDS = {
     "logo",
     "brand",
     "sku",
+    "variant",
+    "is_default",
+    "barcode",
+    "inventory_unit",
+    "package_content",
+    "is_primary",
     "unit",
     "price",
     "quantity",
@@ -47,7 +53,11 @@ def object_type(instance):
 
 
 def subject_details(instance):
-    subject = getattr(instance, "product", instance)
+    subject = (
+        instance.variant.product
+        if instance._meta.label_lower == "catalog.productphoto"
+        else getattr(instance, "product", instance)
+    )
     return {
         "subject_module": subject._meta.label_lower,
         "subject_id": str(subject.pk),

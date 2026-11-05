@@ -27,11 +27,15 @@ development checkout's existing `media` directory. Git does not copy uploaded
 photos into worktrees. Restart the development server after changing `.env`;
 an autoreloader child can inherit older environment values from its parent.
 
-CINV-02 adds durable SKU reservations. Before applying catalog migration 0013,
-pause catalog/checkout writes, back up PostgreSQL and run `python manage.py check_skus`.
-It reports ambiguous ownership rather than renumbering data. See
-[CINV-02 setup and recovery](docs/tickets/CINV-02.md) before migrating. SKU overrides
-require the explicit role permission; automatic creation UI remains a later increment.
+CINV-02's SKU registry and sequence are retained. CINV-03 makes variants the SKU/unit
+and image owners, with automatic defaults and scoped galleries. Its forward migration
+0014 removes obsolete Product/photo columns and rejects a populated catalog instead
+of deleting or mapping records. Follow [CINV-03 setup](docs/tickets/CINV-03.md): use a
+confirmed isolated target and obtain explicit approval before destructive schema or
+test-runner operations. Never apply this against a shared development/staging/production
+database. Run `python manage.py check_skus` after the current schema is installed; it
+now checks live variant ownership against the retained registry. Historical CINV-02
+preflight instructions apply to that earlier revision, not the current schema.
 
 Alternatively, configure explicit process variables from this checkout, with uv and Python 3.13 available:
 
@@ -165,16 +169,18 @@ created/updated the entry and when; legacy creation values remain unknown.
 Product persistence is a later MVP-005 feature and must inherit the provided
 attribution foundation. No Product CRUD is introduced by MVP-003.
 
-## Products (current MVP-005 branch)
+## Products (CINV-03 feature branch)
 
-Run `python manage.py migrate` to apply catalog migration 0007, then restart the
-local server. Products have one unique SKU and one selling unit: kg, litre, ml
-or each. Manage details, category, visibility and photos from Products. There is
-no separate variants page. Product action permissions govern this workflow.
+Use the approved isolated setup described above before migrating. Product creation
+automatically creates one default variant and generates its SKU. Products retains
+the simple details/default-gallery form; its variant cards open a scoped editor
+for additional packages, barcodes, units and separate galleries. Inventory units
+are kg or each; package content such as 500 ml is a separate label. Each gallery
+supports multiple uploads, individual removal, ordering and a primary image.
+Product action permissions govern this workflow. The full four-tab layout remains
+CINV-09. Existing product pricing/shared stock remain until CINV-04/06.
+
 The dashboard includes product counts and recent products; lists paginate at
-25 rows with search and status/category/unit filters.
-
-Migration preserves previous option records and copies a primary SKU. Review
-existing products displaying "Choose unit" and select their unit before saving.
-Unknown units are not inferred from arbitrary size descriptions. Prices/stock
-remain MVP-006; see docs/tickets/MVP-005.md for migration details and QA scope.
+25 rows with search and status/category/unit filters. See
+[CINV-03 evidence](docs/tickets/CINV-03.md) for current checks and limitations;
+older MVP ticket evidence describes those earlier revisions only.

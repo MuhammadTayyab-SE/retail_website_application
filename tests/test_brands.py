@@ -17,6 +17,7 @@ from access.admin import RoleForm
 from access.models import AuditEvent, Role, WorkerProfile
 from catalog.forms import BrandForm, ProductForm
 from catalog.models import Brand, Category, Product
+from tests.catalog_fixtures import create_product
 
 
 def logo(format="PNG"):
@@ -92,7 +93,7 @@ class BrandTests(TestCase):
         edit = ProductForm(self.product_data(brand=str(other.pk)), instance=product)
         self.assertFalse(edit.is_valid())
         with self.assertRaises(ValidationError):
-            Product.objects.create(
+            create_product(
                 name="Direct invalid association",
                 sku="DIRECT",
                 unit="each",
@@ -211,16 +212,14 @@ class BrandTests(TestCase):
     def test_linked_products_filter_and_counts_and_pagination(self):
         for index in range(26):
             Brand.objects.create(name=f"Bulk {index:02d}")
-        product = Product.objects.create(
+        product = create_product(
             name="Linked product",
             sku="LINKED",
             unit="each",
             brand=self.brand,
             category=self.category,
         )
-        Product.objects.create(
-            name="Other product", sku="OTHER", unit="each", category=self.category
-        )
+        create_product(name="Other product", sku="OTHER", unit="each", category=self.category)
         response = self.client.get(self.list_url)
         self.assertEqual(len(response.context["cl"].result_list), 25)
         response = self.client.get(self.list_url, {"q": self.brand.name})
@@ -364,7 +363,11 @@ class BrandMigrationTests(TransactionTestCase):
             )
             executor = MigrationExecutor(connection)
             executor.migrate(after)
-            current = Product.objects.get(pk=product.pk)
+            current = (
+                executor.loader.project_state(after)
+                .apps.get_model("catalog", "Product")
+                .objects.get(pk=product.pk)
+            )
             self.assertIsNone(current.brand_id)
             self.assertEqual(
                 (current.sku, str(current.price), current.quantity), ("KEEP-SKU", "25.50", 7)
@@ -383,5 +386,6 @@ class BrandMigrationTests(TransactionTestCase):
                 (restored.sku, str(restored.price), restored.quantity), ("KEEP-SKU", "25.50", 7)
             )
         finally:
+            apps.get_model("catalog", "Product").objects.all().delete()
             executor = MigrationExecutor(connection)
             executor.migrate(executor.loader.graph.leaf_nodes())

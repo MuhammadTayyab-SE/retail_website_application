@@ -1,21 +1,30 @@
-from importlib import import_module
-
-from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
+from django.db.models import Exists, OuterRef
+from django.db.models.functions import Lower, Trim
+
+from catalog.models import ProductVariant, SkuIdentifier
 
 
 class Command(BaseCommand):
-    help = "Read-only preflight for recoverable SKU ownership; no catalog values are changed."
+    help = "Read-only check that current variant SKUs match the permanent issuance registry."
 
     def handle(self, **options):
-        migration = import_module("catalog.migrations.0013_durable_sku_registry")
-        try:
-            rows = migration.collect_identifiers(apps, connection)
-            migration.numeric_seed(rows)
-        except RuntimeError as error:
-            raise CommandError(str(error)) from error
+        issued = SkuIdentifier.objects.filter(
+            variant_id=OuterRef("pk"),
+            variant_key=OuterRef("pk"),
+            product_id=OuterRef("product_id"),
+            product_key=OuterRef("product_id"),
+            code=Lower(Trim(OuterRef("sku"))),
+        )
+        if (
+            ProductVariant.objects.alias(registered=Exists(issued))
+            .filter(registered=False)
+            .exists()
+        ):
+            raise CommandError(
+                "Variant SKU ownership does not match the permanent registry; no data changed."
+            )
         self.stdout.write(
-            f"SKU preflight passed: {len(rows)} recoverable codes; "
-            f"{sum(row['product_key'] is None for row in rows)} without recoverable ownership."
+            f"SKU registry check passed: {ProductVariant.objects.count()} live variants; "
+            f"{SkuIdentifier.objects.count()} reserved codes."
         )

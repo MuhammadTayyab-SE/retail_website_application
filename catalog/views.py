@@ -1,6 +1,6 @@
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, prefetch_related_objects
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -27,10 +27,7 @@ def home02(request):
             root_categories[category.parent_id] if category.parent_id else category
         )
     catalog_products = (
-        Product.objects.visible()
-        .filter(category_id__in=category_ids)
-        .select_related("category")
-        .prefetch_related("photos")
+        Product.objects.visible().filter(category_id__in=category_ids).select_related("category")
     )
     counts = {
         row["category_id"]: row["total"]
@@ -58,7 +55,7 @@ def home02(request):
     )
     products = catalog_products
     if query:
-        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        products = products.filter(Q(name__icontains=query) | Q(variants__sku__icontains=query))
     if selected:
         if selected_category:
             descendants = {selected_category.pk}
@@ -76,16 +73,28 @@ def home02(request):
     # Sales history is not recorded yet; use a stable live-catalog fallback.
     best_selling_products = list(products.order_by("name", "pk")[:5])
     banner_products = list(
-        catalog_products.filter(photos__isnull=False).order_by(
-            "-is_on_sale", F("created_at").desc(nulls_last=True), "-pk"
-        )[:2]
+        catalog_products.filter(
+            variants__is_default=True, variants__is_active=True, variants__photos__is_primary=True
+        ).order_by("-is_on_sale", F("created_at").desc(nulls_last=True), "-pk")[:2]
     )
     hero_products = list(
-        catalog_products.filter(photos__isnull=False).order_by(
-            F("created_at").desc(nulls_last=True), "-pk"
-        )[:3]
+        catalog_products.filter(
+            variants__is_default=True, variants__is_active=True, variants__photos__is_primary=True
+        ).order_by(F("created_at").desc(nulls_last=True), "-pk")[:3]
     )
     top_rated_products = list(products.order_by("?")[:5])
+    prefetch_related_objects(
+        [
+            *featured,
+            *trending,
+            *sale_products,
+            *best_selling_products,
+            *top_rated_products,
+            *banner_products,
+            *hero_products,
+        ],
+        "variants__photos",
+    )
     for product in [
         *featured,
         *trending,
@@ -243,7 +252,9 @@ def product_photo(request, pk):
 
 @require_safe
 def product_list(request):
-    products = Product.objects.visible().select_related("category").prefetch_related("photos")
+    products = (
+        Product.objects.visible().select_related("category").prefetch_related("variants__photos")
+    )
     return render(request, "catalog/products.html", {"products": products})
 
 
@@ -254,12 +265,12 @@ def catalog_view(request):
     if not product_admin.has_view_permission(request):
         raise PermissionDenied
     visible_products = Product.objects.visible()
-    products = visible_products.select_related("category").prefetch_related("photos")
+    products = visible_products.select_related("category").prefetch_related("variants__photos")
     query = request.GET.get("q", "").strip()
     selected_category = request.GET.get("category", "").strip()
     catalog_filter_error = ""
     if query:
-        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        products = products.filter(Q(name__icontains=query) | Q(variants__sku__icontains=query))
     if selected_category:
         if selected_category.isdecimal():
             products = products.filter(category_id=selected_category)
@@ -285,5 +296,7 @@ def catalog_view(request):
 
 @require_safe
 def public_product_photo(request, pk):
-    photo = get_object_or_404(ProductPhoto, pk=pk, product__in=Product.objects.visible())
+    photo = get_object_or_404(
+        ProductPhoto, pk=pk, variant__is_active=True, variant__product__in=Product.objects.visible()
+    )
     return serve_product_photo(photo)

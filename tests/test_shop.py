@@ -4,6 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from catalog.models import Category, Product
+from tests.catalog_fixtures import create_product, create_products, new_product
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -23,7 +24,7 @@ class ShopTests(TestCase):
         self.parent = Category.objects.create(name="Fresh", is_parent_category=True)
         self.child = Category.objects.create(name="Fruit", parent=self.parent)
         self.other = Category.objects.create(name="Pantry")
-        self.sale = Product.objects.create(
+        self.sale = create_product(
             name="Sale apple",
             category=self.child,
             unit="kg",
@@ -32,7 +33,7 @@ class ShopTests(TestCase):
             is_on_sale=True,
             discount_percentage=50,
         )
-        self.regular = Product.objects.create(
+        self.regular = create_product(
             name="Regular pear",
             category=self.other,
             unit="each",
@@ -98,9 +99,9 @@ class ShopTests(TestCase):
         self.assertNotContains(response, "Sale apple")
 
     def test_pagination_preserves_filters_and_empty_results(self):
-        Product.objects.bulk_create(
+        create_products(
             [
-                Product(name=f"Item {i:02}", category=self.other, unit="each", price="1.00")
+                new_product(name=f"Item {i:02}", category=self.other, unit="each", price="1.00")
                 for i in range(30)
             ]
         )

@@ -1,6 +1,6 @@
 <article class="product-card">
   <div class="product-image">
-    {% with photo=product.photos.all.0 %}
+    {% with photo=product.display_variant.primary_photo %}
       {% if photo %}
         <img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" loading="lazy" width="240" height="200">
       {% else %}
@@ -27,9 +27,9 @@
     </h3>
     <p class="price">
       PKR {{ product.sale_price|floatformat:2 }}
-      {% if product.unit %}
+      {% if product.display_variant.inventory_unit %}
         <span>
-          / {{ product.get_unit_display }}
+          / {{ product.display_variant.get_inventory_unit_display }}
         </span>
       {% endif %}
     </p>

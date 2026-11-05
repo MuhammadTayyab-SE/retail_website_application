@@ -18,10 +18,10 @@
   <article class="catalog-product-card">
     {% if can_change_product %}<a class="catalog-card-link" href="{% url 'admin:catalog_product_change' product.pk %}" aria-label="Edit {{ product.name }}">{% endif %}
     <div class="catalog-product-image">
-      {% with photo=product.photos.all|first %}{% if photo %}<img src="{% url 'product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}">{% else %}<span class="catalog-product-placeholder" aria-hidden="true">{{ product.name|first|upper }}</span>{% endif %}{% endwith %}
+      {% with photo=product.display_variant.primary_photo %}{% if photo %}<img src="{% url 'product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}">{% else %}<span class="catalog-product-placeholder" aria-hidden="true">{{ product.name|first|upper }}</span>{% endif %}{% endwith %}
       {% if product.is_on_sale %}<span class="catalog-sale-tag">{{ product.discount_percentage }}% OFF</span>{% endif %}
     </div>
-    <div class="catalog-product-body"><span class="catalog-product-category">{{ product.category.name }}</span><h2>{{ product.name }}</h2><p class="catalog-product-meta">{{ product.get_unit_display }}{% if product.sku %} · {{ product.sku }}{% endif %}</p>
+    <div class="catalog-product-body"><span class="catalog-product-category">{{ product.category.name }}</span><h2>{{ product.name }}</h2><p class="catalog-product-meta">{{ product.display_variant.get_inventory_unit_display }}{% if product.display_variant.sku %} · {{ product.display_variant.sku }}{% endif %}</p>
       <div class="catalog-product-price">{% if product.is_on_sale %}<strong>Rs {{ product.sale_price|floatformat:"-2" }}</strong><del>Rs {{ product.price|floatformat:"-2" }}</del>{% else %}<strong>Rs {{ product.price|floatformat:"-2" }}</strong>{% endif %}</div>
       <div class="catalog-product-foot"><span>{{ product.quantity }} units available</span>{% if product.quantity == 0 %}<span class="product-stock-badge neutral">Out of stock</span>{% elif product.quantity <= 10 %}<span class="product-stock-badge warning">Low stock</span>{% else %}<span class="product-stock-badge">In stock</span>{% endif %}</div>
     </div>

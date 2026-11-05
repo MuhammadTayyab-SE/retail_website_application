@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 
-from catalog.models import Brand, Category, Product, ProductPhoto
+from catalog.models import Brand, Category, Product, ProductPhoto, ProductVariant
 
 
 def validate_photo_upload(image):
@@ -77,8 +77,20 @@ class CategoryForm(forms.ModelForm):
 
 
 class ProductForm(forms.ModelForm):
-    sku = forms.CharField(label="SKU", max_length=100)
-    unit = forms.ChoiceField(choices=[("", "Choose a unit"), *Product.Unit.choices])
+    sku = forms.CharField(
+        label="SKU",
+        max_length=100,
+        required=False,
+        help_text="Generated automatically. Manual codes require SKU override permission.",
+    )
+    unit = forms.ChoiceField(label="Inventory unit", choices=ProductVariant.Unit.choices)
+    barcode = forms.CharField(max_length=100, required=False)
+    package_content = forms.CharField(
+        label="Package content",
+        max_length=100,
+        required=False,
+        help_text="For example, 500 ml or a pack of 6.",
+    )
 
     class Meta:
         model = Product
@@ -86,6 +98,8 @@ class ProductForm(forms.ModelForm):
             "name",
             "sku",
             "unit",
+            "barcode",
+            "package_content",
             "price",
             "quantity",
             "is_on_sale",
@@ -107,6 +121,19 @@ class ProductForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._creating = self.instance._state.adding
+        self.variant = (
+            self.instance.default_variant
+            if not self._creating
+            else ProductVariant(product=self.instance, is_default=True)
+        )
+        for name, value in {
+            "sku": self.variant.sku,
+            "unit": self.variant.inventory_unit,
+            "barcode": self.variant.barcode,
+            "package_content": self.variant.package_content,
+        }.items():
+            self.initial.setdefault(name, value)
         if "category" in self.fields:
             self.fields["category"].queryset = Category.objects.exclude(
                 pk__in=Category.objects.parents()
@@ -144,14 +171,123 @@ class ProductForm(forms.ModelForm):
             cleaned["discount_percentage"] = None
         return cleaned
 
+    def _post_clean(self):
+        super()._post_clean()
+        if self.errors:
+            return
+        for form_name, field in (
+            ("sku", "sku"),
+            ("unit", "inventory_unit"),
+            ("barcode", "barcode"),
+            ("package_content", "package_content"),
+        ):
+            setattr(self.variant, field, self.cleaned_data[form_name])
+        try:
+            self.variant.full_clean(
+                exclude=["product", *(["sku"] if not self.variant.sku and self._creating else [])]
+            )
+        except ValidationError as error:
+            for field, errors in error.message_dict.items():
+                name = "unit" if field == "inventory_unit" else field
+                self.add_error(name if name in self.fields else None, errors)
+
+    def save(self, commit=True):
+        product = super().save(commit=False)
+        if self._creating:
+            product._default_variant_initial = {
+                "sku": self.variant.sku,
+                "inventory_unit": self.variant.inventory_unit,
+                "barcode": self.variant.barcode,
+                "package_content": self.variant.package_content,
+            }
+        if commit:
+            from django.db import transaction
+
+            with transaction.atomic():
+                product.save()
+                self.save_variant()
+                self.save_m2m()
+        return product
+
+    def save_variant(self):
+        if self._creating:
+            self.variant = self.instance.default_variant
+        else:
+            self.variant.save()
+        return self.variant
+
+
+class VariantForm(forms.ModelForm):
+    class Meta:
+        model = ProductVariant
+        fields = [
+            "sku",
+            "is_default",
+            "barcode",
+            "inventory_unit",
+            "package_content",
+            "attributes",
+            "description",
+            "is_active",
+        ]
+        widgets = {
+            "attributes": forms.Textarea(attrs={"rows": 2}),
+            "description": forms.Textarea(attrs={"rows": 3}),
+        }
+        help_texts = {
+            "sku": "Leave blank to generate a SKU for a new variant.",
+            "package_content": "For example, 500 ml or a pack of 6.",
+        }
+
+    def _post_clean(self):
+        # A new blank SKU is allocated during the atomic save, not during validation.
+        if self.instance._state.adding and not self.data.get(self.add_prefix("sku"), "").strip():
+            self._generated = True
+        super()._post_clean()
+
+    def _get_validation_exclusions(self):
+        exclude = super()._get_validation_exclusions()
+        # The locked save demotes the previous default before checking its constraint.
+        exclude.add("is_default")
+        if getattr(self, "_generated", False):
+            exclude.add("sku")
+        return exclude
+
 
 class ProductPhotoForm(forms.ModelForm):
     class Meta:
         model = ProductPhoto
-        fields = ["image", "alt_text", "position"]
+        fields = ["image", "alt_text", "position", "is_primary"]
         widgets = {
             "image": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"})
         }
 
+    def _get_validation_exclusions(self):
+        # The formset checks the selection; the locked save replaces the old primary.
+        return super()._get_validation_exclusions() | {"is_primary"}
+
     def clean_image(self):
         return validate_photo_upload(self.cleaned_data["image"])
+
+
+class VariantPhotoFormSet(forms.BaseInlineFormSet):
+    def add_fields(self, form, index):
+        super().add_fields(form, index)
+        form.fields["id"].queryset = (
+            ProductPhoto.objects.filter(variant=self.instance)
+            if self.instance.pk
+            else ProductPhoto.objects.none()
+        )
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        kept = [
+            form for form in self.forms if form.cleaned_data and not form.cleaned_data.get("DELETE")
+        ]
+        if sum(bool(form.cleaned_data.get("is_primary")) for form in kept) > 1:
+            raise ValidationError("Choose only one primary photo for this variant.")
+        ids = [form.cleaned_data["id"].pk for form in kept if form.cleaned_data.get("id")]
+        if len(ids) != len(set(ids)):
+            raise ValidationError("A photo cannot appear more than once.")

@@ -23,11 +23,12 @@ from checkout.services import (
     priced_items,
     quote_snapshot,
 )
+from tests.catalog_fixtures import create_product
 
 
 def fixture():
     category = Category.objects.create(name="Checkout dairy")
-    product = Product.objects.create(
+    product = create_product(
         name="Checkout milk",
         category=category,
         sku="CHECKOUT-MILK",
@@ -69,7 +70,9 @@ def details(key=None):
 class CheckoutTests(TestCase):
     def setUp(self):
         self.product, self.policy = fixture()
-        self.items = [{"id": f"live-{self.product.pk}", "quantity": 2}]
+        self.items = [
+            {"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 2}
+        ]
 
     def quote(self, items=None, client=None, method="delivery"):
         return (client or self.client).post(
@@ -200,7 +203,12 @@ class CheckoutTests(TestCase):
             with self.subTest(quantity=quantity):
                 self.assertEqual(
                     self.quote(
-                        [{"id": f"live-{self.product.pk}", "quantity": quantity}]
+                        [
+                            {
+                                "id": f"live-{self.product.pk}:{self.product.default_variant.pk}",
+                                "quantity": quantity,
+                            }
+                        ]
                     ).status_code,
                     400,
                 )
@@ -239,10 +247,14 @@ class CheckoutTests(TestCase):
         items = [{"id": f"live-{self.product.pk}:{variant.pk}", "quantity": 2}]
         quote = self.quote(items).json()
         self.assertEqual(quote["subtotal"], "180.00")
-        combined = items + [{"id": f"live-{self.product.pk}", "quantity": 1}]
+        combined = items + [
+            {"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 1}
+        ]
         shared_stock = self.quote(combined).json()["items"]
         self.assertEqual([item["stock"] for item in shared_stock], [4, 3])
-        items.append({"id": f"live-{self.product.pk}", "quantity": 4})
+        items.append(
+            {"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 4}
+        )
         self.assertEqual(self.quote(items).status_code, 400)
 
     def test_variant_lines_share_one_stock_update_and_one_line_insert(self):
@@ -295,12 +307,16 @@ class CheckoutTests(TestCase):
         Product.objects.filter(pk=self.product.pk).update(
             price=1000, is_on_sale=False, discount_percentage=None, quantity=10
         )
-        below = self.quote([{"id": f"live-{self.product.pk}", "quantity": 1}])
+        below = self.quote(
+            [{"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 1}]
+        )
         self.assertEqual(below.status_code, 200)
         self.assertFalse(below.json()["can_place_order"])
         self.assertEqual(len(below.json()["items"]), 1)
         self.assertEqual(self.quote().json()["total"], "2200.00")
-        free = self.quote([{"id": f"live-{self.product.pk}", "quantity": 5}]).json()
+        free = self.quote(
+            [{"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 5}]
+        ).json()
         self.assertEqual(free["delivery_fee"], "0.00")
         self.assertEqual(free["total"], "5000.00")
         response = self.place(self.payload())
@@ -312,10 +328,12 @@ class CheckoutTests(TestCase):
         )
 
     def test_order_failure_rolls_back_lines_and_stock(self):
-        second = Product.objects.create(
+        second = create_product(
             name="Second milk", category=self.product.category, unit="each", price=10, quantity=5
         )
-        items = self.items + [{"id": f"live-{second.pk}", "quantity": 1}]
+        items = self.items + [
+            {"id": f"live-{second.pk}:{second.default_variant.pk}", "quantity": 1}
+        ]
         lines = priced_items(items)
         accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
 
@@ -446,7 +464,9 @@ class CheckoutConcurrencyTests(TransactionTestCase):
     def setUp(self):
         self.product, self.policy = fixture()
         Product.objects.filter(pk=self.product.pk).update(quantity=1)
-        self.items = [{"id": f"live-{self.product.pk}", "quantity": 1}]
+        self.items = [
+            {"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 1}
+        ]
         lines = priced_items(self.items)
         self.accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
 
