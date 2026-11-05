@@ -4,14 +4,15 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from catalog.models import Category, Product, ProductPhoto, ProductVariant
+from catalog.models import Category, ProductVariant
+from tests.catalog_fixtures import create_photo, create_product
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
 class ProductDetailTests(TestCase):
     def setUp(self):
         self.category = Category.objects.create(name="Fruit")
-        self.product = Product.objects.create(
+        self.product = create_product(
             name="Apples",
             sku="APPLES",
             category=self.category,
@@ -32,9 +33,7 @@ class ProductDetailTests(TestCase):
         self.url = reverse("product-detail", args=[self.product.pk])
 
     def test_selected_variant_uses_authoritative_price_description_and_photos(self):
-        photo = ProductPhoto.objects.create(
-            product=self.product, variant=self.variant, image="red.jpg"
-        )
+        photo = create_photo(product=self.product, variant=self.variant, image="red.jpg")
         response = self.client.get(self.url, {"variant": self.variant.pk})
         selected = response.context["selected_option"]
         self.assertEqual(selected["price"], "75.01")
@@ -49,17 +48,18 @@ class ProductDetailTests(TestCase):
 
     def test_inactive_variant_and_its_photos_are_not_in_payload(self):
         hidden = ProductVariant.objects.create(product=self.product, sku="HIDDEN", is_active=False)
-        photo = ProductPhoto.objects.create(
-            product=self.product, variant=hidden, image="hidden.jpg"
-        )
+        photo = create_photo(product=self.product, variant=hidden, image="hidden.jpg")
         response = self.client.get(self.url, {"variant": hidden.pk})
         data = response.context["product_data"]
-        self.assertEqual([option["id"] for option in data["options"]], [str(self.variant.pk)])
+        self.assertEqual(
+            [option["id"] for option in data["options"]],
+            [str(self.product.default_variant.pk), str(self.variant.pk)],
+        )
         self.assertNotIn(
             reverse("public-product-photo", args=[photo.pk]),
             [item["src"] for item in data["photos"]],
         )
-        self.assertEqual(data["selected"], str(self.variant.pk))
+        self.assertEqual(data["selected"], str(self.product.default_variant.pk))
 
     def test_variant_defaults_and_zero_price(self):
         self.variant.price = None
@@ -84,8 +84,9 @@ class ProductDetailTests(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 404)
 
     def test_photo_cannot_reference_another_products_variant(self):
-        other = Product.objects.create(name="Pears", category=self.category, unit="kg")
-        photo = ProductPhoto(product=other, variant=self.variant, image="invalid.jpg")
+        other = create_product(name="Pears", category=self.category, unit="kg")
+        photo = create_photo(variant=self.variant, image="invalid.jpg")
+        photo.variant = other.default_variant
         with self.assertRaises(ValidationError):
             photo.full_clean()
 

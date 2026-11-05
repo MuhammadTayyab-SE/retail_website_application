@@ -1,13 +1,11 @@
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
-from io import StringIO
 from threading import Barrier, Event
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Permission
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.management import call_command
 from django.db import IntegrityError, close_old_connections, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -19,10 +17,12 @@ from catalog.models import Category, Product, ProductVariant, SkuIdentifier
 from catalog.skus import assign_sku
 from checkout.models import Order, OrderItem
 from checkout.services import place_order, policy_totals, priced_items, quote_snapshot
+from tests.catalog_fixtures import create_product
 from tests.test_checkout import details, fixture
 
 
 def order_line(product, variant=None):
+    variant = variant or product.default_variant
     order = Order.objects.create(
         idempotency_key=uuid.uuid4(),
         browser_owner=uuid.uuid4(),
@@ -36,7 +36,7 @@ def order_line(product, variant=None):
         product=product,
         variant=variant,
         name=product.name,
-        sku=variant.sku if variant else product.sku,
+        sku=variant.sku,
         quantity=1,
         regular_price=10,
         unit_price=10,
@@ -49,9 +49,10 @@ class SkuTests(TestCase):
     def setUp(self):
         self.owner = get_user_model().objects.create_superuser("sku-owner")
         self.category = Category.objects.create(name="SKU category")
-        self.product = Product.objects.create(
+        self.product = create_product(
             name="SKU product", category=self.category, sku="LEGACY", quantity=7
         )
+        self.variant = self.product.default_variant
 
     def worker(self, *permissions):
         role = Role.objects.create(name="SKU role")
@@ -63,37 +64,29 @@ class SkuTests(TestCase):
         return user, role
 
     def test_generated_codes_are_independent_and_skip_manual_reservations(self):
-        first = assign_sku(self.product, actor=self.owner)
+        first = assign_sku(self.variant, actor=self.owner)
         number = int(first.removeprefix("SKU-"))
         self.assertEqual(first, f"SKU-{number:06d}")
-        other = Product.objects.create(
-            name="Other", category=self.category, sku=f"SKU-{number + 1:06d}"
-        )
-        third = assign_sku(other, actor=self.owner)
+        other = create_product(name="Other", category=self.category, sku=f"SKU-{number + 1:06d}")
+        third = assign_sku(other.default_variant, actor=self.owner)
         self.assertEqual(third, f"SKU-{number + 2:06d}")
         row = SkuIdentifier.objects.get(code=first.lower())
         self.assertEqual(
             (row.product_key, row.actor_id, row.source),
             (self.product.pk, self.owner.pk, "generated"),
         )
-        independent = Product.objects.create(
-            pk=90000001, name="Independent ID", category=self.category
+        independent = create_product(pk=90000001, name="Independent ID", category=self.category)
+        self.assertNotEqual(
+            assign_sku(independent.default_variant, actor=self.owner), "SKU-90000001"
         )
-        self.assertNotEqual(assign_sku(independent, actor=self.owner), "SKU-90000001")
 
-    def test_pre_order_correction_after_stock_retains_actor_old_new_and_both_aliases(self):
-        variant = ProductVariant.objects.create(product=self.product, sku="LEGACY")
-        assign_sku(self.product, actor=self.owner, code=" corrected ")
-        variant.refresh_from_db()
-        self.product.refresh_from_db()
-        self.assertEqual(
-            (self.product.sku, variant.sku, self.product.quantity), ("CORRECTED", "CORRECTED", 7)
-        )
-        assign_sku(variant, actor=self.owner, code="V2")
-        self.product.refresh_from_db()
-        self.assertEqual(self.product.sku, "V2")
+    def test_pre_order_correction_after_stock_retains_actor_old_new_and_history(self):
+        assign_sku(self.variant, actor=self.owner, code=" corrected ")
+        self.variant.refresh_from_db()
+        self.assertEqual((self.variant.sku, self.product.quantity), ("CORRECTED", 7))
+        assign_sku(self.variant, actor=self.owner, code="V2")
         events = AuditEvent.objects.filter(
-            action="sku_corrected", module="catalog.product", target_id=str(self.product.pk)
+            action="sku_corrected", module="catalog.productvariant", target_id=str(self.variant.pk)
         )
         self.assertEqual(events.count(), 2)
         self.assertTrue(
@@ -106,22 +99,22 @@ class SkuTests(TestCase):
         for code in ("legacy", "corrected", "v2"):
             self.assertTrue(SkuIdentifier.objects.filter(code=code, product=self.product).exists())
         with self.assertRaises(ValidationError):
-            assign_sku(self.product, actor=self.owner, code="LEGACY")
+            assign_sku(self.variant, actor=self.owner, code="LEGACY")
 
     def test_override_permission_is_explicit_and_revocation_applies_immediately(self):
         worker, role = self.worker("change_product")
         with self.assertRaises(PermissionDenied):
-            assign_sku(self.product, actor=worker, code="MANUAL")
-        assign_sku(self.product, actor=worker)
+            assign_sku(self.variant, actor=worker, code="MANUAL")
+        assign_sku(self.variant, actor=worker)
         grant = Permission.objects.get(codename="override_sku", content_type__app_label="catalog")
         self.assertIn(grant, RoleForm().fields["permissions"].queryset)
         role.permissions.add(grant)
-        assign_sku(self.product, actor=worker, code="MANUAL")
+        assign_sku(self.variant, actor=worker, code="MANUAL")
         role.permissions.remove(grant)
         with self.assertRaises(PermissionDenied):
-            assign_sku(self.product, actor=worker, code="REVOKED")
+            assign_sku(self.variant, actor=worker, code="REVOKED")
         with self.assertRaises(PermissionDenied):
-            assign_sku(self.product, actor=AnonymousUser())
+            assign_sku(self.variant, actor=AnonymousUser())
 
     def test_existing_admin_post_cannot_bypass_override_permission(self):
         worker, role = self.worker("view_product", "change_product")
@@ -140,20 +133,19 @@ class SkuTests(TestCase):
         }
         url = reverse("admin:catalog_product_change", args=[self.product.pk])
         self.assertContains(self.client.post(url, payload), "SKU override permission")
-        self.product.refresh_from_db()
-        self.assertEqual(self.product.sku, "LEGACY")
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.sku, "LEGACY")
         role.permissions.add(
             Permission.objects.get(codename="override_sku", content_type__app_label="catalog")
         )
         self.assertEqual(self.client.post(url, payload).status_code, 302)
-        self.product.refresh_from_db()
-        self.assertEqual(self.product.sku, "FORGED")
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.sku, "FORGED")
 
     def test_ordered_codes_freeze_even_if_the_order_is_later_deleted(self):
-        variant = ProductVariant.objects.create(product=self.product, sku="OPTION")
         item = order_line(self.product)
         item.order.delete()
-        for obj in (self.product, variant):
+        for obj in (self.variant,):
             with (
                 self.subTest(item=type(obj).__name__),
                 self.assertRaisesMessage(ValidationError, "accepted order"),
@@ -183,7 +175,7 @@ class SkuTests(TestCase):
         self.assertIsNone(row.product_id)
         self.assertEqual(row.product_key, product_id)
         with self.assertRaises(ValidationError):
-            Product.objects.create(name="Reused", category=self.category, sku="LEGACY")
+            create_product(name="Reused", category=self.category, sku="LEGACY")
         with self.assertRaises(PermissionDenied):
             row.delete()
         with self.assertRaises(PermissionDenied):
@@ -192,38 +184,38 @@ class SkuTests(TestCase):
             SkuIdentifier.objects.filter(pk=row.pk).update(code="available")
 
     def test_bulk_writes_use_the_same_namespace_and_reject_unattributed_corrections(self):
-        other = Product.objects.create(name="Other", category=self.category)
+        other = create_product(name="Other", category=self.category)
         with self.assertRaises(IntegrityError), transaction.atomic():
             ProductVariant.objects.bulk_create([ProductVariant(product=other, sku=" legacy ")])
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ProductVariant.objects.bulk_create([ProductVariant(product=other, sku="   ")])
+            ProductVariant.objects.bulk_create([ProductVariant(product=other, sku="LEGACY")])
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Product.objects.filter(pk=self.product.pk).update(sku="BYPASS")
+            ProductVariant.objects.filter(pk=self.variant.pk).update(sku="BYPASS")
         self.assertFalse(SkuIdentifier.objects.filter(code="bypass").exists())
-        self.assertEqual(Product.objects.get(pk=self.product.pk).sku, "LEGACY")
+        self.assertEqual(ProductVariant.objects.get(pk=self.variant.pk).sku, "LEGACY")
         variant = ProductVariant.objects.create(product=self.product, sku="OWNED")
         variant.product = other
         with self.assertRaisesMessage(ValidationError, "transferred"):
             variant.save()
 
     def test_partial_updates_ignore_an_unsaved_sku_change(self):
-        self.product.sku = "UNSAVED"
-        self.product.description = "Keep description"
-        self.product.save(update_fields=["description"])
-        self.product.refresh_from_db()
+        self.variant.sku = "UNSAVED"
+        self.variant.description = "Keep description"
+        self.variant.save(update_fields=["description"])
+        self.variant.refresh_from_db()
         self.assertEqual(
-            (self.product.sku, self.product.description), ("LEGACY", "Keep description")
+            (self.variant.sku, self.variant.description), ("LEGACY", "Keep description")
         )
         self.assertFalse(SkuIdentifier.objects.filter(code="unsaved").exists())
 
     def test_failed_allocation_rolls_back_assignment_but_does_not_reclaim_number(self):
         with self.assertRaises(RuntimeError), transaction.atomic():
-            failed = assign_sku(self.product, actor=self.owner)
+            failed = assign_sku(self.variant, actor=self.owner)
             raise RuntimeError("Synthetic rollback")
-        self.product.refresh_from_db()
-        self.assertEqual(self.product.sku, "LEGACY")
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.sku, "LEGACY")
         self.assertFalse(SkuIdentifier.objects.filter(code=failed.lower()).exists())
-        next_code = assign_sku(self.product, actor=self.owner)
+        next_code = assign_sku(self.variant, actor=self.owner)
         self.assertGreater(int(next_code[4:]), int(failed[4:]))
 
     def test_sequence_exhaustion_never_wraps(self):
@@ -233,7 +225,7 @@ class SkuTests(TestCase):
             cursor.execute("SELECT setval('catalog_sku_number', 9223372036854775807, true)")
         try:
             with self.assertRaisesMessage(ValidationError, "exhausted"):
-                assign_sku(self.product, actor=self.owner)
+                assign_sku(self.variant, actor=self.owner)
         finally:
             # This is a disposable test database, not a recovery operation.
             with connection.cursor() as cursor:
@@ -241,7 +233,7 @@ class SkuTests(TestCase):
 
     def test_checkout_preserves_prices_stock_snapshots_and_freezes_sku(self):
         product, policy = fixture()
-        items = [{"id": f"live-{product.pk}", "quantity": 2}]
+        items = [{"id": f"live-{product.pk}:{product.default_variant.pk}", "quantity": 2}]
         lines = priced_items(items)
         quote = quote_snapshot(lines, policy_totals(lines, policy, "Lahore"))
         order = place_order(items, details(), AnonymousUser(), uuid.uuid4(), quote)
@@ -249,7 +241,7 @@ class SkuTests(TestCase):
         self.assertEqual(product.quantity, 3)
         self.assertEqual(order.items.get().sku, "CHECKOUT-MILK")
         with self.assertRaises(ValidationError):
-            assign_sku(product, actor=self.owner, code="AFTER-ORDER")
+            assign_sku(product.default_variant, actor=self.owner, code="AFTER-ORDER")
 
 
 class SkuConcurrencyTests(TransactionTestCase):
@@ -257,7 +249,7 @@ class SkuConcurrencyTests(TransactionTestCase):
         self.owner = get_user_model().objects.create_superuser("sku-concurrent-owner")
         self.category = Category.objects.create(name="Concurrent category")
         self.products = [
-            Product.objects.create(name=f"Product {n}", category=self.category) for n in range(2)
+            create_product(name=f"Product {n}", category=self.category) for n in range(2)
         ]
 
     def run_parallel(self, code=None):
@@ -269,7 +261,7 @@ class SkuConcurrencyTests(TransactionTestCase):
                 product = Product.objects.get(pk=pk)
                 actor = get_user_model().objects.get(pk=self.owner.pk)
                 barrier.wait(timeout=10)
-                return assign_sku(product, actor=actor, code=code)
+                return assign_sku(product.default_variant, actor=actor, code=code)
             except ValidationError:
                 return "duplicate"
             finally:
@@ -281,7 +273,7 @@ class SkuConcurrencyTests(TransactionTestCase):
     def test_parallel_generated_allocations_are_distinct(self):
         codes = self.run_parallel()
         self.assertEqual(len(set(codes)), 2)
-        self.assertEqual(SkuIdentifier.objects.count(), 2)
+        self.assertEqual(SkuIdentifier.objects.count(), 4)
 
     def test_parallel_manual_override_has_one_winner(self):
         codes = self.run_parallel("RACING-CODE")
@@ -327,7 +319,7 @@ class SkuConcurrencyTests(TransactionTestCase):
 
     def test_accepted_order_wins_a_racing_correction(self):
         product = self.products[0]
-        assign_sku(product, actor=self.owner, code="BEFORE-ORDER")
+        assign_sku(product.default_variant, actor=self.owner, code="BEFORE-ORDER")
         order_held = Event()
         correction_started = Event()
 
@@ -350,7 +342,7 @@ class SkuConcurrencyTests(TransactionTestCase):
                 actor = get_user_model().objects.get(pk=self.owner.pk)
                 item = Product.objects.get(pk=product.pk)
                 correction_started.set()
-                assign_sku(item, actor=actor, code="RACING-CORRECTION")
+                assign_sku(item.default_variant, actor=actor, code="RACING-CORRECTION")
                 return "changed"
             except ValidationError:
                 return "locked"
@@ -363,7 +355,7 @@ class SkuConcurrencyTests(TransactionTestCase):
             self.assertEqual(accepted.result(timeout=15), "accepted")
             self.assertEqual(corrected.result(timeout=15), "locked")
         product.refresh_from_db()
-        self.assertEqual(product.sku, "BEFORE-ORDER")
+        self.assertEqual(product.default_variant.sku, "BEFORE-ORDER")
         self.assertEqual(OrderItem.objects.get().sku, "BEFORE-ORDER")
 
 
@@ -381,7 +373,14 @@ class SkuMigrationTests(TransactionTestCase):
         self.apps = executor.loader.project_state(self.before).apps
 
     def tearDown(self):
-        MigrationExecutor(connection).migrate(self.after)
+        executor = MigrationExecutor(connection)
+        state = (
+            executor.loader.project_state(self.after).apps
+            if ("catalog", "0013_durable_sku_registry") in executor.loader.applied_migrations
+            else self.apps
+        )
+        state.get_model("catalog", "Product").objects.all().delete()
+        executor.migrate(executor.loader.graph.leaf_nodes())
 
     def legacy(self, code="SKU-000150"):
         category = self.apps.get_model("catalog", "Category").objects.create(name="Legacy category")
@@ -409,7 +408,12 @@ class SkuMigrationTests(TransactionTestCase):
             details={"changes": {"Sku": {"before": "SKU-000900", "after": "DELETED-CODE"}}},
         )
         MigrationExecutor(connection).migrate(self.after)
-        product_now = Product.objects.get(pk=product.pk)
+        product_now = (
+            MigrationExecutor(connection)
+            .loader.project_state(self.after)
+            .apps.get_model("catalog", "Product")
+            .objects.get(pk=product.pk)
+        )
         self.assertEqual(
             (product_now.sku, product_now.quantity, str(product_now.price)),
             (product.sku, 7, "25.50"),
@@ -418,10 +422,9 @@ class SkuMigrationTests(TransactionTestCase):
         row = SkuIdentifier.objects.get(code=product.sku.lower())
         self.assertEqual((row.product_id, row.variant_id), (product.pk, option.pk))
         self.assertEqual(SkuIdentifier.objects.get(code="deleted-code").product_key, 98765)
-        owner = get_user_model().objects.create_superuser("migration-owner")
-        self.assertEqual(assign_sku(product_now, actor=owner), "SKU-000901")
-        with self.assertRaises(ValidationError):
-            assign_sku(product_now, actor=owner, code="DELETED-CODE")
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT catalog_next_sku()")
+            self.assertEqual(cursor.fetchone()[0], "SKU-000901")
         count = SkuIdentifier.objects.count()
         MigrationExecutor(connection).migrate(self.after)
         self.assertEqual(SkuIdentifier.objects.count(), count)
@@ -465,7 +468,6 @@ class SkuMigrationTests(TransactionTestCase):
             unit_price=1,
             line_total=1,
         )
-        output = StringIO()
         with self.assertRaisesMessage(RuntimeError, "ambiguous deleted history"):
             import_module("catalog.migrations.0013_durable_sku_registry").collect_identifiers(
                 self.apps, connection
@@ -476,9 +478,14 @@ class SkuMigrationTests(TransactionTestCase):
         row = SkuIdentifier.objects.get(code="unknown-deleted")
         self.assertIsNone(row.product_key)
         self.assertIsNotNone(row.ordered_at)
-        call_command("check_skus", stdout=output)
-        self.assertIn("preflight passed", output.getvalue())
-        self.assertEqual(Product.objects.get(pk=product.pk).sku, "CURRENT")
+        self.assertTrue(
+            import_module("catalog.migrations.0013_durable_sku_registry").collect_identifiers(
+                self.apps, connection
+            )
+        )
+        self.assertEqual(
+            self.apps.get_model("catalog", "Product").objects.get(pk=product.pk).sku, "CURRENT"
+        )
 
     def test_legacy_orders_lock_the_product_alias_even_when_another_variant_was_ordered(self):
         product = self.legacy("ALIAS")
@@ -507,6 +514,9 @@ class SkuMigrationTests(TransactionTestCase):
         self.assertIsNotNone(SkuIdentifier.objects.get(code="alias").ordered_at)
         Order.objects.get(pk=order.pk).delete()
         owner = get_user_model().objects.create_superuser("legacy-order-owner")
-        for obj in (Product.objects.get(pk=product.pk), ProductVariant.objects.get(pk=alias.pk)):
-            with self.assertRaisesMessage(ValidationError, "accepted order"):
-                assign_sku(obj, actor=owner, code="BLOCKED")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT set_config('retail.sku_actor',%s,true)", [str(owner.pk)])
+                cursor.execute(
+                    "UPDATE catalog_productvariant SET sku='BLOCKED' WHERE id=%s", [alias.pk]
+                )

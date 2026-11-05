@@ -21,7 +21,7 @@ migration chain with forward changes. No feature or QA run starts in this review
 |---|---|---|---|
 | CINV-01: Brand management and optional product association | [#54](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/54) | Done | development f0567ea; historical #6/#7 closed |
 | CINV-02: Durable SKU issuance and pre-order correction history | [#55](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/55) | Done | development f0567ea; historical #6/#7 closed |
-| CINV-03: Variant identity, automatic defaults and variant photo ownership | [#56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | Ready | CINV-01, CINV-02 |
+| CINV-03: Variant identity, automatic defaults and variant photo ownership | [#56](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/56) | In Development | CINV-01, CINV-02 |
 | CINV-04: Canonical variant cost, regular and sale pricing | [#57](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/57) | Backlog | CINV-03 |
 | CINV-05: Variant inventory balance and immutable movement foundation | [#58](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/58) | Backlog | CINV-03 |
 | CINV-06: New opening stock and single-writer checkout inventory integration | [#59](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/59) | Backlog | CINV-04, CINV-05 |
@@ -32,7 +32,8 @@ migration chain with forward changes. No feature or QA run starts in this review
 | CINV-11: Independent clean-install and catalog/inventory integration QA | [#64](https://github.com/MuhammadTayyab-SE/retail_website_application/issues/64) | Backlog | CINV-01, CINV-02, CINV-03, CINV-04, CINV-05, CINV-06, CINV-07, CINV-08, CINV-09, CINV-10 |
 
 Recommended one-ticket order: **03 -> 04 -> 05 -> 06 -> 07 -> 08 -> 09 -> 10 -> 11**.
-CINV-03 is Ready/unclaimed; future destructive operations still have separate
+CINV-03 was started by the user on 2026-11-05; database execution/testing await
+explicit isolated-target approval. Future destructive operations still have separate
 target/approval gates. CINV-01/02 are Done by merge, with fresh integration QA still
 required. Reuse their code and the current gallery/checkout/admin, not new copies.
 Exactly four product tabs: **Basic Info, Variants, Photos, Availability**.

@@ -10,7 +10,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from access.models import AttributedModel
-from catalog.skus import sku_write, validate_sku
+from catalog.skus import generated_sku, sku_write, validate_sku
 
 
 def category_photo_path(instance, filename):
@@ -251,25 +251,14 @@ class ProductQuerySet(models.QuerySet):
                 current = parents.get(current)
         return (
             self.filter(is_active=True)
-            .filter(
-                models.Q(unit__in=["kg", "litre", "ml", "each"])
-                | models.Q(variants__is_active=True)
-            )
+            .filter(models.Q(variants__is_active=True))
             .exclude(category_id__in=hidden)
             .distinct()
         )
 
 
 class Product(AttributedModel):
-    class Unit(models.TextChoices):
-        KG = "kg", "kg"
-        LITRE = "litre", "litre"
-        ML = "ml", "ml"
-        EACH = "each", "each"
-
     name = models.CharField(max_length=200)
-    sku = models.CharField("SKU", max_length=100, blank=True, default="")
-    unit = models.CharField(max_length=5, choices=Unit.choices, blank=True, default="")
     price = models.DecimalField(
         "Price (PKR)",
         max_digits=12,
@@ -312,16 +301,19 @@ class Product(AttributedModel):
                 ),
                 name="product_sale_discount_consistent",
             ),
-            models.UniqueConstraint(
-                Lower(Trim("sku")),
-                condition=~models.Q(sku=""),
-                name="product_sku_normalized_unique",
-            ),
             models.CheckConstraint(condition=~models.Q(name=""), name="product_name_not_empty"),
         ]
 
     def __str__(self):
         return self.name
+
+    @property
+    def default_variant(self):
+        return next((variant for variant in self.variants.all() if variant.is_default), None)
+
+    @property
+    def display_variant(self):
+        return next((variant for variant in self.variants.all() if variant.is_active), None)
 
     @property
     def sale_price(self):
@@ -333,6 +325,8 @@ class Product(AttributedModel):
     @property
     def is_effectively_active(self):
         if not self.is_active:
+            return False
+        if not any(variant.is_active for variant in self.variants.all()):
             return False
         category_id = self.category_id
         seen = set()
@@ -349,7 +343,6 @@ class Product(AttributedModel):
     def clean(self):
         super().clean()
         self.name = self.name.strip()
-        self.sku = self.sku.strip().upper()
         if self.brand_id:
             previous_brand = (
                 Product.objects.filter(pk=self.pk).values_list("brand_id", flat=True).first()
@@ -363,16 +356,6 @@ class Product(AttributedModel):
                 raise ValidationError(
                     {"brand": "Choose an active brand, or leave the product unbranded."}
                 )
-        if self.sku and not self.sku.isprintable():
-            raise ValidationError({"sku": "Enter a printable SKU."})
-        if self.sku and (
-            Product.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists()
-            or ProductVariant.objects.filter(sku__iexact=self.sku)
-            .exclude(product_id=self.pk)
-            .exists()
-        ):
-            raise ValidationError({"sku": "This SKU is already used in the store."})
-        validate_sku(self)
         if not self.name:
             raise ValidationError({"name": "Enter a product name."})
         if self.category_id and Category.objects.parents().filter(pk=self.category_id).exists():
@@ -385,6 +368,8 @@ class Product(AttributedModel):
             self.discount_percentage = None
 
     def save(self, *args, **kwargs):
+        if kwargs.get("update_fields") is not None and not kwargs["update_fields"]:
+            return
         if self.is_active and self.category_id:
             category_id = self.category_id
             seen = set()
@@ -399,14 +384,32 @@ class Product(AttributedModel):
                         kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_active"}
                     break
                 category_id = category["parent_id"]
-        with sku_write(self, kwargs.get("update_fields")):
+        with transaction.atomic():
+            creating = self._state.adding
             self.full_clean()
-            return super().save(*args, **kwargs)
+            result = super().save(*args, **kwargs)
+            if creating:
+                variant = ProductVariant(
+                    product=self,
+                    is_default=True,
+                    **getattr(self, "_default_variant_initial", {}),
+                )
+                variant._creating_product = True
+                variant.save(force_insert=True)
+            return result
 
 
 class ProductVariant(AttributedModel):
+    class Unit(models.TextChoices):
+        KG = "kg", "kg"
+        EACH = "each", "each"
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
-    sku = models.CharField(max_length=100, unique=True)
+    sku = models.CharField(max_length=100, unique=True, blank=True, default="")
+    is_default = models.BooleanField(default=False)
+    barcode = models.CharField(max_length=100, blank=True)
+    inventory_unit = models.CharField(max_length=5, choices=Unit.choices, default=Unit.EACH)
+    package_content = models.CharField(max_length=100, blank=True)
     price = models.DecimalField(
         "Price (PKR)",
         max_digits=12,
@@ -427,8 +430,15 @@ class ProductVariant(AttributedModel):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["sku", "pk"]
+        ordering = ["-is_default", "sku", "pk"]
         constraints = [
+            models.UniqueConstraint(
+                fields=["product"], condition=models.Q(is_default=True), name="variant_one_default"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(inventory_unit__in=["kg", "each"]),
+                name="variant_inventory_unit_valid",
+            ),
             models.CheckConstraint(
                 condition=models.Q(price__isnull=True) | models.Q(price__gte=0),
                 name="variant_price_nonnegative",
@@ -446,6 +456,18 @@ class ProductVariant(AttributedModel):
         return f"{self.product}: {self.sku}"
 
     @property
+    def label(self):
+        return (
+            self.package_content
+            or " / ".join(f"{key.title()}: {value}" for key, value in self.attributes.items())
+            or "Standard"
+        )
+
+    @property
+    def primary_photo(self):
+        return next((photo for photo in self.photos.all() if photo.is_primary), None)
+
+    @property
     def sale_price(self):
         price = self.product.price if self.price is None else self.price
         if not self.product.is_on_sale or self.product.discount_percentage is None:
@@ -457,11 +479,28 @@ class ProductVariant(AttributedModel):
     def clean(self):
         super().clean()
         self.sku = self.sku.strip().upper()
-        if not self.sku or not self.sku.isprintable():
+        if (not self.sku and not self._state.adding) or (self.sku and not self.sku.isprintable()):
             raise ValidationError({"sku": "Enter a non-empty printable SKU."})
-        if ProductVariant.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists():
+        if (
+            self.sku
+            and ProductVariant.objects.filter(sku__iexact=self.sku).exclude(pk=self.pk).exists()
+        ):
             raise ValidationError({"sku": "This SKU is already used in the store."})
         validate_sku(self)
+        for field in ("barcode", "package_content"):
+            value = getattr(self, field).strip()
+            if value and not value.isprintable():
+                raise ValidationError({field: "Enter printable text."})
+            setattr(self, field, value)
+        if (
+            self.pk
+            and not self.is_default
+            and ProductVariant.objects.filter(pk=self.pk, is_default=True).exists()
+            and not ProductVariant.objects.filter(product_id=self.product_id, is_default=True)
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            raise ValidationError({"is_default": "Choose another default variant first."})
         if not isinstance(self.attributes, dict):
             raise ValidationError(
                 {"attributes": "Enter an object of attribute names and text values."}
@@ -486,9 +525,30 @@ class ProductVariant(AttributedModel):
         self.attributes = normalized
 
     def save(self, *args, **kwargs):
+        if kwargs.get("update_fields") is not None and not kwargs["update_fields"]:
+            return
         with sku_write(self, kwargs.get("update_fields")):
-            self.full_clean()
-            return super().save(*args, **kwargs)
+            if self._state.adding and not self.sku.strip():
+                self.sku = generated_sku()
+                self._generated_sku = True
+            if self.is_default and (
+                kwargs.get("update_fields") is None or "is_default" in kwargs["update_fields"]
+            ):
+                ProductVariant.objects.filter(product_id=self.product_id, is_default=True).exclude(
+                    pk=self.pk
+                ).update(is_default=False)
+            try:
+                self.full_clean()
+                return super().save(*args, **kwargs)
+            finally:
+                self._generated_sku = False
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            Product.objects.select_for_update().get(pk=self.product_id)
+            if type(self).objects.filter(pk=self.pk, is_default=True).exists():
+                raise ValidationError("Choose another default before deleting this variant.")
+            return super().delete(*args, **kwargs)
 
 
 class SkuIdentifierQuerySet(models.QuerySet):
@@ -537,34 +597,99 @@ class SkuIdentifier(models.Model):
         raise PermissionDenied("Issued SKUs cannot be deleted or reused.")
 
 
+class ProductPhotoQuerySet(models.QuerySet):
+    def delete(self):
+        with transaction.atomic():
+            list(
+                ProductVariant.objects.select_for_update()
+                .filter(pk__in=self.values("variant_id"))
+                .order_by("pk")
+                .values_list("pk", flat=True)
+            )
+            return super().delete()
+
+
 class ProductPhoto(AttributedModel):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
     variant = models.ForeignKey(
         ProductVariant,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.CASCADE,
         related_name="photos",
-        help_text="Optional. Unassigned photos are shared by all variants.",
     )
     image = models.ImageField(upload_to=product_photo_path)
     alt_text = models.CharField(max_length=200, blank=True)
     position = models.PositiveIntegerField(default=0)
+    is_primary = models.BooleanField(default=False)
+    objects = ProductPhotoQuerySet.as_manager()
 
     class Meta:
         ordering = ["position", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["variant"],
+                condition=models.Q(is_primary=True),
+                name="variant_one_primary_photo",
+            )
+        ]
 
     def __str__(self):
-        return self.alt_text or f"Photo for {self.product}"
+        return self.alt_text or f"Photo for {self.variant}"
 
     def clean(self):
         super().clean()
-        if self.variant_id and self.variant.product_id != self.product_id:
-            raise ValidationError({"variant": "Choose a variant of this product."})
+        if (
+            self.pk
+            and type(self).objects.filter(pk=self.pk).exclude(variant_id=self.variant_id).exists()
+        ):
+            raise ValidationError(
+                {"variant": "A saved photo cannot be transferred to another variant."}
+            )
+
+    def save(self, *args, **kwargs):
+        if kwargs.get("update_fields") is not None and not kwargs["update_fields"]:
+            return
+        with transaction.atomic():
+            ProductVariant.objects.select_for_update().get(pk=self.variant_id)
+            previous = type(self).objects.filter(pk=self.pk).values_list("image", flat=True).first()
+            if (
+                self.pk
+                and kwargs.get("update_fields") is not None
+                and "is_primary" not in kwargs["update_fields"]
+            ):
+                self.is_primary = type(self).objects.get(pk=self.pk).is_primary
+            others = type(self).objects.filter(variant_id=self.variant_id).exclude(pk=self.pk)
+            if self.is_primary:
+                others.update(is_primary=False)
+            elif not others.filter(is_primary=True).exists():
+                replacement = others.order_by("position", "pk").first()
+                if replacement:
+                    type(self).objects.filter(pk=replacement.pk).update(is_primary=True)
+                else:
+                    self.is_primary = True
+                    if kwargs.get("update_fields") is not None:
+                        kwargs["update_fields"] = set(kwargs["update_fields"]) | {"is_primary"}
+            self.full_clean()
+            result = super().save(*args, **kwargs)
+            if (
+                previous
+                and previous != self.image.name
+                and (kwargs.get("update_fields") is None or "image" in kwargs["update_fields"])
+            ):
+                storage = self.image.storage
+                transaction.on_commit(lambda: storage.delete(previous))
+            return result
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            ProductVariant.objects.select_for_update().get(pk=self.variant_id)
+            return super().delete(*args, **kwargs)
 
 
 @receiver(post_delete, sender=ProductPhoto)
 def delete_product_photo(sender, instance, using, **kwargs):
+    remaining = ProductPhoto.objects.using(using).filter(variant_id=instance.variant_id)
+    if remaining.exists() and not remaining.filter(is_primary=True).exists():
+        first = remaining.order_by("position", "pk").first()
+        remaining.filter(pk=first.pk).update(is_primary=True)
     if instance.image:
         storage, name = instance.image.storage, instance.image.name
         transaction.on_commit(lambda: storage.delete(name), using=using)

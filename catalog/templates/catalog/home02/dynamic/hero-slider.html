@@ -4,7 +4,7 @@
     {% for product in homepage_hero_products %}
     <div class="swiper-slide">
       <a href="{% url 'shop' %}?category={{ product.category.name|urlencode:'' }}" class="rt-hero-banner homepage-hero-image-slide" data-live-shop aria-label="Shop {{ product.category.name }} and related products">
-        {% with photo=product.photos.all.0 %}<span class="image-scale"><img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" width="810" height="520" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"></span>{% endwith %}
+        {% with photo=product.display_variant.primary_photo %}<span class="image-scale"><img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" width="810" height="520" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"></span>{% endwith %}
       </a>
     </div>
     {% empty %}<div class="swiper-slide"><p class="homepage-empty">No product photos are available yet.</p></div>{% endfor %}

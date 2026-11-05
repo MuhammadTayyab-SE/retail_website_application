@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.utils import translation
 
 from catalog.models import Category, Product
+from tests.catalog_fixtures import create_product, new_product
 
 
 class Home02QARegressionTests(SimpleTestCase):
@@ -28,7 +29,7 @@ class Home02QARegressionTests(SimpleTestCase):
                 self.assertIn("snapshot.js?v=49", html)
 
     def test_cart_metadata_uses_existing_discount_and_unlocalized_prices(self):
-        product = Product(
+        product = new_product(
             name="Milk & cream",
             description="<b>Full cream</b>",
             price=Decimal("390.00"),
@@ -102,7 +103,7 @@ class Home02DatabaseTests(TestCase):
         self.category = Category.objects.create(name="Live fruit", parent=self.parent)
 
     def test_categories_counts_and_ancestor_visibility(self):
-        product = Product.objects.create(name="Live apple", category=self.category, unit="each")
+        product = create_product(name="Live apple", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
         counts = {
             entry["category"].pk: entry["product_count"]
@@ -122,7 +123,7 @@ class Home02DatabaseTests(TestCase):
         self.assertNotContains(response, "Live apple")
 
     def test_sale_uses_existing_price_and_stock_rules(self):
-        sale = Product.objects.create(
+        sale = create_product(
             name="Live sale apple",
             category=self.category,
             unit="each",
@@ -131,7 +132,7 @@ class Home02DatabaseTests(TestCase):
             discount_percentage=50,
             quantity=0,
         )
-        Product.objects.create(name="Live regular pear", category=self.category, unit="each")
+        create_product(name="Live regular pear", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
         self.assertEqual(response.context["homepage_sale_products"], [sale])
         self.assertContains(response, "PKR 5.01")
@@ -141,7 +142,7 @@ class Home02DatabaseTests(TestCase):
 
     def test_trending_uses_newest_products_and_collections_are_bounded(self):
         products = [
-            Product.objects.create(name=f"Live item {i:02}", category=self.category, unit="each")
+            create_product(name=f"Live item {i:02}", category=self.category, unit="each")
             for i in range(15)
         ]
         Product.objects.filter(pk=products[0].pk).update(created_at=None)
@@ -155,7 +156,7 @@ class Home02DatabaseTests(TestCase):
         self.assertContains(response, "There are no active sale products.")
 
     def test_sale_section_never_fills_empty_slots_with_regular_products(self):
-        sale = Product.objects.create(
+        sale = create_product(
             name="Sale first",
             category=self.category,
             unit="each",
@@ -163,7 +164,7 @@ class Home02DatabaseTests(TestCase):
             discount_percentage=25,
         )
         for i in range(8):
-            Product.objects.create(name=f"Regular {i}", category=self.category, unit="each")
+            create_product(name=f"Regular {i}", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
         self.assertEqual(response.context["homepage_sale_products"], [sale])
         sale_html = response.content.decode().split('data-id="6acfb28"', 1)[1]
@@ -172,11 +173,11 @@ class Home02DatabaseTests(TestCase):
             self.assertNotIn(f"Regular {i}", sale_html)
 
     def test_category_search_and_old_bookmarks_use_current_home02(self):
-        apple = Product.objects.create(
+        apple = create_product(
             name="Live apple", category=self.category, unit="each", sku="APPLE-1"
         )
         other = Category.objects.create(name="Other live category")
-        Product.objects.create(name="Live rice", category=other, unit="each")
+        create_product(name="Live rice", category=other, unit="each")
         response = self.client.get(reverse("home"), {"category": self.parent.pk, "q": "apple-1"})
         self.assertEqual(response.context["featured_products"], [apple])
         self.assertContains(response, 'id="homepage-hero-slider"')
@@ -191,7 +192,7 @@ class Home02DatabaseTests(TestCase):
         )
 
     def test_invalid_or_hidden_category_has_empty_results(self):
-        Product.objects.create(name="Live apple", category=self.category, unit="each")
+        create_product(name="Live apple", category=self.category, unit="each")
         for value in ["invalid", "9" * 100, "999999"]:
             response = self.client.get(reverse("home"), {"category": value})
             self.assertTrue(response.context["invalid_category"])
@@ -200,13 +201,11 @@ class Home02DatabaseTests(TestCase):
 
     def test_top_rated_uses_bounded_unique_visible_database_products(self):
         products = [
-            Product.objects.create(
-                name=f"Random candidate {i}", category=self.category, unit="each"
-            )
+            create_product(name=f"Random candidate {i}", category=self.category, unit="each")
             for i in range(8)
         ]
         hidden_category = Category.objects.create(name="Hidden random category", is_active=False)
-        Product.objects.create(name="Hidden random product", category=hidden_category, unit="each")
+        create_product(name="Hidden random product", category=hidden_category, unit="each")
         response = self.client.get(reverse("home"))
         selected = response.context["homepage_top_rated_products"]
         selected_ids = {product.pk for product in selected}
@@ -217,7 +216,7 @@ class Home02DatabaseTests(TestCase):
         self.assertEqual(filtered.context["homepage_top_rated_products"], [products[0]])
 
     def test_homepage_top_categories_exclude_parent_groups(self):
-        product = Product.objects.create(name="Nested product", category=self.category, unit="each")
+        product = create_product(name="Nested product", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
         self.assertEqual(
             [entry["category"].pk for entry in response.context["homepage_categories"]],
@@ -237,12 +236,12 @@ class Home02DatabaseTests(TestCase):
 
     def test_best_selling_uses_five_visible_live_products_and_respects_search(self):
         products = [
-            Product.objects.create(
+            create_product(
                 name=f"Best candidate {i}", category=self.category, unit="each", price=100 + i
             )
             for i in range(7)
         ]
-        Product.objects.create(
+        create_product(
             name="Hidden candidate", category=self.category, unit="each", is_active=False
         )
         response = self.client.get(reverse("home"))
@@ -262,7 +261,7 @@ class Home02DatabaseTests(TestCase):
     def test_top_category_cards_are_bounded_and_prioritize_populated_categories(self):
         for i in range(8):
             Category.objects.create(name=f"Empty category {i}")
-        Product.objects.create(name="Visible fruit", category=self.category, unit="each")
+        create_product(name="Visible fruit", category=self.category, unit="each")
         response = self.client.get(reverse("home"))
         cards = response.context["homepage_top_categories"]
         self.assertEqual(len(cards), 6)

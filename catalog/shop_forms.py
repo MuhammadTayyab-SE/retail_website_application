@@ -1,12 +1,12 @@
 from django import forms
 
-from catalog.models import Product
+from catalog.models import ProductVariant
 
 
 class ShopFilterForm(forms.Form):
     q = forms.CharField(required=False, max_length=200, label="Search products")
     category = forms.MultipleChoiceField(required=False)
-    unit = forms.MultipleChoiceField(required=False, choices=Product.Unit.choices)
+    unit = forms.MultipleChoiceField(required=False, choices=ProductVariant.Unit.choices)
     min_price = forms.DecimalField(
         required=False, min_value=0, max_digits=12, decimal_places=2, label="Minimum price"
     )

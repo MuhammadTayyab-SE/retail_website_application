@@ -183,8 +183,14 @@ class OrderSettingsForm(forms.ModelForm):
         }
         help_texts = {
             "free_delivery_threshold": "Leave blank to disable the free-delivery promotion.",
-            "delivery_radius_km": "Driving-distance limit in km. Addresses are checked manually until a routing provider is configured.",
-            "return_address": "Used for new delivery labels. Saved labels keep their own return address for reprints.",
+            "delivery_radius_km": (
+                "Driving-distance limit in km. Addresses are checked manually "
+                "until a routing provider is configured."
+            ),
+            "return_address": (
+                "Used for new delivery labels. "
+                "Saved labels keep their own return address for reprints."
+            ),
         }
         widgets = {"return_address": forms.Textarea(attrs={"rows": 3})}
 
@@ -414,12 +420,10 @@ def orders_dashboard(request, section="all"):
 
 
 def _detail_context(request, order, form=None, payment_form=None, note_form=None):
-    prefetch_related_objects([order], "items__product__photos")
+    prefetch_related_objects([order], "items__variant__photos")
     receipt = receipt_details(order)
     for item in receipt["items"]:
-        photos = list(item.product.photos.all()) if item.product else []
-        photo = next((photo for photo in photos if photo.variant_id == item.variant_id), None)
-        photo = photo or next((photo for photo in photos if photo.variant_id is None), None)
+        photo = item.variant.primary_photo if item.variant else None
         item.image_url = reverse("public-product-photo", args=[photo.pk]) if photo else ""
     path = STATUS_PATHS.get(order.delivery_method, [])
     current = "placed" if order.status == "delivery_review" else order.status

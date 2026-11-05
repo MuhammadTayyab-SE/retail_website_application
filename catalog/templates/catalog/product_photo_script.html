@@ -30,14 +30,19 @@ function initializeProductGallery() {
   function normalize() {
     const list = forms();
     if (emptyState) emptyState.hidden = list.length > 0;
+    if (editable && list.length && !list.some(card => card.querySelector('input[name$="-is_primary"]')?.checked)) {
+      const first = list[0].querySelector('input[name$="-is_primary"]');
+      if (first) first.checked = true;
+    }
     list.forEach((card, index) => {
       const position = card.querySelector('input[name$="-position"]');
       if (position) position.value = index;
-      card.classList.toggle('is-showcase', index === 0);
+      const primary = editable ? card.querySelector('input[name$="-is_primary"]')?.checked : card.querySelector('[data-primary]')?.dataset.primary === 'true';
+      card.classList.toggle('is-showcase', Boolean(primary));
       const badge = card.querySelector('[data-showcase-badge]');
-      if (badge) badge.hidden = index !== 0;
+      if (badge) badge.hidden = !primary;
       const make = card.querySelector('[data-make-showcase]');
-      if (make) make.hidden = index === 0;
+      if (make) make.hidden = Boolean(primary);
       const previous = card.querySelector('[data-photo-previous]');
       const next = card.querySelector('[data-photo-next]');
       if (previous) previous.hidden = index === 0;
@@ -79,8 +84,8 @@ function initializeProductGallery() {
     }
     const controls = document.createElement('div');
     controls.className = 'product-photo-card-controls';
-    controls.innerHTML = '<span class="product-showcase-badge" data-showcase-badge hidden>Showcase</span>' + (editable ?
-      '<button type="button" class="product-photo-text-button" data-make-showcase>Make showcase</button>' +
+    controls.innerHTML = '<span class="product-showcase-badge" data-showcase-badge hidden>Primary image</span>' + (editable ?
+      '<button type="button" class="product-photo-text-button" data-make-showcase>Make primary</button>' +
       '<label class="product-photo-priority">Priority <select data-photo-priority aria-label="Photo priority"></select></label>' +
       '<div class="product-photo-order" aria-label="Change photo order">' +
       '<button type="button" data-photo-previous aria-label="Move photo earlier">&#8592; Earlier</button>' +
@@ -88,7 +93,18 @@ function initializeProductGallery() {
       '<button type="button" class="product-photo-delete" data-photo-delete>Delete</button>' : '');
     image.insertAdjacentElement('afterend', controls);
     card.querySelector('[data-make-showcase]')?.addEventListener('click', () => {
-      reorder(card, 0);
+      forms().forEach(item => {
+        const primary = item.querySelector('input[name$="-is_primary"]');
+        if (primary) primary.checked = item === card;
+      });
+      normalize();
+    });
+    card.querySelector('input[name$="-is_primary"]')?.addEventListener('change', event => {
+      if (event.target.checked) forms().filter(item => item !== card).forEach(item => {
+        const primary = item.querySelector('input[name$="-is_primary"]');
+        if (primary) primary.checked = false;
+      });
+      normalize();
     });
     card.querySelector('[data-photo-previous]')?.addEventListener('click', () => {
       const list = forms(), index = list.indexOf(card);

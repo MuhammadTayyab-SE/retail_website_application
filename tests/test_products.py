@@ -1,14 +1,11 @@
 import tempfile
-from importlib import import_module
 from io import BytesIO
-from types import SimpleNamespace
 
-from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -17,6 +14,7 @@ from PIL import Image
 from access.models import AuditEvent, Role, WorkerProfile
 from catalog.forms import ProductPhotoForm
 from catalog.models import Category, Product, ProductPhoto, ProductVariant
+from tests.catalog_fixtures import create_photo, create_product
 
 
 def photo_file(name="photo.png", image_format="PNG"):
@@ -35,12 +33,10 @@ class ProductTests(TestCase):
         cls.parent = Category.objects.create(name="Parent", is_parent_category=True)
         cls.category = Category.objects.create(name="Category", parent=cls.parent)
         cls.independent = Category.objects.create(name="Independent")
-        cls.product = Product.objects.create(
-            name="Milk", category=cls.category, sku="MILK-1", unit="litre"
-        )
-        cls.variant = ProductVariant.objects.create(
-            product=cls.product, sku="milk-1", attributes={"Size": "1 litre"}
-        )
+        cls.product = create_product(name="Milk", category=cls.category, sku="MILK-1", unit="each")
+        cls.variant = cls.product.default_variant
+        cls.variant.attributes = {"size": "1 litre"}
+        cls.variant.save()
         cls.role = Role.objects.create(name="Product reader")
         cls.role.permissions.set(
             Permission.objects.filter(
@@ -83,9 +79,9 @@ class ProductTests(TestCase):
             response.status_code, 302, response.context and response.context.get("errors")
         )
         product = Product.objects.get(name="New product")
-        self.assertFalse(product.variants.exists())
-        self.assertEqual(product.sku, "NEW-1")
-        self.assertEqual(product.unit, "each")
+        self.assertEqual(product.variants.filter(is_default=True).count(), 1)
+        self.assertEqual(product.default_variant.sku, "NEW-1")
+        self.assertEqual(product.default_variant.inventory_unit, "each")
         self.assertEqual(str(product.price), "320.50")
         self.assertEqual(product.quantity, 48)
         self.assertEqual(product.created_by, self.owner)
@@ -99,8 +95,8 @@ class ProductTests(TestCase):
             reverse("admin:catalog_product_change", args=[self.product.pk]),
             self.product_data(
                 name="Updated milk",
-                sku=self.product.sku,
-                unit=self.product.unit,
+                sku=self.product.default_variant.sku,
+                unit=self.product.default_variant.inventory_unit,
                 category=self.product.category_id,
             ),
             follow=True,
@@ -115,7 +111,7 @@ class ProductTests(TestCase):
 
     def test_sku_case_and_whitespace_are_normalized_and_unique_across_products(self):
         self.assertEqual(self.variant.sku, "MILK-1")
-        other = Product.objects.create(name="Other", category=self.independent)
+        other = create_product(name="Other", category=self.independent)
         with self.assertRaises(ValidationError):
             ProductVariant.objects.create(product=other, sku=" milk-1 ")
         with self.assertRaises(IntegrityError), transaction.atomic():
@@ -138,9 +134,9 @@ class ProductTests(TestCase):
         with self.assertRaises(ValidationError):
             ProductVariant.objects.create(product=self.product, sku="  ")
         with self.assertRaises(ValidationError):
-            Product.objects.create(name="   ", category=self.independent)
+            create_product(name="   ", category=self.independent)
         with self.assertRaises(ValidationError):
-            Product.objects.create(name="Wrong category", category=self.parent)
+            create_product(name="Wrong category", category=self.parent)
 
     def test_duplicate_product_sku_fails_without_partial_save(self):
         self.client.force_login(self.owner)
@@ -232,8 +228,8 @@ class ProductTests(TestCase):
             self.product_data(
                 name=self.product.name,
                 category=self.category.pk,
-                sku=self.product.sku,
-                unit=self.product.unit,
+                sku=self.product.default_variant.sku,
+                unit=self.product.default_variant.inventory_unit,
                 price="500.00",
                 quantity="8",
                 is_on_sale="on",
@@ -321,15 +317,23 @@ class ProductTests(TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.quantity, 2147483647)
 
-    def test_product_creation_requires_valid_unit_and_sku(self):
+    def test_product_creation_requires_valid_variant_unit(self):
         self.client.force_login(self.owner)
-        for changes in [{"unit": ""}, {"unit": "gallon"}, {"sku": "  "}]:
+        for changes in [{"unit": ""}, {"unit": "gallon"}, {"unit": "ml"}]:
             with self.subTest(changes=changes):
                 response = self.client.post(
                     reverse("admin:catalog_product_add"), self.product_data(**changes)
                 )
                 self.assertEqual(response.status_code, 200)
                 self.assertFalse(Product.objects.filter(name="New product").exists())
+
+        response = self.client.post(
+            reverse("admin:catalog_product_add"), self.product_data(sku="  ")
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertRegex(
+            Product.objects.get(name="New product").default_variant.sku, r"^SKU-[0-9]{6,}$"
+        )
 
     def test_public_visibility_for_product_variant_and_inactive_ancestors(self):
         url = reverse("product-list")
@@ -378,9 +382,9 @@ class ProductTests(TestCase):
             reverse("admin:catalog_product_change", args=[self.product.pk]),
             self.product_data(
                 name=self.product.name,
-                sku=self.product.sku,
+                sku=self.product.default_variant.sku,
                 category=self.category.pk,
-                unit=self.product.unit,
+                unit=self.product.default_variant.inventory_unit,
                 is_active="on",
             ),
         )
@@ -426,7 +430,7 @@ class ProductTests(TestCase):
         self.product.is_on_sale = True
         self.product.discount_percentage = 20
         self.product.save()
-        photo = ProductPhoto.objects.create(
+        photo = create_photo(
             product=self.product,
             image=photo_file("catalog.png"),
             alt_text="Milk carton",
@@ -514,7 +518,7 @@ class ProductTests(TestCase):
         data = self.product_data(
             name="Updated milk",
             sku="EDITED",
-            unit="ml",
+            unit="each",
             category=self.category.pk,
             created_by=self.worker.pk,
         )
@@ -525,8 +529,8 @@ class ProductTests(TestCase):
             302,
         )
         self.product.refresh_from_db()
-        self.assertEqual(self.product.sku, "EDITED")
-        self.assertEqual(self.product.unit, "ml")
+        self.assertEqual(self.product.default_variant.sku, "EDITED")
+        self.assertEqual(self.product.default_variant.inventory_unit, "each")
         self.assertEqual(self.product.updated_by, self.worker)
         self.assertIsNone(self.product.created_by)
         self.assertTrue(ProductVariant.objects.filter(pk=self.variant.pk).exists())
@@ -571,7 +575,7 @@ class ProductTests(TestCase):
         )
 
     def test_private_and_public_photo_permissions_and_visibility(self):
-        photo = ProductPhoto.objects.create(product=self.product, image=photo_file())
+        photo = create_photo(product=self.product, image=photo_file())
         private_url = reverse("product-photo", args=[photo.pk])
         public_url = reverse("public-product-photo", args=[photo.pk])
         self.assertEqual(self.client.get(private_url).status_code, 302)
@@ -591,7 +595,7 @@ class ProductTests(TestCase):
         self.assertEqual(self.client.get(public_url).status_code, 404)
 
     def test_product_delete_confirmation_cascade_audit_and_photo_cleanup(self):
-        photo = ProductPhoto.objects.create(product=self.product, image=photo_file())
+        photo = create_photo(product=self.product, image=photo_file())
         storage, name = photo.image.storage, photo.image.name
         self.client.force_login(self.owner)
         url = reverse("admin:catalog_product_delete", args=[self.product.pk])
@@ -638,7 +642,7 @@ class ProductTests(TestCase):
         )
         response = self.client.post(reverse("admin:catalog_product_add"), data)
         self.assertEqual(response.status_code, 302)
-        photo = Product.objects.get(name="New product").photos.get()
+        photo = Product.objects.get(name="New product").default_variant.photos.get()
         self.assertEqual(photo.created_by, self.owner)
         self.assertTrue(photo.image.storage.exists(photo.image.name))
         photo_event = AuditEvent.objects.filter(
@@ -685,9 +689,9 @@ class ProductTests(TestCase):
         response = self.client.post(reverse("admin:catalog_product_add"), data)
         self.assertEqual(response.status_code, 302, response.context and response.context["errors"])
         product = Product.objects.get(name="New product")
-        self.assertEqual(product.photos.count(), 2)
+        self.assertEqual(product.default_variant.photos.count(), 2)
         self.assertEqual(
-            list(product.photos.values_list("alt_text", "position")),
+            list(product.default_variant.photos.values_list("alt_text", "position")),
             [("Front package", 0), ("Back package", 1)],
         )
 
@@ -698,7 +702,7 @@ class ProductTests(TestCase):
         self.assertContains(
             response, 'type="file" accept="image/jpeg,image/png,image/webp" multiple'
         )
-        self.assertContains(response, "Make showcase")
+        self.assertContains(response, "Make primary")
         self.assertContains(response, "data-photo-delete")
         self.assertContains(response, "data-photo-previous")
         self.assertContains(response, "data-photo-next")
@@ -710,7 +714,7 @@ class ProductTests(TestCase):
         self.assertContains(response, "has-pending-photo")
 
     def test_existing_product_photo_is_rendered_in_edit_gallery_without_duplicate_title(self):
-        photo = ProductPhoto.objects.create(
+        photo = create_photo(
             product=self.product,
             image=photo_file("existing.png"),
             alt_text="Existing package",
@@ -727,22 +731,22 @@ class ProductTests(TestCase):
         self.assertContains(response, 'class="product-photo-thumb"', count=1)
         self.assertContains(response, reverse("product-photo", args=[photo.pk]))
         self.assertContains(response, 'value="Existing package"')
-        self.assertContains(response, "Make showcase")
+        self.assertContains(response, "Make primary")
         self.assertContains(response, "data-photo-delete")
         self.assertContains(response, "image.parentElement !== card")
 
     def test_product_photo_priority_and_deletion_are_saved(self):
         self.client.force_login(self.owner)
-        first = ProductPhoto.objects.create(
+        first = create_photo(
             product=self.product, image=photo_file("first.png"), alt_text="First", position=0
         )
-        second = ProductPhoto.objects.create(
+        second = create_photo(
             product=self.product, image=photo_file("second.png"), alt_text="Second", position=1
         )
         data = self.product_data(
             name=self.product.name,
-            sku=self.product.sku,
-            unit=self.product.unit,
+            sku=self.product.default_variant.sku,
+            unit=self.product.default_variant.inventory_unit,
             category=self.product.category_id,
             **{
                 "photos-TOTAL_FORMS": "2",
@@ -766,7 +770,7 @@ class ProductTests(TestCase):
         self.assertFalse(ProductPhoto.objects.filter(pk=first.pk).exists())
         second.refresh_from_db()
         self.assertEqual(second.position, 0)
-        self.assertEqual(self.product.photos.first(), second)
+        self.assertEqual(self.product.default_variant.photos.first(), second)
 
     def test_product_add_permission_does_not_require_variant_grants(self):
         self.role.permissions.add(
@@ -849,7 +853,7 @@ class ProductTests(TestCase):
             self.assertContains(response, "Showing 0 of 0 products.")
 
     def test_inventory_uses_showcase_photo_and_category_filter(self):
-        photo = ProductPhoto.objects.create(
+        photo = create_photo(
             product=self.product,
             image=photo_file("showcase.png"),
             alt_text="Milk package",
@@ -868,7 +872,7 @@ class ProductTests(TestCase):
 
     def test_unit_choices_and_product_sku_database_uniqueness(self):
         self.client.force_login(self.owner)
-        for unit in ["kg", "litre", "ml", "each"]:
+        for unit in ["kg", "each"]:
             response = self.client.post(
                 reverse("admin:catalog_product_add"),
                 self.product_data(name=f"Product {unit}", sku=f"UNIT-{unit}", unit=unit),
@@ -876,8 +880,8 @@ class ProductTests(TestCase):
             self.assertEqual(response.status_code, 302)
             self.assertContains(self.client.get(reverse("product-list")), f"UNIT-{unit.upper()}")
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Product.objects.bulk_create(
-                [Product(name="Duplicate", category=self.category, sku=" milk-1 ", unit="ml")]
+            ProductVariant.objects.bulk_create(
+                [ProductVariant(product=self.product, sku=" milk-1 ")]
             )
 
     def test_dashboard_and_navigation_show_products_without_variant_pages(self):
@@ -901,22 +905,3 @@ class ProductTests(TestCase):
             self.assertEqual(self.client.get("/admin/catalog/productvariant/").status_code, 404)
         self.role.permissions.clear()
         self.assertNotContains(self.client.get(reverse("admin:index")), "Latest products")
-
-    def test_legacy_sku_migration_preserves_all_options_and_unknown_units(self):
-        multi = Product.objects.create(name="Multiple old sizes", category=self.category)
-        first = ProductVariant.objects.create(product=multi, sku="OLD-A", is_active=False)
-        active = ProductVariant.objects.create(product=multi, sku="OLD-B")
-        single = Product.objects.create(name="Known unit", category=self.category)
-        ProductVariant.objects.create(product=single, sku="KNOWN", attributes={"unit": "kg"})
-        count = ProductVariant.objects.count()
-        migration = import_module("catalog.migrations.0007_product_sku_product_unit_and_more")
-        migration.copy_existing_skus(apps, SimpleNamespace(connection=connection))
-        multi.refresh_from_db()
-        single.refresh_from_db()
-        self.product.refresh_from_db()
-        self.assertEqual(multi.sku, active.sku)
-        self.assertEqual(multi.unit, "")
-        self.assertEqual(single.unit, "kg")
-        self.assertEqual(self.product.unit, "")
-        self.assertEqual(ProductVariant.objects.count(), count)
-        self.assertTrue(ProductVariant.objects.filter(pk=first.pk).exists())

@@ -10,8 +10,8 @@ from django.utils.html import format_html
 
 from access.audit import record
 from catalog.admin_widgets import PlainRelatedChoicesMixin
-from catalog.forms import ProductForm, ProductPhotoForm
-from catalog.models import Brand, Category, Product, ProductPhoto
+from catalog.forms import ProductForm, ProductPhotoForm, VariantForm, VariantPhotoFormSet
+from catalog.models import Brand, Category, Product, ProductPhoto, ProductVariant
 from catalog.skus import SKU_LOCK
 from config.admin import site
 
@@ -19,7 +19,8 @@ from config.admin import site
 class PhotoInline(admin.StackedInline):
     model = ProductPhoto
     form = ProductPhotoForm
-    fields = ["preview", "image", "alt_text", "position"]
+    formset = VariantPhotoFormSet
+    fields = ["preview", "image", "alt_text", "position", "is_primary"]
     readonly_fields = ["preview"]
     extra = 1
 
@@ -33,9 +34,10 @@ class PhotoInline(admin.StackedInline):
         if not obj.pk or not obj.image:
             return "Select a photo and save to preview."
         return format_html(
-            '<img class="product-photo-thumb" src="{}" alt="{}">',
+            '<img class="product-photo-thumb" src="{}" alt="{}" data-primary="{}">',
             reverse("product-photo", args=[obj.pk]),
             obj.alt_text,
+            "true" if obj.is_primary else "false",
         )
 
     def has_view_permission(self, request, obj=None):
@@ -110,9 +112,9 @@ class ProductAdminBase(PlainRelatedChoicesMixin, admin.ModelAdmin):
 @admin.register(Product, site=site)
 class ProductAdmin(ProductAdminBase):
     form = ProductForm
-    list_display = ["name", "sku", "category", "unit", "is_active"]
-    search_fields = ["name", "description", "sku"]
-    list_filter = ["is_active", "is_on_sale", "category", "unit", "brand"]
+    list_display = ["name", "sku", "category", "is_active"]
+    search_fields = ["name", "description", "variants__sku", "variants__barcode"]
+    list_filter = ["is_active", "is_on_sale", "category", "variants__inventory_unit", "brand"]
     list_select_related = ["category", "brand"]
     fieldsets = [
         (
@@ -124,6 +126,8 @@ class ProductAdmin(ProductAdminBase):
                     "brand",
                     ("price", "quantity"),
                     "unit",
+                    "barcode",
+                    "package_content",
                     "description",
                     "is_active",
                     "is_on_sale",
@@ -132,7 +136,50 @@ class ProductAdmin(ProductAdminBase):
             },
         )
     ]
-    inlines = [PhotoInline]
+
+    @admin.display(description="SKU")
+    def sku(self, obj):
+        return obj.default_variant.sku
+
+    @admin.display(description="Inventory unit")
+    def unit(self, obj):
+        return obj.default_variant.get_inventory_unit_display()
+
+    def barcode(self, obj):
+        return obj.default_variant.barcode
+
+    def package_content(self, obj):
+        return obj.default_variant.package_content
+
+    def get_inline_instances(self, request, obj=None):
+        if not self.has_view_or_change_permission(request, obj) and not self.has_add_permission(
+            request
+        ):
+            return []
+        inline = PhotoInline(ProductVariant, self.admin_site)
+        if not inline.has_add_permission(request, obj):
+            inline.max_num = 0
+        return [inline]
+
+    def get_formsets_with_inlines(self, request, obj=None):
+        variant = obj.default_variant if obj and obj.pk else None
+        for inline in self.get_inline_instances(request, obj):
+            yield inline.get_formset(request, variant), inline
+
+    def get_formset_kwargs(self, request, obj, inline, prefix):
+        variant = obj.default_variant if obj.pk else ProductVariant(product=obj, is_default=True)
+        return super().get_formset_kwargs(request, variant, inline, prefix)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        form.save_variant()
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        context = {
+            "can_edit_variants": self.has_change_permission(request),
+            **(extra_context or {}),
+        }
+        return super().changeform_view(request, object_id, form_url, context)
 
     def get_object(self, request, object_id, from_field=None):
         obj = super().get_object(request, object_id, from_field)
@@ -148,10 +195,20 @@ class ProductAdmin(ProductAdminBase):
         return super().get_form(request, obj, **kwargs)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("photos")
+        return super().get_queryset(request).prefetch_related("variants__photos")
 
     def get_urls(self):
         return [
+            path(
+                "<int:object_id>/variants/add/",
+                self.admin_site.admin_view(self.variant_view),
+                name="catalog_product_variant_add",
+            ),
+            path(
+                "<int:object_id>/variants/<int:variant_id>/",
+                self.admin_site.admin_view(self.variant_view),
+                name="catalog_product_variant_change",
+            ),
             path(
                 "<int:object_id>/stock/",
                 self.admin_site.admin_view(self.stock_view),
@@ -209,21 +266,99 @@ class ProductAdmin(ProductAdminBase):
 
     def save_formset(self, request, form, formset, change):
         if formset.model is ProductPhoto:
-            previous = {
-                photo.pk: photo.image
-                for photo in ProductPhoto.objects.filter(product=form.instance)
-            }
+            formset.instance = form.variant
             instances = formset.save(commit=False)
             for photo in formset.deleted_objects:
                 photo.delete()
             for photo in instances:
-                old = previous.get(photo.pk)
+                photo.variant = formset.instance
                 photo.save()
-                if old and old.name != photo.image.name:
-                    transaction.on_commit(lambda old=old: old.storage.delete(old.name))
             formset.save_m2m()
         else:
             super().save_formset(request, form, formset, change)
+
+    @transaction.atomic
+    def variant_view(self, request, object_id, variant_id=None):
+        product = get_object_or_404(Product.objects.select_for_update(), pk=object_id)
+        if not self.has_view_or_change_permission(request, product):
+            raise PermissionDenied
+        editable = self.has_change_permission(request, product)
+        if request.method == "POST" and not editable or variant_id is None and not editable:
+            raise PermissionDenied
+        variant = (
+            get_object_or_404(ProductVariant, pk=variant_id, product=product)
+            if variant_id
+            else ProductVariant(product=product)
+        )
+        if request.method == "POST":
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [SKU_LOCK])
+        form = VariantForm(request.POST if request.method == "POST" else None, instance=variant)
+        if not editable:
+            for field in form.fields.values():
+                field.disabled = True
+        inline = PhotoInline(ProductVariant, self.admin_site)
+        FormSet = inline.get_formset(request, variant)
+        photos = FormSet(
+            request.POST if request.method == "POST" else None,
+            request.FILES if request.method == "POST" else None,
+            instance=variant,
+            prefix="photos",
+        )
+        if request.method == "POST":
+            if request.POST.get("_delete") and variant.pk:
+                from django.core.exceptions import ValidationError
+
+                try:
+                    variant.delete()
+                    return HttpResponseRedirect(
+                        reverse("admin:catalog_product_change", args=[product.pk])
+                    )
+                except ValidationError as error:
+                    form.add_error(None, error)
+            elif form.is_valid() and photos.is_valid():
+                form.save()
+                instances = photos.save(commit=False)
+                for photo in photos.deleted_objects:
+                    photo.delete()
+                for photo in instances:
+                    photo.variant = variant
+                    photo.save()
+                photos.save_m2m()
+                self.message_user(request, "Variant saved.", messages.SUCCESS)
+                return HttpResponseRedirect(
+                    reverse("admin:catalog_product_variant_change", args=[product.pk, variant.pk])
+                )
+        from django.contrib.admin.helpers import InlineAdminFormSet
+
+        gallery = InlineAdminFormSet(
+            inline,
+            photos,
+            inline.get_fieldsets(request, variant),
+            {},
+            inline.readonly_fields,
+            model_admin=self,
+            has_add_permission=editable,
+            has_change_permission=editable,
+            has_delete_permission=editable,
+            has_view_permission=True,
+        )
+        return TemplateResponse(
+            request,
+            "admin/catalog/product/variant_form.html",
+            {
+                **self.admin_site.each_context(request),
+                "opts": Product._meta,
+                "title": "Edit variant" if variant.pk else "Add variant",
+                "product": product,
+                "variant": variant,
+                "form": form,
+                "gallery": gallery,
+                "editable": editable,
+                "media": self.media + gallery.media,
+                "errors": bool(form.errors) or photos.total_error_count() > 0,
+            },
+        )
 
 
 class StockForm(forms.Form):

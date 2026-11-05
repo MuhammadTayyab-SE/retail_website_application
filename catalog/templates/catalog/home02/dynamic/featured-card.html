@@ -1,7 +1,7 @@
 <div class="homepage-featured-card">
   <div class="homepage-featured-category"><a href="{% url 'home' %}?category={{ product.homepage_category.pk }}#rtsb-container-138192095" data-live-catalogue>{{ product.homepage_category.name }}</a></div>
   <a class="homepage-featured-photo" href="{% url 'product-detail' product.pk %}" data-product-page aria-label="View {{ product.name }}">
-    {% with photo=product.photos.all.0 %}
+    {% with photo=product.display_variant.primary_photo %}
     {% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" alt="{{ photo.alt_text|default:product.name }}" width="200" height="160" loading="lazy">
     {% else %}<span class="homepage-featured-no-photo">No photo available</span>{% endif %}
     {% endwith %}

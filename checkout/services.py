@@ -47,13 +47,12 @@ def priced_items(items, *, lock=False):
             .order_by("pk")
             .values_list("pk", flat=True)
         )
-    products = {
-        p.pk: p
-        for p in Product.objects.visible().filter(pk__in=product_ids).prefetch_related("photos")
-    }
+    products = {p.pk: p for p in Product.objects.visible().filter(pk__in=product_ids)}
     variant_ids = sorted({key[1] for key in quantities if key[1]})
-    variants_query = ProductVariant.objects.filter(pk__in=variant_ids, is_active=True).order_by(
-        "pk"
+    variants_query = (
+        ProductVariant.objects.filter(pk__in=variant_ids, is_active=True)
+        .order_by("pk")
+        .prefetch_related("photos")
     )
     if lock:
         variants_query = variants_query.select_for_update()
@@ -64,29 +63,24 @@ def priced_items(items, *, lock=False):
         product = products.get(product_id)
         if not product:
             raise CheckoutError("A cart product is no longer available. Please review your cart.")
-        variant = variants.get(variant_id) if variant_id else None
-        if variant_id and (not variant or variant.product_id != product_id):
+        variant = variants.get(variant_id)
+        if not variant or variant.product_id != product_id:
             raise CheckoutError(f"An option for {product.name} is no longer available.")
         stock_quantities[product_id] += quantity
         if stock_quantities[product_id] > product.quantity:
             raise CheckoutError(f"Only {product.quantity} units of {product.name} are available.")
-        if variant:
-            variant.product = product
-        price = variant.sale_price if variant else product.sale_price
-        regular = variant.price if variant and variant.price is not None else product.price
-        photos = list(product.photos.all())
-        photo = next((p for p in photos if p.variant_id == variant_id), None)
-        photo = photo or next((p for p in photos if p.variant_id is None), None)
+        variant.product = product
+        price = variant.sale_price
+        regular = variant.price if variant.price is not None else product.price
+        photo = variant.primary_photo
         lines.append(
             {
                 "product": product,
                 "variant": variant,
                 "quantity": quantity,
-                "name": f"{product.name} ({variant.sku})" if variant else product.name,
-                "sku": variant.sku if variant else product.sku,
-                "description": (
-                    variant.description if variant and variant.description else product.description
-                ),
+                "name": product.name if variant.is_default else f"{product.name} ({variant.label})",
+                "sku": variant.sku,
+                "description": (variant.description or product.description),
                 "regular_price": regular,
                 "unit_price": price,
                 "line_total": price * quantity,

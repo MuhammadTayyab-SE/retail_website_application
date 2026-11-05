@@ -23,7 +23,7 @@ class ReceiptTests(TestCase):
         session = self.client.session
         session["checkout_owner"] = str(self.owner)
         session.save()
-        items = [{"id": f"live-{self.product.pk}", "quantity": 2}]
+        items = [{"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 2}]
         lines = priced_items(items)
         accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
         self.order = place_order(items, details(), AnonymousUser(), self.owner, accepted)
@@ -94,7 +94,7 @@ class ReceiptTests(TestCase):
         Product.objects.filter(pk=self.product.pk).update(
             is_on_sale=False, discount_percentage=None
         )
-        items = [{"id": f"live-{self.product.pk}", "quantity": 2}]
+        items = [{"id": f"live-{self.product.pk}:{self.product.default_variant.pk}", "quantity": 2}]
         lines = priced_items(items)
         accepted = quote_snapshot(lines, policy_totals(lines, self.policy, "Lahore"))
         regular_order = place_order(items, details(), AnonymousUser(), self.owner, accepted)

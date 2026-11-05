@@ -6,8 +6,9 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from catalog.models import Category, Product, ProductPhoto, ProductVariant
+from catalog.models import Category, ProductVariant
 from catalog.views import public_category_photo
+from tests.catalog_fixtures import create_photo, create_product, create_products, new_product
 from tests.test_products import photo_file
 
 
@@ -24,7 +25,7 @@ class StorefrontTests(TestCase):
         self.other = Category.objects.create(name="Pantry")
 
     def product(self, **kwargs):
-        return Product.objects.create(
+        return create_product(
             **{"name": "Apples", "category": self.category, "unit": "kg", **kwargs}
         )
 
@@ -73,7 +74,7 @@ class StorefrontTests(TestCase):
 
     def test_inactive_ancestor_hides_cards_products_and_public_photos(self):
         product = self.product()
-        photo = ProductPhoto.objects.create(product=product, image=photo_file())
+        photo = create_photo(product=product, image=photo_file())
         self.category.photo = photo_file("category.png")
         self.category.save()
         url = reverse("public-category-photo", args=[self.category.pk])
@@ -117,22 +118,25 @@ class StorefrontTests(TestCase):
 
     def test_visibility_and_photo_order(self):
         product = self.product()
-        second = ProductPhoto.objects.create(product=product, image=photo_file(), position=2)
-        first = ProductPhoto.objects.create(product=product, image=photo_file(), position=1)
+        second = create_photo(product=product, image=photo_file(), position=2)
+        first = create_photo(product=product, image=photo_file(), position=1, is_primary=True)
         self.product(name="Hidden product", is_active=False)
-        legacy = self.product(name="Legacy product", unit="")
+        legacy = self.product(name="Inactive default product", unit="each")
+        default = legacy.default_variant
+        default.is_active = False
+        default.save()
         response = self.client.get(reverse("home"))
         self.assertContains(response, reverse("public-product-photo", args=[first.pk]))
         self.assertNotContains(response, reverse("public-product-photo", args=[second.pk]))
         self.assertNotContains(response, "Hidden product")
-        self.assertNotContains(response, "Legacy product")
+        self.assertNotContains(response, "Inactive default product")
         ProductVariant.objects.create(product=legacy, sku="LEGACY-1")
-        self.assertContains(self.client.get(reverse("home")), "Legacy product")
+        self.assertContains(self.client.get(reverse("home")), "Inactive default product")
 
     def test_pagination_bounded_queries_and_preserved_filters(self):
-        Product.objects.bulk_create(
+        create_products(
             [
-                Product(name=f"Item {number:02}", category=self.category, unit="each")
+                new_product(name=f"Item {number:02}", category=self.category, unit="each")
                 for number in range(30)
             ]
         )
@@ -180,9 +184,9 @@ class StorefrontTests(TestCase):
         )
 
     def test_sale_collection_and_first_page_have_bounded_queries(self):
-        Product.objects.bulk_create(
+        create_products(
             [
-                Product(
+                new_product(
                     name=f"Sale {number:02}",
                     category=self.category,
                     unit="each",

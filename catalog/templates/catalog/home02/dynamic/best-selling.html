@@ -1,9 +1,9 @@
 {% for product in best_selling_products %}
-<div class="rtsb-col-grid even-grid-item rtsb-product rtsb-product-list product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}">
+<div class="rtsb-col-grid even-grid-item rtsb-product rtsb-product-list product type-product {% if product.quantity %}instock{% else %}outofstock{% endif %} {% if product.is_on_sale %}sale{% endif %}" data-id="live-{{ product.pk }}:{{ product.display_variant.pk }}">
   <div class="rtsb-item-default rtsb-list-item">
     <div class="rtsb-product-img"><figure>
       <a href="{% url 'product-detail' product.pk %}" class="rtsb-img-link" data-product-page aria-label="View {{ product.name }}">
-        {% with photo=product.photos.all.0 %}
+        {% with photo=product.display_variant.primary_photo %}
         {% if photo %}<img src="{% url 'public-product-photo' photo.pk %}" class="rtsb-product-image" alt="{{ photo.alt_text|default:product.name }}" width="100" height="100" loading="lazy">
         {% else %}<span class="homepage-photo-placeholder"><i class="icon-zilly-cart" aria-hidden="true"></i><span>No photo available</span></span>{% endif %}
         {% endwith %}

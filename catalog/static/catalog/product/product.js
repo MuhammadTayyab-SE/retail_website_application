@@ -37,11 +37,11 @@
     document.querySelector('#product-regular-price').textContent = money(option.regular_price);
     document.querySelector('#product-description').textContent = option.description || 'No description available.';
     document.querySelector('#product-sku').textContent = option.sku || '—';
+    document.querySelector('#product-unit').textContent = option.unit;
     document.querySelectorAll('[data-variant]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.variant === option.id));
     });
     images = data.photos.filter(image => image.variant === option.id && image.variant);
-    images.push(...data.photos.filter(image => !image.variant));
     thumbnails.replaceChildren();
     images.forEach((image, position) => {
       const button = document.createElement('button');
@@ -112,8 +112,7 @@
       name: `${data.name}${item.option.id ? ` — ${item.option.label}` : ''}`,
       quantity: Number(item.input.value),
       description: item.option.description,
-      image: (data.photos.find(photo => photo.variant === item.option.id)
-        || data.photos.find(photo => !photo.variant))?.src || '',
+      image: data.photos.find(photo => photo.variant === item.option.id)?.src || '',
       price: Math.round(Number(item.option.regular_price) * 100),
       salePrice: item.option.price !== item.option.regular_price
         ? Math.round(Number(item.option.price) * 100) : null,

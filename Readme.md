@@ -27,11 +27,15 @@ development checkout's existing `media` directory. Git does not copy uploaded
 photos into worktrees. Restart the development server after changing `.env`;
 an autoreloader child can inherit older environment values from its parent.
 
-CINV-02 adds durable SKU reservations. Before applying catalog migration 0013,
-pause catalog/checkout writes, back up PostgreSQL and run `python manage.py check_skus`.
-It reports ambiguous ownership rather than renumbering data. See
-[CINV-02 setup and recovery](docs/tickets/CINV-02.md) before migrating. SKU overrides
-require the explicit role permission; automatic creation UI remains a later increment.
+CINV-02's SKU registry and sequence are retained. CINV-03 makes variants the SKU/unit
+and image owners, with automatic defaults and scoped galleries. Its forward migration
+0014 removes obsolete Product/photo columns and rejects a populated catalog instead
+of deleting or mapping records. Follow [CINV-03 setup](docs/tickets/CINV-03.md): use a
+confirmed isolated target and obtain explicit approval before destructive schema or
+test-runner operations. Never apply this against a shared development/staging/production
+database. Run `python manage.py check_skus` after the current schema is installed; it
+now checks live variant ownership against the retained registry. Historical CINV-02
+preflight instructions apply to that earlier revision, not the current schema.
 
 Alternatively, configure explicit process variables from this checkout, with uv and Python 3.13 available:
 

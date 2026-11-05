@@ -27,7 +27,7 @@
     <section class="product-summary" aria-labelledby="product-name">
       <a class="product-category" href="{% url 'shop' %}?category={{ product.category_id }}" data-live-shop>{{ product.category.name }}</a>
       <h1 id="product-name">{{ product.name }}</h1>
-      <p class="product-availability {% if not product.quantity %}unavailable{% endif %}">{% if product.quantity %}In stock{% else %}Out of stock{% endif %}{% if product.unit %} · Sold per {{ product.get_unit_display }}{% endif %}</p>
+      <p class="product-availability {% if not product.quantity %}unavailable{% endif %}">{% if product.quantity %}In stock{% else %}Out of stock{% endif %} · Sold per <span id="product-unit">{{ selected_option.unit }}</span></p>
       <div class="product-price-group" aria-live="polite"><strong id="product-price">PKR {{ selected_option.price }}</strong><del id="product-regular-price" {% if not product.is_on_sale %}hidden{% endif %}>PKR {{ selected_option.regular_price }}</del>{% if product.is_on_sale %}<span class="product-discount">-{{ product.discount_percentage }}%</span>{% endif %}</div>
       <p id="product-description" class="product-description">{{ selected_option.description|default:'No description available.' }}</p>
       {% if has_variants %}

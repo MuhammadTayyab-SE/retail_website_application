@@ -17,7 +17,7 @@ from tests.test_checkout import details, fixture
 
 def order_fixture():
     product, policy = fixture()
-    items = [{"id": f"live-{product.pk}", "quantity": 2}]
+    items = [{"id": f"live-{product.pk}:{product.default_variant.pk}", "quantity": 2}]
     lines = priced_items(items)
     order = place_order(
         items,

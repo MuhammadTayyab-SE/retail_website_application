@@ -30,7 +30,7 @@ def home02(request):
         Product.objects.visible()
         .filter(category_id__in=category_ids)
         .select_related("category")
-        .prefetch_related("photos")
+        .prefetch_related("variants__photos")
     )
     counts = {
         row["category_id"]: row["total"]
@@ -58,7 +58,7 @@ def home02(request):
     )
     products = catalog_products
     if query:
-        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        products = products.filter(Q(name__icontains=query) | Q(variants__sku__icontains=query))
     if selected:
         if selected_category:
             descendants = {selected_category.pk}
@@ -76,14 +76,14 @@ def home02(request):
     # Sales history is not recorded yet; use a stable live-catalog fallback.
     best_selling_products = list(products.order_by("name", "pk")[:5])
     banner_products = list(
-        catalog_products.filter(photos__isnull=False).order_by(
-            "-is_on_sale", F("created_at").desc(nulls_last=True), "-pk"
-        )[:2]
+        catalog_products.filter(
+            variants__is_default=True, variants__is_active=True, variants__photos__is_primary=True
+        ).order_by("-is_on_sale", F("created_at").desc(nulls_last=True), "-pk")[:2]
     )
     hero_products = list(
-        catalog_products.filter(photos__isnull=False).order_by(
-            F("created_at").desc(nulls_last=True), "-pk"
-        )[:3]
+        catalog_products.filter(
+            variants__is_default=True, variants__is_active=True, variants__photos__is_primary=True
+        ).order_by(F("created_at").desc(nulls_last=True), "-pk")[:3]
     )
     top_rated_products = list(products.order_by("?")[:5])
     for product in [
@@ -243,7 +243,9 @@ def product_photo(request, pk):
 
 @require_safe
 def product_list(request):
-    products = Product.objects.visible().select_related("category").prefetch_related("photos")
+    products = (
+        Product.objects.visible().select_related("category").prefetch_related("variants__photos")
+    )
     return render(request, "catalog/products.html", {"products": products})
 
 
@@ -254,12 +256,12 @@ def catalog_view(request):
     if not product_admin.has_view_permission(request):
         raise PermissionDenied
     visible_products = Product.objects.visible()
-    products = visible_products.select_related("category").prefetch_related("photos")
+    products = visible_products.select_related("category").prefetch_related("variants__photos")
     query = request.GET.get("q", "").strip()
     selected_category = request.GET.get("category", "").strip()
     catalog_filter_error = ""
     if query:
-        products = products.filter(Q(name__icontains=query) | Q(sku__icontains=query))
+        products = products.filter(Q(name__icontains=query) | Q(variants__sku__icontains=query))
     if selected_category:
         if selected_category.isdecimal():
             products = products.filter(category_id=selected_category)
@@ -285,5 +287,7 @@ def catalog_view(request):
 
 @require_safe
 def public_product_photo(request, pk):
-    photo = get_object_or_404(ProductPhoto, pk=pk, product__in=Product.objects.visible())
+    photo = get_object_or_404(
+        ProductPhoto, pk=pk, variant__is_active=True, variant__product__in=Product.objects.visible()
+    )
     return serve_product_photo(photo)

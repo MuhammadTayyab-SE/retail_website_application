@@ -331,10 +331,10 @@
     "id": "CINV-03",
     "title": "CINV-03: Variant identity, automatic defaults and variant photo ownership",
     "priority": "P0",
-    "status": "Ready",
-    "owner": "Developer (unclaimed); revised by PM/TL",
+    "status": "In Development",
+    "owner": "Developer (claimed 2026-11-05)",
     "dependencies": "CINV-01, CINV-02",
-    "description": "Extend existing ProductVariant and ProductPhoto. Establish canonical variant identity and per-variant image operations, integrating current forms/readers so completed routes keep working. Reuse merged Brand and SKU work; no legacy data backfill or cart-mapping layer. Planning revision only; no implementation claim. Current plan: docs/catalog-inventory-plan.md; decisions CINV-D8 through D11 supersede disposable-data preservation/backfill requirements. Preserve code/completed functionality and unrelated records. No shared/staging/production reset. Confirm the exact isolated target and scope and obtain explicit approval before any destructive DB/schema/data operation; this issue is not that approval. Keep 0001-0013 and use coherent forward migrations. One implementation ticket at a time; isolated branch/draft PR -> independent PM review -> authorized exact-SHA QA -> My Review. No merge/deploy without explicit approval. This planning revision starts no feature or QA execution.",
+    "description": "User started CINV-03 on 2026-11-05. Branch feature/cinv-03-variants, baseline 4c4d236. Variant/default/photo code and migration prepared; database execution/testing await explicit isolated-target approval. No shared database reset. See docs/tickets/CINV-03.md. Acceptance scope/dependencies remain unchanged.",
     "acceptanceCriteria": [
       "Reuse Brand/Product.brand and CINV-02 SkuIdentifier/sequence/override/audit. Extend the existing allocation path for atomic generated creation; an add-only product worker must not need manual override or change_product just to receive an automatic SKU.",
       "Add default marker, optional barcode, explicit inventory unit and separate package-content label. Enforce at most one default in PostgreSQL and ensure exactly one at atomic creation/edit/default-removal boundaries, including concurrent requests. A simple product requires no manual variant setup.",
