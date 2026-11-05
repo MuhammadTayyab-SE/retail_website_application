@@ -1,6 +1,6 @@
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, prefetch_related_objects
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -27,10 +27,7 @@ def home02(request):
             root_categories[category.parent_id] if category.parent_id else category
         )
     catalog_products = (
-        Product.objects.visible()
-        .filter(category_id__in=category_ids)
-        .select_related("category")
-        .prefetch_related("variants__photos")
+        Product.objects.visible().filter(category_id__in=category_ids).select_related("category")
     )
     counts = {
         row["category_id"]: row["total"]
@@ -86,6 +83,18 @@ def home02(request):
         ).order_by(F("created_at").desc(nulls_last=True), "-pk")[:3]
     )
     top_rated_products = list(products.order_by("?")[:5])
+    prefetch_related_objects(
+        [
+            *featured,
+            *trending,
+            *sale_products,
+            *best_selling_products,
+            *top_rated_products,
+            *banner_products,
+            *hero_products,
+        ],
+        "variants__photos",
+    )
     for product in [
         *featured,
         *trending,

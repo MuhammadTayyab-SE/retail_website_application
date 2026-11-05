@@ -219,6 +219,67 @@ class VariantTests(TestCase):
                 [ProductPhoto(variant=self.variant, image="synthetic.png", is_primary=True)]
             )
 
+    def test_variant_editor_switches_default_primary_and_order_then_removes_one_photo(self):
+        self.client.force_login(self.owner)
+        other = ProductVariant.objects.create(product=self.product)
+        first = ProductPhoto.objects.create(variant=other, image=photo_file(), position=0)
+        second = ProductPhoto.objects.create(variant=other, image=photo_file(), position=1)
+        url = reverse("admin:catalog_product_variant_change", args=[self.product.pk, other.pk])
+        payload = {
+            "sku": other.sku,
+            "is_default": "on",
+            "inventory_unit": "each",
+            "is_active": "on",
+            "attributes": "{}",
+            "photos-TOTAL_FORMS": 2,
+            "photos-INITIAL_FORMS": 2,
+            "photos-0-id": first.pk,
+            "photos-0-position": 1,
+            "photos-1-id": second.pk,
+            "photos-1-position": 0,
+            "photos-1-is_primary": "on",
+        }
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 302, getattr(response, "context_data", None))
+        self.assertEqual(self.product.default_variant.pk, other.pk)
+        self.assertEqual(other.primary_photo.pk, second.pk)
+        self.assertEqual(list(other.photos.values_list("pk", flat=True)), [second.pk, first.pk])
+        payload["photos-0-is_primary"] = "on"
+        response = self.client.post(url, payload)
+        self.assertContains(response, "Choose only one primary photo")
+        self.assertEqual(other.primary_photo.pk, second.pk)
+        del payload["photos-0-is_primary"]
+        payload["photos-1-DELETE"] = "on"
+        self.assertEqual(self.client.post(url, payload).status_code, 302)
+        self.assertEqual(list(other.photos.values_list("pk", flat=True)), [first.pk])
+        self.assertEqual(other.primary_photo.pk, first.pk)
+
+    def test_variant_reader_cannot_add_edit_or_delete(self):
+        reader = get_user_model().objects.create_user("variant-reader", is_staff=True)
+        role = Role.objects.create(name="Variant reader")
+        role.permissions.add(
+            Permission.objects.get(codename="view_product", content_type__app_label="catalog")
+        )
+        WorkerProfile.objects.create(user=reader, role=role)
+        self.client.force_login(reader)
+        url = reverse(
+            "admin:catalog_product_variant_change", args=[self.product.pk, self.variant.pk]
+        )
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            all(field.disabled for field in response.context_data["form"].fields.values())
+        )
+        self.assertNotContains(response, "Save variant")
+        self.assertEqual(self.client.post(url, {"_delete": "1"}).status_code, 403)
+        self.assertEqual(
+            self.client.get(
+                reverse("admin:catalog_product_variant_add", args=[self.product.pk])
+            ).status_code,
+            403,
+        )
+        self.assertTrue(ProductVariant.objects.filter(pk=self.variant.pk).exists())
+
     def test_product_deletion_retains_issued_identity(self):
         key, code = self.variant.pk, self.variant.sku.lower()
         self.product.delete()

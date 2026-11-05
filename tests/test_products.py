@@ -119,7 +119,7 @@ class ProductTests(TestCase):
         self.variant.sku = " milk-1 "
         self.variant.save()
 
-    def test_invalid_attributes_and_empty_names_skus_fail(self):
+    def test_invalid_attributes_and_empty_names_fail_and_blank_sku_is_generated(self):
         for attributes in [
             [],
             {"size": 1},
@@ -131,8 +131,8 @@ class ProductTests(TestCase):
                 ProductVariant.objects.create(
                     product=self.product, sku="TEST", attributes=attributes
                 )
-        with self.assertRaises(ValidationError):
-            ProductVariant.objects.create(product=self.product, sku="  ")
+        generated = ProductVariant.objects.create(product=self.product, sku="  ")
+        self.assertRegex(generated.sku, r"^SKU-[0-9]{6,}$")
         with self.assertRaises(ValidationError):
             create_product(name="   ", category=self.independent)
         with self.assertRaises(ValidationError):
@@ -353,9 +353,10 @@ class ProductTests(TestCase):
         self.product.save()
         self.variant.is_active = False
         self.variant.save()
-        self.assertContains(self.client.get(url), "Milk")
+        self.assertNotContains(self.client.get(url), "Milk")
         self.variant.is_active = True
         self.variant.save()
+        self.assertContains(self.client.get(url), "Milk")
         self.product.is_active = False
         self.product.save()
         self.assertNotContains(self.client.get(url), "Milk")
@@ -557,7 +558,7 @@ class ProductTests(TestCase):
             )
             self.assertTrue(form.is_valid(), form.errors)
             photo = form.save(commit=False)
-            photo.product = self.product
+            photo.variant = self.variant
             photo.save()
             self.assertTrue(photo.image.name.startswith("products/"))
             self.assertTrue(photo.image.name.endswith("." + extension))
@@ -649,7 +650,7 @@ class ProductTests(TestCase):
             module="catalog.productphoto", action="create", target_id=str(photo.pk)
         ).latest("pk")
         self.assertEqual(photo_event.details["subject_module"], "catalog.product")
-        self.assertEqual(photo_event.details["subject_id"], str(photo.product_id))
+        self.assertEqual(photo_event.details["subject_id"], str(photo.variant.product_id))
 
         data = self.product_data(
             **{

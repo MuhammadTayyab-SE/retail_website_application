@@ -459,7 +459,9 @@ class ProductVariant(AttributedModel):
     def label(self):
         return (
             self.package_content
-            or " / ".join(f"{key.title()}: {value}" for key, value in self.attributes.items())
+            or " / ".join(
+                f"{key.title()}: {value}" for key, value in sorted(self.attributes.items())
+            )
             or "Standard"
         )
 
@@ -662,6 +664,7 @@ class ProductPhoto(AttributedModel):
             elif not others.filter(is_primary=True).exists():
                 replacement = others.order_by("position", "pk").first()
                 if replacement:
+                    type(self).objects.filter(pk=self.pk).update(is_primary=False)
                     type(self).objects.filter(pk=replacement.pk).update(is_primary=True)
                 else:
                     self.is_primary = True

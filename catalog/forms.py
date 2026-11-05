@@ -247,6 +247,8 @@ class VariantForm(forms.ModelForm):
 
     def _get_validation_exclusions(self):
         exclude = super()._get_validation_exclusions()
+        # The locked save demotes the previous default before checking its constraint.
+        exclude.add("is_default")
         if getattr(self, "_generated", False):
             exclude.add("sku")
         return exclude
@@ -259,6 +261,10 @@ class ProductPhotoForm(forms.ModelForm):
         widgets = {
             "image": forms.ClearableFileInput(attrs={"accept": "image/jpeg,image/png,image/webp"})
         }
+
+    def _get_validation_exclusions(self):
+        # The formset checks the selection; the locked save replaces the old primary.
+        return super()._get_validation_exclusions() | {"is_primary"}
 
     def clean_image(self):
         return validate_photo_upload(self.cleaned_data["image"])
